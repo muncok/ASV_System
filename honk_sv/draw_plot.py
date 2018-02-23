@@ -41,29 +41,30 @@ def plot_eer(score_vector, label_vector):
     tpr["macro"] = mean_tpr
     roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
     eer["macro"] = fpr["macro"][np.nanargmin(np.abs(fpr["macro"] - (1 - tpr["macro"])))]
+    return eer["micro"]
     # Plot all ROC curves
-    plt.figure(figsize=(10,7))
-    plt.plot(fpr["micro"], tpr["micro"],
-	     label='micro-average ROC curve (area = {0:0.2f}, eer = {1:0.4f})'
-		   ''.format(roc_auc["micro"], eer["micro"]),
-	     color='deeppink', linestyle=':', linewidth=4)
-
-    plt.plot(fpr["macro"], tpr["macro"],
-	     label='macro-average ROC curve (area = {0:0.2f}, eer = {1:0.4f})'
-		   ''.format(roc_auc["macro"], eer["macro"]),
-	     color='navy', linestyle=':', linewidth=4)
-
-    colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
-    for i, color in zip(range(n_classes), colors):
-        plt.plot(fpr[i], tpr[i], color=color, lw=lw,
-		 label='ROC curve of {0} (area = {1:0.2f}, eer = {2:0.4f})'
-		 ''.format(i, roc_auc[i], eer[i]))
-
-    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Some extension of Receiver operating characteristic to multi-class')
-    plt.legend(loc="lower right")
-    plt.show()
+    # plt.figure(figsize=(10,7))
+    # plt.plot(fpr["micro"], tpr["micro"],
+	 #     label='micro-average ROC curve (area = {0:0.2f}, eer = {1:0.4f})'
+		#    ''.format(roc_auc["micro"], eer["micro"]),
+	 #     color='deeppink', linestyle=':', linewidth=4)
+    #
+    # plt.plot(fpr["macro"], tpr["macro"],
+	 #     label='macro-average ROC curve (area = {0:0.2f}, eer = {1:0.4f})'
+		#    ''.format(roc_auc["macro"], eer["macro"]),
+	 #     color='navy', linestyle=':', linewidth=4)
+    #
+    # colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
+    # for i, color in zip(range(n_classes), colors):
+    #     plt.plot(fpr[i], tpr[i], color=color, lw=lw,
+		#  label='ROC curve of {0} (area = {1:0.2f}, eer = {2:0.4f})'
+		#  ''.format(i, roc_auc[i], eer[i]))
+    #
+    # plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+    # plt.xlim([0.0, 1.0])
+    # plt.ylim([0.0, 1.05])
+    # plt.xlabel('False Positive Rate')
+    # plt.ylabel('True Positive Rate')
+    # plt.title('Some extension of Receiver operating characteristic to multi-class')
+    # plt.legend(loc="lower right")
+    # plt.show()

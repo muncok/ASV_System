@@ -38,8 +38,24 @@ def euclidean_dist(x, y):
 
     return torch.pow(x - y, 2).sum(2)
 
+def cosine_similarity(x, y):
+    '''
+    Compute euclidean distance between two tensors
+    '''
+    # x: N x D
+    # y: M x D
+    n = x.size(0)
+    m = y.size(0)
+    d = x.size(1)
+    if d != y.size(1):
+        raise Exception
 
-def prototypical_loss(input, target, n_support):
+    x = x.unsqueeze(1).expand(n, m, d)
+    y = y.unsqueeze(0).expand(n, m, d)
+
+    return F.cosine_similarity(x, y, dim=2)
+
+def prototypical_loss(input, target, n_support, randomize=False):
     '''
     Inspired by https://github.com/jakesnell/prototypical-networks/blob/master/protonets/models/few_shot.py
 
@@ -59,22 +75,24 @@ def prototypical_loss(input, target, n_support):
     cputargs = cputargs.data
     cpuinput = input.cpu() if target.is_cuda else input
 
+    if randomize and n_support > 1:
+        n_support = np.random.randint(1, n_support)
+
     def supp_idxs(c):
-        return torch.LongTensor(np.where(cputargs.numpy() == c)[0][:n_support])
+        return torch.nonzero(cputargs.eq(int(c)))[:n_support].squeeze()
 
     classes = np.unique(cputargs)
     n_classes = len(classes)
-    n_query = len(np.where(cputargs.numpy() == classes[0])[0]) - n_support
-    os_idxs = list(map(supp_idxs, classes))
-    prototypes = [cpuinput[i].mean(0).data.numpy().tolist() for i in os_idxs]
-    prototypes = Variable(torch.FloatTensor(prototypes))
+    n_query = len(torch.nonzero(cputargs.eq(int(classes[0])))) - n_support
 
-    oq_idxs = map(lambda c: np.where(cputargs.numpy() == c)
-                  [0][n_support:], classes)
-    oq = input[np.array(list(oq_idxs)).flatten(),]
+    os_idxs = list(map(supp_idxs, classes))
+
+    prototypes = torch.stack([cpuinput[i].mean(0) for i in os_idxs])
 
     prototypes = prototypes.cuda() if target.is_cuda else prototypes
-
+    oq_idxs_0 = torch.stack(list(map(lambda c: torch.nonzero(cputargs.eq(int(c)))[n_support:], classes))).view(-1)
+    oq_idxs_0 = oq_idxs_0.cuda() if target.is_cuda else oq_idxs_0
+    oq = input[oq_idxs_0]
     dists = euclidean_dist(oq, prototypes)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
@@ -92,3 +110,4 @@ def prototypical_loss(input, target, n_support):
     acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
 
     return loss_val,  acc_val
+

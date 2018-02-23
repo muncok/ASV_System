@@ -1,17 +1,19 @@
 # coding=utf-8
-from prototypical_batch_sampler import PrototypicalBatchSampler
-from verification_batch_sampler import VerificationBatchSampler
-from speech_dataset import SpeechDataset
-import torch
-from prototypical_loss import prototypical_loss as loss
-from verification_loss import verification_score as veri_score
-from torch.autograd import Variable
 import numpy as np
 import scipy.stats as st
 from tqdm import tqdm
-from parser import get_parser
-import model as mod
 from time import sleep
+
+import torch
+from torch.autograd import Variable
+import honk_sv.model as mod
+
+from protonet.prototypical_batch_sampler import PrototypicalBatchSampler
+from protonet.verification_batch_sampler import VerificationBatchSampler
+from protonet.prototypical_loss import prototypical_loss as loss
+from protonet.verification_loss import verification_score as veri_score
+from protonet.speech_dataset import SpeechDataset
+from protonet.parser import get_parser
 
 
 def init_seed(opt):
@@ -27,18 +29,25 @@ def init_dataset(opt):
     '''
     Initialize the datasets, samplers and dataloaders
     '''
-    train_dataset, val_dataset = SpeechDataset.read_manifest(opt)
+    train_dataset, _, val_dataset = SpeechDataset.read_train_manifest(opt)
+
     tr_sampler = PrototypicalBatchSampler(labels=train_dataset.audio_labels,
                                           classes_per_it=opt.classes_per_it_tr,
-                                          num_support=opt.num_support_tr,
-                                          num_query=opt.num_query_tr,
-                                          iterations=opt.iterations)
+                                          num_samples=opt.num_support_tr + opt.num_query_tr,
+                                          iterations=opt.iterations,
+                                          randomize=False)
+
+    # trainval_sampler = PrototypicalBatchSampler(labels=trainval_dataset.audio_labels,
+                                                # classes_per_it=opt.classes_per_it_tr,
+                                                # num_samples=opt.num_support_tr + opt.num_query_tr,
+                                                # iterations=opt.iterations,
+                                                # randomize=False)
 
     # val_sampler = PrototypicalBatchSampler(labels=val_dataset.audio_labels,
-    #                                        classes_per_it=opt.classes_per_it_val,
-    #                                        num_support=opt.num_support_val,
-    #                                        num_query=opt.num_query_val,
-    #                                        iterations=opt.iterations)
+                                           # classes_per_it=opt.classes_per_it_val,
+                                           # num_samples=opt.num_support_val + opt.num_query_val,
+                                           # iterations=opt.iterations,
+                                           # randomize=False)
 
     val_sampler = VerificationBatchSampler(labels=val_dataset.audio_labels,
                                            classes_per_it=opt.classes_per_it_val,
@@ -48,41 +57,48 @@ def init_dataset(opt):
 
     tr_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                 batch_sampler=tr_sampler,
-                                                num_workers=8)
+                                                num_workers=16)
+
+    # trainval_dataloader = torch.utils.data.DataLoader(trainval_dataset,
+                                                      # batch_sampler=trainval_sampler)
 
     val_dataloader = torch.utils.data.DataLoader(val_dataset,
-                                                 batch_sampler=val_sampler,
-                                                 num_workers=8)
+                                                 batch_sampler=val_sampler)
+
+
     return tr_dataloader, val_dataloader
 
+def init_speechnet(opt):
 
-def init_model(opt, load_model=None):
+    import model as mod
+    model_name = "cnn-small"
+    config = mod.find_config(model_name)
+    config["n_labels"] = opt.classes_per_it_tr
+    model_class = mod.find_model(model_name)
+    model = model_class(config)
+    model = model.cuda() if opt.cuda else model
+    return model
+
+def init_protonet(opt, model_path=None, fine_tune=False):
     '''
     Initialize the pre-trained resnet
     '''
-
-    # import model as mod
-    # model_name = "cnn-small"
-    # config = mod.find_config(model_name)
-    # config["n_labels"] = opt.classes_per_it_tr
-    # model_class = mod.find_model(model_name)
-    # model = model_class(config)
-    # model = model.cuda() if opt.cuda else model
-
     model = mod.SimpleCNN()
 
-    if load_model is not None:
+    if model is not None:
         to_state = model.state_dict()
-        from_state = torch.load(load_model)
+        from_state = torch.load(model_path)
         valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
         to_state.update(valid_state)
         model.load_state_dict(to_state)
+        print("{} is loaded".format(model_path))
 
-    for param in model.parameters():
-        param.requires_grad = False
+    if fine_tune:
+        for param in model.parameters():
+            param.requires_grad = False
 
-    for param in model.convb_4.parameters():
-        param.requires_grad = True
+        for param in model.convb_4.parameters():
+            param.requires_grad = True
 
     model = model.cuda() if opt.cuda else model
     return model
@@ -180,13 +196,13 @@ def sv_score(opt, val_dataloader, model):
             x, y = x.cuda(), y.cuda()
         model_output = model(x)
         eer = veri_score(model_output, target=y, n_classes=opt.classes_per_it_val,
-                               n_support=opt.num_support_tr, n_query=opt.num_query_val)
+                               n_support=opt.num_support_val, n_query=opt.num_query_val)
         # print("eer:{:.2f}%".format(eer*100))
         eer_records.append(eer)
     sleep(0.05)
     mean_eer = np.mean(eer_records)
     lb, ub = st.t.interval(0.95, len(eer_records)-1, loc=mean_eer, scale=st.sem(eer_records))
-    print("eer: {:.2f} +- {:.2f}%".format(mean_eer*100, (ub-mean_eer)*100))
+    print("eer: {:.2f}% +- {:.2f}%".format(mean_eer*100, (ub-mean_eer)*100))
 
 
 def main():
@@ -194,8 +210,9 @@ def main():
     Initialize everything and train
     '''
     options = get_parser().parse_args()
-    options.train_manifest = "../manifests/reddots/fewshot/si_reddots_train_manifest.csv"
-    options.val_manifest = "../manifests/reddots/fewshot/si_reddots_test_manifest.csv"
+    options.train_manifest = "manifests/reddots/fewshot/si_reddots_train_manifest.csv"
+    options.val_manifest = "manifests/reddots/fewshot/si_reddots_val_manifest.csv"
+    options.test_manifest = "manifests/reddots/fewshot/si_reddots_test_manifest.csv"
     options.n_dct_filters = 40
     options.input_length = 16000
     options.n_mels = 40
@@ -211,27 +228,30 @@ def main():
     init_seed(options)
     tr_dataloader, val_dataloader = init_dataset(options)
 
-    #### train ####
-    # model = init_model(options)
-    # model = init_model(options, "/home/muncok/DL/projects/sv_system/models/reddots/fewshot/si_reddots_frames_fewshot.pt")
-    # optim = init_optim(options, model)
-    # lr_scheduler = init_lr_scheduler(options, optim)
-    # train(opt=options,
-    #       tr_dataloader=tr_dataloader,
-    #       val_dataloader=val_dataloader,
-    #       model=model,
-    #       optim=optim,
-    #       lr_scheduler=lr_scheduler)
-
-    #### evaluate ####
-    # model = init_model(options, "../many_way.pth")
-    # evaluate(options, val_dataloader, model)
-    # model = init_model(options, "/home/muncok/DL/projects/sv_system/models/reddots/fewshot/si_reddots_frames_fewshot.pt")
-    # evaluate(options, val_dataloader, model)
-
-    #### verification scoring ####
-    model = init_model(options, "/home/muncok/DL/projects/sv_system/models/reddots/fewshot/si_reddots_frames_fewshot.pt")
-    sv_score(options, val_dataloader, model)
+    if options.mode == "train":
+        #### train ####
+        model = init_protonet(options)
+        # model = init_protonet(options, "models/reddots/fewshot/si_reddots_frames_fewshot.pt")
+        optim = init_optim(options, model)
+        lr_scheduler = init_lr_scheduler(options, optim)
+        train(opt=options,
+              tr_dataloader=tr_dataloader,
+              val_dataloader=val_dataloader,
+              model=model,
+              optim=optim,
+              lr_scheduler=lr_scheduler)
+    elif options.mode == "eval":
+        ### evaluate ####
+        model = init_protonet(options, "models/many_way.pth")
+        evaluate(options, val_dataloader, model)
+        # model = init_protonet(options, "models/reddots/fewshot/si_reddots_frames_fewshot.pt")
+        # evaluate(options, val_dataloader, model)
+    elif options.mode == "sv_score":
+        ### verification scoring ####
+        model = init_protonet(options, "models/many_way.pth")
+        sv_score(options, val_dataloader, model)
+        model = init_protonet(options, "models/reddots/fewshot/si_reddots_frames_fewshot.pt")
+        sv_score(options, val_dataloader, model)
 
 if __name__ == '__main__':
     main()

@@ -9,15 +9,20 @@ def get_parser():
                         help='path to dataset',
                         default='../dataset')
 
+    parser.add_argument('-exp', '--experiment_root',
+                        type=str,
+                        help='root where to store models, losses and accuracies',
+                        default='../output')
+
     parser.add_argument('-nep', '--epochs',
                         type=int,
                         help='number of epochs to train for',
-                        default=10000)
+                        default=100)
 
     parser.add_argument('-lr', '--learning_rate',
                         type=float,
-                        help='learning rate for generator, default=0.0001',
-                        default=0.0001)
+                        help='learning rate for the model, default=0.001',
+                        default=0.001)
 
     parser.add_argument('-lrS', '--lr_scheduler_step',
                         type=int,
@@ -74,4 +79,13 @@ def get_parser():
                         help='enables cuda',
                         default=True)
 
+    parser.add_argument('--output',
+                        type=str,
+                        help='saved model path',
+                        default='../best_model.pth')
+
+    parser.add_argument("--mode",
+                        choices=["train", "eval", "sv_score"],
+                        default="train",
+                        type=str)
     return parser

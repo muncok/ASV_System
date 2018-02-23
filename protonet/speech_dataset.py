@@ -3,11 +3,10 @@ import librosa
 import random
 import numpy as np
 from enum import Enum
-from chainmap import ChainMap
 import torch
 import torch.utils.data as data
 
-from manage_audio import preprocess_audio
+from honk_sv.manage_audio import preprocess_audio
 
 class SimpleCache(dict):
     def __init__(self, limit):
@@ -26,7 +25,7 @@ class SimpleCache(dict):
 
 class DatasetType(Enum):
     TRAIN = 0
-    DEV = 1
+    VAL = 1
     TEST = 2
 
 
@@ -99,56 +98,31 @@ class SpeechDataset(data.Dataset):
         return data
 
     @classmethod
-    def read_manifest(cls, config):
-        sets = [{},{}]
+    def read_train_manifest(cls, config):
+        sets = [{},{}, {}]
 
         train_files = open(config.train_manifest, "r")
         val_files = open(config.val_manifest, "r")
-        if train_files:
-            tag = DatasetType.TRAIN
-            train_samples = []
-            for sample in train_files:
-                tokens = sample.rstrip().split(',')
-                train_samples.append(tokens)
-            random.shuffle(train_samples)
-            for tokens in train_samples:
-                sets[tag.value][tokens[0]] = int(tokens[1]) if len(tokens)== 2 else [int(x) for x in tokens[1:]]
+        test_files = open(config.test_manifest, "r")
 
-        if val_files:
-            tag = DatasetType.DEV
-            for sample in val_files:
-                tokens = sample.rstrip().split(',')
-                sets[tag.value][tokens[0]] = int(tokens[1]) if len(tokens)== 2 else [int(x) for x in tokens[1:]]
+        tag = DatasetType.TRAIN
+        for sample in train_files:
+            tokens = sample.rstrip().split(',')
+            sets[tag.value][tokens[0]] = int(tokens[1])
 
-        datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.DEV, config))
+        tag = DatasetType.VAL
+        for sample in val_files:
+            tokens = sample.rstrip().split(',')
+            sets[tag.value][tokens[0]] = int(tokens[1])
 
-        return datasets
+        tag = DatasetType.TEST
+        for sample in test_files:
+            tokens = sample.rstrip().split(',')
+            sets[tag.value][tokens[0]] = int(tokens[1])
 
-    @classmethod
-    def read_df(cls, config, dataframes, label_set):
-        sets = [{}, {}, {}]
+        datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.VAL, config),
+                cls(sets[2], DatasetType.TEST, config))
 
-        train_df, val_df= dataframes
-        data_dir = config["data_folder"]
-
-        if train_df is not None:
-            tag = DatasetType.TRAIN
-            for idx, row in train_df.iterrows():
-                path = os.path.join(data_dir, row.dir, row.file)
-                label = label_set.index(row.spk)
-                sets[tag.value][path] = label
-
-        if val_df is not None:
-            tag = DatasetType.DEV
-            for idx, row in val_df.iterrows():
-                path = os.path.join(data_dir, row.dir, row.file)
-                label = label_set.index(row.spk)
-                sets[tag.value][path] = label
-
-
-        train_cfg = config
-        test_cfg = config
-        datasets = (cls(sets[0], DatasetType.TRAIN, train_cfg), cls(sets[1], DatasetType.DEV, test_cfg))
         return datasets
 
     def __getitem__(self, index):

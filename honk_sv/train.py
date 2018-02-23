@@ -183,7 +183,7 @@ def mtl_train(config, model=None):
     avg_acc1 = np.mean(accs1)
     print("test accuracy: {}, {}".format(avg_acc, avg_acc1))
 
-def train(config, loaders=None, model=None, _collate_fn=None):
+def train(config, loaders=None, model=None, _collate_fn=data.dataloader.default_collate):
     # train_loader, dev_loader, test_loader = dloader.get_loader(config, _collate_fn)
     if loaders is None:
         train_loader, dev_loader, test_loader = dloader.get_loader(config,_collate_fn=_collate_fn)
