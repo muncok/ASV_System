@@ -19,16 +19,26 @@ def set_speech_format(f):
     f.setsampwidth(2)
     f.setframerate(16000)
 
-def preprocess_audio(data, n_mels, dct_filters):
-    data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
-    data[data > 0] = np.log(data[data > 0])
-    data = [np.matmul(dct_filters, x) for x in np.split(data, data.shape[1], axis=1)]
-    data = np.array(data, order="F").squeeze(2).astype(np.float32)
+def preprocess_audio(data, n_mels, dct_filters, method="mfcc"):
+    ## DCT Part
+    if method == "mfcc":
+        data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
+        data[data > 0] = np.log(data[data > 0])
+        data = [np.matmul(dct_filters, x) for x in np.split(data, data.shape[1], axis=1)]
+        data = np.array(data, order="F").squeeze(2).astype(np.float32)
+    elif method == "fbank":
+        data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
+        data[data > 0] = np.log(data[data > 0])
+        data = data.transpose()
+    elif method == "fft":
+        data = fft_audio(data, 0.025, 0.010)
+    else:
+        raise NotImplementedError
     return data
 
 def fft_audio(data, window_size, window_stride):
-    n_fft = 1023
-    # n_fft = int(16000*window_size)
+    # n_fft = 1023
+    n_fft = int(16000*window_size)
     win_length = int(16000* window_size)
     hop_length = int(16000* window_stride)
     # STFT

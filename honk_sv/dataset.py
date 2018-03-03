@@ -58,7 +58,7 @@ class SpeechDataset(data.Dataset):
         self.window_stride =  config["window_stride"]
 
     @staticmethod
-    def default_config(dataset = None):
+    def default_config():
         config = {}
         config["silence_prob"] = 0.0
         config["noise_prob"] = 0.0
