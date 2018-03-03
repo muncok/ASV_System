@@ -27,8 +27,8 @@ def preprocess_audio(data, n_mels, dct_filters):
     return data
 
 def fft_audio(data, window_size, window_stride):
-    # n_fft = 1023
-    n_fft = int(16000*window_size)
+    n_fft = 1023
+    # n_fft = int(16000*window_size)
     win_length = int(16000* window_size)
     hop_length = int(16000* window_stride)
     # STFT

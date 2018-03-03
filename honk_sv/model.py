@@ -91,7 +91,7 @@ class voxNet(SerializableModule):
 
     def embed(self, x):
         # x: (512, 300) = (freq, windows)
-        windows_width = x.size()[-1]
+        windows_width = x.size(-1)
         if x.dim() == 2:
             x = x.view(1,1,x.size(0),x.size(1))
         if x.dim() == 3:
@@ -335,11 +335,6 @@ class SimpleCNN(SerializableModule):
         if hasattr(self, "output"):
             x = self.output(x)
         return x
-        # if feature:
-        #     return x
-        # else:
-        #     x = self.output(x)
-        #     return x
 
 
 class MTLSpeechModel(SpeechModel):

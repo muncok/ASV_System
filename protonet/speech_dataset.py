@@ -6,7 +6,7 @@ from enum import Enum
 import torch
 import torch.utils.data as data
 
-from honk_sv.manage_audio import preprocess_audio
+from honk_sv.manage_audio import preprocess_audio, fft_audio
 
 class SimpleCache(dict):
     def __init__(self, limit):
@@ -30,6 +30,7 @@ class DatasetType(Enum):
 
 
 class SpeechDataset(data.Dataset):
+
     def __init__(self, data, set_type, config):
         super().__init__()
         self.audio_files = list(data.keys())
@@ -43,7 +44,7 @@ class SpeechDataset(data.Dataset):
         self._audio_cache = SimpleCache(config.cache_size)
         self._file_cache = SimpleCache(config.cache_size)
         self.window_size = config.window_size
-        self.window_stride =  config.window_stride
+        self.window_stride = config.window_stride
 
     @staticmethod
     def default_config(dataset = None):
@@ -72,38 +73,38 @@ class SpeechDataset(data.Dataset):
             except KeyError:
                 pass
 
-        in_len = self.input_length
-
         file_data = self._file_cache.get(example)
         data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
         self._file_cache[example] = data
 
+        in_len = self.input_length
         if len(data) > in_len:
-            # cliping the audio
-            start_sample = np.random.randint(0, len(data) - in_len)
-            data = data[start_sample:start_sample+in_len]
+            # clipping the audio
+            # start_sample = np.random.randint(0, len(data) - in_len)
+            # data = data[start_sample:start_sample+in_len]
+            data = data[:in_len]
         else:
             # zero-padding the audio
             data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
 
-        use_clean = self.set_type == DatasetType.TRAIN
+        use_clean = self.set_type != DatasetType.TRAIN
         if not use_clean:
             data = self._timeshift_audio(data)
 
+        # audio_data = fft_audio(data, self.window_size, self.window_stride)
+        # data = audio_data.unsqueeze(0)
         audio_data = preprocess_audio(data, self.n_mels, self.filters)
-        # if len(audio_data) < self.splice_len:
-            # audio_data = np.pad(audio_data, ((0, max(0, self.splice_len - len(audio_data))),(0,0)), "constant")
         data = torch.from_numpy(audio_data).unsqueeze(0)
         self._audio_cache[example] = data
         return data
 
     @classmethod
     def read_train_manifest(cls, config):
-        sets = [{},{}, {}]
+        sets = [{}, {}]
 
         train_files = open(config.train_manifest, "r")
         val_files = open(config.val_manifest, "r")
-        test_files = open(config.test_manifest, "r")
+        # test_files = open(config.test_manifest, "r")
 
         tag = DatasetType.TRAIN
         for sample in train_files:
@@ -115,13 +116,15 @@ class SpeechDataset(data.Dataset):
             tokens = sample.rstrip().split(',')
             sets[tag.value][tokens[0]] = int(tokens[1])
 
-        tag = DatasetType.TEST
-        for sample in test_files:
-            tokens = sample.rstrip().split(',')
-            sets[tag.value][tokens[0]] = int(tokens[1])
+        # tag = DatasetType.TEST
+        # for sample in test_files:
+        #     tokens = sample.rstrip().split(',')
+        #     sets[tag.value][tokens[0]] = int(tokens[1])
 
-        datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.VAL, config),
-                cls(sets[2], DatasetType.TEST, config))
+        datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.VAL, config))
+
+        # datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.VAL, config),
+        #         cls(sets[2], DatasetType.TEST, config))
 
         return datasets
 

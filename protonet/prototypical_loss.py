@@ -93,7 +93,8 @@ def prototypical_loss(input, target, n_support, randomize=False):
     oq_idxs_0 = torch.stack(list(map(lambda c: torch.nonzero(cputargs.eq(int(c)))[n_support:], classes))).view(-1)
     oq_idxs_0 = oq_idxs_0.cuda() if target.is_cuda else oq_idxs_0
     oq = input[oq_idxs_0]
-    dists = euclidean_dist(oq, prototypes)
+    # dists = euclidean_dist(oq, prototypes)
+    dists = -cosine_similarity(oq, prototypes)
 
     log_p_y = F.log_softmax(-dists, dim=1).view(n_classes, n_query, -1)
 

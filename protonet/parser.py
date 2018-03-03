@@ -69,6 +69,11 @@ def get_parser():
                         help='number of samples per class to use as query for validation, default=15',
                         default=15)
 
+    parser.add_argument('-nTestF', '--num_test_frames',
+                        type=int,
+                        help='number of samples per class to use as query for validation, default=15',
+                        default=1)
+
     parser.add_argument('-seed', '--manual_seed',
                         type=int,
                         help='input for the manual seeds initializations',
@@ -79,13 +84,18 @@ def get_parser():
                         help='enables cuda',
                         default=True)
 
+    parser.add_argument('--input',
+                        type=str,
+                        help='model path to be loaded',
+                        default=None)
+
     parser.add_argument('--output',
                         type=str,
-                        help='saved model path',
-                        default='../best_model.pth')
+                        help='model path to be saved',
+                        default=None)
 
     parser.add_argument("--mode",
-                        choices=["train", "eval", "sv_score"],
+                        choices=["train", "eval", "sv_score", "posterior"],
                         default="train",
                         type=str)
     return parser

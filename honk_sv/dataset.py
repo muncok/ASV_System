@@ -114,6 +114,7 @@ class SpeechDataset(data.Dataset):
             # cliping the audio
             start_sample = np.random.randint(0, len(data) - in_len)
             data = data[start_sample:start_sample+in_len]
+            # data = data[:in_len]
         else:
             # zero-padding the audio
             data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
@@ -144,14 +145,19 @@ class SpeechDataset(data.Dataset):
             val_files = open(config["val_manifest"], "r")
         except FileNotFoundError:
             train_files = None
+            pass
+
+        try:
+            val_files = open(config["val_manifest"], "r")
+        except FileNotFoundError:
             val_files = None
+            pass
 
         try:
             test_files = open(config["test_manifest"], "r")
         except FileNotFoundError:
-            raise("no manifest")
-
-        test_files = open(config["test_manifest"], "r") or None
+            test_files = None
+            pass
 
         if train_files:
             tag = DatasetType.TRAIN

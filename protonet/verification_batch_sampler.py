@@ -61,7 +61,7 @@ class VerificationBatchSampler(object):
                     self.ndclasses[c], self.sample_per_class, replace=False)
                 batch[s] = pos_sample
             total_neg_samples = [v for k, v in self.ndclasses.items() if k in not_curr_classes]
-            total_neg_samples = list(itertools.chain.from_iterable((total_neg_samples)))
+            total_neg_samples = list(itertools.chain.from_iterable(total_neg_samples))
             neg_sample = np.random.choice(
                 total_neg_samples,self.classes_per_it*self.num_query,
                 replace=False)

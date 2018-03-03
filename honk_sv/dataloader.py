@@ -6,7 +6,7 @@ import torch.utils.data as data
 
 from . import dataset as dset
 
-splice_length_ = 20
+splice_length_ = 50
 
 def get_loader(config, datasets=None, _collate_fn=data.dataloader.default_collate):
     num_workers_ = config["num_workers"]
