@@ -92,8 +92,8 @@ class SpeechDataset(data.Dataset):
         if not use_clean:
             data = self._timeshift_audio(data)
 
-        audio_data = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
-        data = torch.from_numpy(audio_data).unsqueeze(0)
+        data = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
+        # data = torch.from_numpy(audio_data).unsqueeze(0)
         self._audio_cache[example] = data
         return data
 

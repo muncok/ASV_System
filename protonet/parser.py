@@ -95,7 +95,7 @@ def get_parser():
                         default=None)
 
     parser.add_argument("--mode",
-                        choices=["train", "eval", "sv_score", "posterior"],
+                        choices=["train", "eval", "sv_score", "posterior", "lda_train"],
                         default="train",
                         type=str)
     return parser

@@ -22,6 +22,7 @@ options.data_folder = "/home/muncok/DL/dataset/SV_sets"
 options.window_size= 0.025
 options.window_stride= 0.010
 options.cache_size = 32768
+options.input_format = "mfcc"
 
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -37,7 +38,7 @@ options.iterations = 100
 # sweep conditions
 options.num_support_val = int(enroll_length/input_uttr_sec)
 # options.input = "models/voxc/si_train/si_voxc_frames_res8w_1.pt"
-options.input = "models/reddots/si_reddots_0.2s_random.pt"
+options.input = "models/reddots/simplecnn/si_reddots_0.2s_random.pt"
 model = init_protonet(options)
 # model = init_speechnet(options)
 test_uttrs_lens = [0.2, 0.5, 1, 2, 3]

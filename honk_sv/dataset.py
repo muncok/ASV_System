@@ -56,6 +56,7 @@ class SpeechDataset(data.Dataset):
         self.n_silence = int(self.silence_prob * (len(self.audio_labels) - n_unk))
         self.window_size = config["window_size"]
         self.window_stride =  config["window_stride"]
+        self.input_format = config["input_format"]
 
     @staticmethod
     def default_config():
@@ -126,13 +127,10 @@ class SpeechDataset(data.Dataset):
             a = random.random() * 0.1
             data = np.clip(a * bg_noise + data, -1, 1)
 
-        audio_data = preprocess_audio(data, self.n_mels, self.filters)
-        # if len(audio_data) < self.splice_len:
-            # audio_data = np.pad(audio_data, ((0, max(0, self.splice_len - len(audio_data))),(0,0)), "constant")
-        data = torch.from_numpy(audio_data)
-        # data = torch.from_numpy(fft_audio(data, self.window_size,self.window_stride))
-        self._audio_cache[example] = data
-        return data
+        audio_data = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
+        # data = torch.from_numpy(audio_data)
+        self._audio_cache[example] = audio_data
+        return audio_data
 
     @classmethod
     def read_manifest(cls, config):
