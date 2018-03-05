@@ -68,6 +68,16 @@ class SerializableModule(nn.Module):
     def load(self, filename):
         self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
 
+    def load_partial(self, filename):
+        to_state = self.state_dict()
+        from_state = torch.load(filename)
+        valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
+        to_state.update(valid_state)
+        self.load_state_dict(to_state)
+        assert(len(valid_state) > 0)
+        print("{} is loaded".format(filename))
+
+
 class voxNet(SerializableModule):
     def __init__(self, nb_class):
         super(voxNet, self).__init__()
