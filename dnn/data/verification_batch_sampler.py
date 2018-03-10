@@ -48,9 +48,6 @@ class VerificationBatchSampler(object):
         for it in range(self.iterations):
             batch = np.zeros(
                 ((self.sample_per_class + self.num_query) * self.classes_per_it), dtype=int)
-            # curr_classes = np.random.choice(
-            #     self.classes, self.classes_per_it, replace=False)
-            # not_curr_classes = [cl for cl in self.classes if cl not in curr_classes]
             np.random.shuffle(self.classes)
             curr_classes = self.classes[:self.classes_per_it]
             not_curr_classes = self.classes[self.classes_per_it:]

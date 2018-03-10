@@ -8,10 +8,12 @@ import torch
 from torch.autograd import Variable
 import torch.utils.data as data
 
-from .train.verification_loss import verification_optimal_score as opt_score
+from .train.verification_loss import verification_filter_score as opt_score
 from .data import manage_audio
 from .data import dataset as dset
 from .data import dataloader as dloader
+
+### protonet systems ###
 
 def recToEER(eer_record, thresh_record, verbose=False):
     mean_eer = np.mean(eer_record)
@@ -85,8 +87,10 @@ def sv_score_sep(opt, val_dataloader, model):
                                                                      mean_thresh, (ub_th-mean_thresh)))
 
 def sv_score(opt, val_dataloader, model, filter_types, lda=None):
+    if opt.cuda:
+        model = model.cuda()
     val_iter = iter(val_dataloader)
-    nb_splicing = opt.input_length // opt.splice_length
+    # nb_splicing = opt.input_length // opt.splice_length
     eer_records = {k:[] for k in filter_types}
     thresh_records = {k:[] for k in filter_types}
     lda_eer_records = {k:[] for k in filter_types}
@@ -96,9 +100,10 @@ def sv_score(opt, val_dataloader, model, filter_types, lda=None):
         x, y = batch
         model_outputs = []
         time_dim = x.size(2)
-        split_points = range(0, time_dim-(time_dim)//nb_splicing+1, time_dim//nb_splicing)
+        splice_dim = opt.splice_length
+        split_points = range(0, time_dim-splice_dim, splice_dim)
         for point in split_points:
-            x_in = Variable(x.narrow(2, point, time_dim//nb_splicing))
+            x_in = Variable(x.narrow(2, point, splice_dim))
             if opt.cuda:
                 x_in = x_in.cuda()
             embed = model.embed(x_in)

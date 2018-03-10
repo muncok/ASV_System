@@ -21,7 +21,7 @@ def compute_eer(score_vector, label_vector):
     # Compute micro-average ROC curve and ROC area
     fpr["micro"], tpr["micro"], thres["micro"] = roc_curve(label_vector.ravel(), score_vector.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-    eer["micro"] = fpr["micro"][np.nanargmin(np.abs(fpr["micro"] - (1 - tpr["micro"])))]
+    eer["micro"] = 1-tpr["micro"][np.nanargmin(np.abs(fpr["micro"] - (1 - tpr["micro"])))]
 
     for i in range(n_classes):
         eer[i] = fpr[i][np.nanargmin(np.abs(fpr[i] - (1 - tpr[i])))]
@@ -41,7 +41,7 @@ def compute_eer(score_vector, label_vector):
     fpr["macro"] = all_fpr
     tpr["macro"] = mean_tpr
     roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
-    eer["macro"] = fpr["macro"][np.nanargmin(np.abs(fpr["macro"] - (1 - tpr["macro"])))]
+    eer["macro"] = 1-tpr["macro"][np.nanargmin(np.abs(fpr["macro"] - (1 - tpr["macro"])))]
     thres["micro"] = thres["micro"][np.nanargmin(np.abs(fpr["macro"] - (1 - tpr["macro"])))]
     return eer["micro"], thres["micro"]
 
@@ -166,7 +166,7 @@ def verification_score(input, target, n_classes, n_support, n_query):
 
     return eer
 
-def verification_optimal_score(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
+def verification_filter_score(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
     input = inputs.mean(2)
     cputargs = target.cpu() if target.is_cuda else target
     cputargs = cputargs.data

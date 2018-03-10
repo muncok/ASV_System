@@ -10,6 +10,7 @@ from chainmap import ChainMap
 
 from .manage_audio import preprocess_audio
 
+## honk_sv system
 class SimpleCache(dict):
     def __init__(self, limit):
         super().__init__()
@@ -110,14 +111,15 @@ class SpeechDataset(data.Dataset):
             data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
             self._file_cache[example] = data
 
-        if len(data) > in_len:
-            # cliping the audio
-            start_sample = np.random.randint(0, len(data) - in_len)
-            data = data[start_sample:start_sample+in_len]
+        # if len(data) > in_len:
+            # # cliping the audio
+            # start_sample = np.random.randint(0, len(data) - in_len)
+            # data = data[start_sample:start_sample+in_len]
             # data = data[:in_len]
-        else:
-            # zero-padding the audio
-            data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+        # else:
+            # # zero-padding the audio
+            # print("padding")
+            # data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
 
         if not use_clean:
             data = self._timeshift_audio(data)
@@ -127,7 +129,6 @@ class SpeechDataset(data.Dataset):
             data = np.clip(a * bg_noise + data, -1, 1)
 
         audio_data = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
-        # data = torch.from_numpy(audio_data)
         self._audio_cache[example] = audio_data
         return audio_data
 
@@ -313,6 +314,7 @@ class SpeechDataset(data.Dataset):
     def __len__(self):
         return len(self.audio_labels) + self.n_silence
 
+## from protonet
 class protoDataset(data.Dataset):
 
     def __init__(self, data, set_type, config):
@@ -362,15 +364,15 @@ class protoDataset(data.Dataset):
         data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
         self._file_cache[example] = data
 
-        in_len = self.input_length
-        if len(data) > in_len:
-            # chopping the audio
-            start_sample = np.random.randint(0, len(data) - in_len)
-            data = data[start_sample:start_sample+in_len]
-            # data = data[:in_len]
-        else:
-            # zero-padding the audio
-            data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+        # in_len = self.input_length
+        # if len(data) > in_len:
+            # # chopping the audio
+            # start_sample = np.random.randint(0, len(data) - in_len)
+            # data = data[start_sample:start_sample+in_len]
+            # # data = data[:in_len]
+        # else:
+            # # zero-padding the audio
+            # data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
 
         use_clean = self.set_type != DatasetType.TRAIN
         if not use_clean:
@@ -403,15 +405,14 @@ class protoDataset(data.Dataset):
 
     @classmethod
     def read_val_manifest(cls, config):
-        sets = [{}]
+        sets = {}
 
         val_files = open(config.val_manifest, "r")
-        tag = DatasetType.DEV
         for sample in val_files:
             tokens = sample.rstrip().split(',')
-            sets[tag.value][tokens[0]] = int(tokens[1])
+            sets[tokens[0]] = int(tokens[1])
 
-        datasets = cls(sets[1], DatasetType.DEV, config)
+        datasets = cls(sets, DatasetType.DEV, config)
         return datasets
 
     @classmethod

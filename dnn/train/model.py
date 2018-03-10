@@ -5,6 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+### honk_sv systems ###
+
 def init_seed(opt):
     '''
     Disable cudnn to maximize reproducibility
@@ -76,13 +79,18 @@ class SerializableModule(nn.Module):
     def load(self, filename):
         self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
 
-    def load_partial(self, filename):
+    def load_partial(self, filename, fine_tune=False):
         to_state = self.state_dict()
         from_state = torch.load(filename)
         valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
+        valid_state.pop('output.weight', None)
+        valid_state.pop('output.bias', None)
         to_state.update(valid_state)
         self.load_state_dict(to_state)
         assert(len(valid_state) > 0)
+        if fine_tune:
+            for param in self.parameters():
+                param.requires_grad = False
         print("{} is loaded".format(filename))
 
 
@@ -177,6 +185,7 @@ class SpeechResModel(SerializableModule):
     def forward(self, x):
         x = self.embed(x)
         return self.output(x)
+
 
 class SpeechLSTMModel(SerializableModule):
     def __init__(self, config):
@@ -328,37 +337,6 @@ def conv_block(in_channels, out_channels, pool_size=2):
     )
 
 
-class SimpleCNN(SerializableModule):
-    def __init__(self, small=False):
-        super().__init__()
-        hid_dim = 64
-        self.feat_size = 64
-        self.convb_1 = conv_block(1, hid_dim)
-        self.convb_2 = conv_block(hid_dim, hid_dim)
-        self.convb_3 = conv_block(hid_dim, hid_dim)
-        if small:
-            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
-        else:
-            self.convb_4 = conv_block(hid_dim, hid_dim)
-
-
-    def embed(self, x):
-        if x.dim() == 3:
-            x = torch.unsqueeze(x, 1)
-        x = self.convb_1(x)
-        x = self.convb_2(x)
-        x = self.convb_3(x)
-        x = self.convb_4(x)
-        x = x.view(-1, num_flat_features(x))
-        return x
-
-    def forward(self, x):
-        x = self.embed(x)
-        if hasattr(self, "output"):
-            x = self.output(x)
-        return x
-
-
 class MTLSpeechModel(SpeechModel):
     def __init__(self, config):
         super().__init__(config)
@@ -439,8 +417,6 @@ class GatedCNN(SerializableModule):
         # seq_len = x.size(1)
         # x = self.embedding(x) # (bs, seq_len, embd_size)
 
-        # CNN
-        x = x.unsqueeze(1) # (bs, Cin, seq_len, embd_size), insert Channnel-In dim
         # Conv2d
         #    Input : (bs, Cin,  Hin,  Win )
         #    Output: (bs, Cout, Hout, Wout)
@@ -517,6 +493,38 @@ _configs = {
     ConfigType.LSTM.value : dict( n_layers=3, h_dim=500)
 }
 
+### protonet systems ###
+
+class SimpleCNN(SerializableModule):
+    def __init__(self, small=False):
+        super().__init__()
+        hid_dim = 64
+        self.feat_size = 64
+        self.convb_1 = conv_block(1, hid_dim)
+        self.convb_2 = conv_block(hid_dim, hid_dim)
+        self.convb_3 = conv_block(hid_dim, hid_dim)
+        if small:
+            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
+        else:
+            self.convb_4 = conv_block(hid_dim, hid_dim)
+
+
+    def embed(self, x):
+        if x.dim() == 3:
+            x = torch.unsqueeze(x, 1)
+        x = self.convb_1(x)
+        x = self.convb_2(x)
+        x = self.convb_3(x)
+        x = self.convb_4(x)
+        x = x.view(-1, num_flat_features(x))
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        if hasattr(self, "output"):
+            x = self.output(x)
+        return x
+
 def init_speechnet(opt):
     model_name = "res8-wide"
     config = find_config(model_name)
@@ -552,13 +560,12 @@ def init_protonet(opt, fine_tune=False):
     if fine_tune:
         for param in model.parameters():
             param.requires_grad = False
-        for param in model.convb_4.parameters():
-            param.requires_grad = True
+
 
     model = model.cuda() if opt.cuda else model
     return model
 
-def init_fullnet(opt):
+def init_fullnet(opt, fine_tune=False):
     '''
     Initialize the pre-trained resnet
     '''
@@ -570,7 +577,11 @@ def init_fullnet(opt):
 
     model.load_state_dict(torch.load(opt.input))
     print("{} is loaded".format(opt.input))
+    if fine_tune:
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.output.parameters():
+            param.requires_grad = True
 
     model = model.cuda() if opt.cuda else model
     return model
-

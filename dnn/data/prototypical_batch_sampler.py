@@ -69,3 +69,63 @@ class PrototypicalBatchSampler(object):
         returns the number of iterations (episodes) per epoch
         '''
         return self.iterations
+
+
+class wordBatchSampler(object):
+    '''
+    __len__ returns the number of episodes per epoch (same as 'self.iterations').
+    '''
+
+    def __init__(self, words, num_samples, iterations, randomize=False):
+        '''
+        - words = word ID, equal shape to labels
+        - num_smpales = batch size
+        - iterations:number of iterations (words) per epoch
+        '''
+        super(wordBatchSampler, self).__init__()
+        self.words = words
+        # self.classes_per_it = classes_per_it
+        self.sample_per_batch = num_samples
+        self.iterations = iterations
+
+        self.randomize = randomize
+
+        self.classes, self.counts = np.unique(self.words, return_counts=True)
+        self.classes = torch.LongTensor(self.classes)
+
+        self.idxs = range(len(self.words))
+        self.word_tens = dict()
+        for idx, word in enumerate(self.words):
+            if word not in self.word_tens.keys():
+                self.word_tens[word] = [idx]
+            else:
+                self.word_tens[word].append(idx)
+
+        for k, v in self.word_tens.items():
+            self.word_tens[k] = torch.LongTensor(v)
+
+    def __iter__(self):
+        '''
+        yield a batch of indexes
+        '''
+        spb = self.sample_per_batch
+        for it in range(self.iterations):
+            # cpi = np.random.randint(self.classes_per_it - 10, self.classes_per_it + 10) if self.randomize else self.classes_per_it
+            wpi = 1  # word per iteration
+            batch_size = spb * wpi
+            batch = torch.LongTensor(batch_size)
+            w_idxs = torch.randperm(len(self.words))[:wpi]
+            # for i, c in enumerate(self.classes[w_idxs]):
+            w = self.words[w_idxs]
+            assert(len(self.word_tens[w] >= spb))
+            sample_idxs = torch.randperm(len(self.word_tens[w]))[:spb]
+            batch = self.word_tens[w][sample_idxs]
+            yield batch
+
+    def __len__(self):
+        '''
+        returns the number of iterations (episodes) per epoch
+        '''
+        return self.iterations
+
+
