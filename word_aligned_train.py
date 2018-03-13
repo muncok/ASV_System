@@ -19,7 +19,7 @@ global_config = dict(model=model, dataset=dataset,
                      n_epochs=100, batch_size=64,
                      lr=[0.01], schedule=[np.inf], dev_every=1, seed=0, use_nesterov=False,
                      cache_size=32768, momentum=0.9, weight_decay=0.00001,
-                     num_workers=16, print_step=10,
+                     num_workers=16, print_step=200,
                      )
 
 builder = ConfigBuilder(
@@ -46,27 +46,30 @@ si_model.output = nn.Linear(test_out.size(1), si_config["n_labels"])
 
 ### dataset
 manifest_dir = "../interspeech2018/manifests/commands/"
-# si_config['train_manifest'] = os.path.join(manifest_dir,'si_command_train_manifest.csv')
-# si_config['val_manifest'] = os.path.join(manifest_dir,'si_command_val_manifest.csv')
-# si_config['test_manifest'] = os.path.join(manifest_dir,'si_command_test_manifest.csv')
+si_config['train_manifest'] = os.path.join(manifest_dir,'si_train_manifest.csv')
+si_config['val_manifest'] = os.path.join(manifest_dir,'si_val_manifest.csv')
+si_config['test_manifest'] = os.path.join(manifest_dir,'si_test_manifest.csv')
 
 ## dataloaders
-words = ['stop', 'yes', 'seven', 'zero', 'up', 'no', 'two', 'go', 'four', 'one']
-train_loaders = []
-dev_loaders = []
-test_loaders = []
-for word in words:
-    for set_tag in ['train', 'val', 'test']:
-        si_config['{}_manifest'.format(set_tag)] = os.path.join(manifest_dir, 'si_{}_{}_manifest.csv'.format(word, set_tag))
-        # print(si_config['{}_manifest'.format(set_tag)])
-    train_loader, dev_loader, test_loader = dloader.get_loader(si_config)
-    train_loaders.append(train_loader); dev_loaders.append(dev_loader); test_loaders.append(test_loader)
-# train_loader = itertools.chain.from_iterable(train_loaders)
-# dev_loader = itertools.chain.from_iterable(dev_loaders)
-# test_loader = itertools.chain.from_iterable(test_loaders)
-loaders = [train_loaders, dev_loaders, test_loaders]
+# words = ['stop', 'yes', 'seven', 'zero', 'up', 'no', 'two', 'go', 'four', 'one']
+# train_loaders = []
+# dev_loaders = []
+# test_loaders = []
+# for word in words:
+#     for set_tag in ['train', 'val', 'test']:
+#         si_config['{}_manifest'.format(set_tag)] = os.path.join(manifest_dir, 'si_{}_{}_manifest.csv'.format(word, set_tag))
+#         # print(si_config['{}_manifest'.format(set_tag)])
+#     train_loader, dev_loader, test_loader = dloader.get_loader(si_config)
+#     train_loaders.append(train_loader); dev_loaders.append(dev_loader); test_loaders.append(test_loader)
+# # train_loader = itertools.chain.from_iterable(train_loaders)
+# # dev_loader = itertools.chain.from_iterable(dev_loaders)
+# # test_loader = itertools.chain.from_iterable(test_loaders)
+# loaders = [train_loaders, dev_loaders, test_loaders]
 
 ### train
-si_config['n_epochs'] = 200
-si_config['output_file'] = ("models/commands/word_algined.pt")
-train.aligned_train(si_config, model=si_model, loaders=loaders)
+# si_config['n_epochs'] = 50
+# si_config['output_file'] = ("models/commands/batch_random.pt")
+# train.train(si_config, model=si_model, loaders=None)
+
+### pre-train
+si_model.load("models/commands/batch_random.pt", fine_tune=True)

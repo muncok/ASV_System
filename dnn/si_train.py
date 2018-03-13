@@ -10,8 +10,6 @@ import torch.utils.data as data
 from .train import model as mod
 from .data import dataloader as dloader
 
-from tqdm import tqdm_notebook
-
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
         rel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), rel_path)
@@ -180,11 +178,11 @@ def train(config, loaders=None, model=None, _collate_fn=data.dataloader.default_
     criterion = nn.CrossEntropyLoss()
     max_acc = 0
     step_no = 0
-
+    from tqdm import tqdm
     for epoch_idx in range(config["n_epochs"]):
-        for batch_idx, (model_ins, label_ins) in tqdm_notebook(enumerate(train_loader)):
+        for batch_idx, (model_ins, label_ins) in tqdm(enumerate(train_loader)):
             model.train()
-            splice_timedim = config["time_dim"]
+            splice_timedim = config["splice_dim"]
             input_timedim = model_ins.size(2)
             for i in range(0, input_timedim - splice_timedim + 1, splice_timedim):
                 model_in = model_ins.narrow(2, i, splice_timedim)

@@ -79,7 +79,7 @@ class SerializableModule(nn.Module):
     def load(self, filename):
         self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
 
-    def load_partial(self, filename, fine_tune=False):
+    def load_partial(self, filename):
         to_state = self.state_dict()
         from_state = torch.load(filename)
         valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
@@ -88,9 +88,6 @@ class SerializableModule(nn.Module):
         to_state.update(valid_state)
         self.load_state_dict(to_state)
         assert(len(valid_state) > 0)
-        if fine_tune:
-            for param in self.parameters():
-                param.requires_grad = False
         print("{} is loaded".format(filename))
 
 
@@ -401,7 +398,7 @@ class GatedCNN(SerializableModule):
         self.c = nn.ParameterList([nn.Parameter(torch.randn(1, out_chs, 1, 1))
                                    for _ in range(n_layers)])
 
-        self.fc = nn.Linear(out_chs*seq_len, ans_size)
+        self.output = nn.Linear(out_chs*seq_len, ans_size)
 
         # for param in self.parameters():
             # if len(param.size()) > 1:
@@ -409,11 +406,10 @@ class GatedCNN(SerializableModule):
 
         self.feat_size = out_chs
 
-    def forward(self, x, feature=False):
+    def embed(self, x):
         # x: (N, seq_len)
 
         # Embedding
-        bs = x.size(0) # batch size
         # seq_len = x.size(1)
         # x = self.embedding(x) # (bs, seq_len, embd_size)
 
@@ -436,17 +432,17 @@ class GatedCNN(SerializableModule):
             if i % self.res_block_count == 0: # size of each residual block
                 h += res_input
                 res_input = h
+        # h = torch.mean(h, 2) # mean over seq axis
+        # out = h.squeeze_()
+        return h
 
-        if not feature:
-            h = h.view(bs, -1) # (bs, Cout*seq_len)
-            out = self.fc(h) # (bs, ans_size)
-            out = F.log_softmax(out)
-        else:
-            h = torch.mean(h, 2) # mean over seq axis
-            out = h.squeeze_()
-
+    def forward(self, x):
+        bs = x.size(0) # batch size
+        h = self.embed(x)
+        h = h.view(bs, -1) # (bs, Cout*seq_len)
+        out = self.output(h) # (bs, ans_size)
+        # out = F.log_softmax(out)
         return out
-
 
 _configs = {
     ConfigType.CNN_SMALL.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=16,
@@ -508,6 +504,17 @@ class SimpleCNN(SerializableModule):
         else:
             self.convb_4 = conv_block(hid_dim, hid_dim)
 
+    def load(self, filename, fine_tune=False):
+        self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
+        if fine_tune:
+            for param in self.parameters():
+                param.requires_grad = False
+            for param in self.convb_4.parameters():
+                param.requires_grad = True
+            if hasattr(self, 'output'):
+                for param in self.output.parameters():
+                    param.requires_grad = True
+        print("{} is loaded".format(filename))
 
     def embed(self, x):
         if x.dim() == 3:
@@ -542,11 +549,11 @@ def init_speechnet(opt):
     model = model.cuda() if opt.cuda else model
     return model
 
-def init_protonet(opt, fine_tune=False):
+def init_protonet(opt, fine_tune=False, small=False):
     '''
     Initialize the pre-trained resnet
     '''
-    model = SimpleCNN()
+    model = SimpleCNN(small=small)
 
     if opt.input != None:
         model_path = opt.input
@@ -560,6 +567,11 @@ def init_protonet(opt, fine_tune=False):
     if fine_tune:
         for param in model.parameters():
             param.requires_grad = False
+        for param in model.convb_4.parameters():
+            param.requires_grad = True
+        if hasattr(model, 'output'):
+            for param in model.output.parameters():
+                param.requires_grad = True
 
 
     model = model.cuda() if opt.cuda else model

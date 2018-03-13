@@ -58,7 +58,7 @@ class PrototypicalBatchSampler(object):
             assert(len(self.classes) >= cpi)
             for i, c in enumerate(self.classes[c_idxs]):
                 s = slice(i * spc, (i + 1) * spc)
-                assert(len(self.label_tens[c] >= spc))
+                assert(len(self.label_tens[c] < spc))
                 sample_idxs = torch.randperm(len(self.label_tens[c]))[:spc]
                 batch[s] = self.label_tens[c][sample_idxs]
             batch = batch[torch.randperm(len(batch))]

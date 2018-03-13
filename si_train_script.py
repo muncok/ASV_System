@@ -1,51 +1,53 @@
 import os
 import numpy as np
 
-import dnn.train.model as mod
+from dnn import si_train
+from dnn.train import model as mod
+from dnn.data import dataset as dset
+from dnn.data import dataloader as dloader
 from dnn.parser import ConfigBuilder
-from dnn.si_train import set_seed, gatedcnn_train
-from dnn.data.dataset import SpeechDataset
 
-model = "res15"
-dataset = "reddots"
+model = "SimpleCNN"
+dataset = "voxc"
 
 global_config = dict(model=model, dataset=dataset,
                      no_cuda=False,  gpu_no=0,
-                     n_epochs=30, batch_size=64,
-                     lr=[1.0], schedule=[np.inf], dev_every=1, seed=0, use_nesterov=True,
-                     cache_size=32768, momentum=0.90, weight_decay=0.00001,
-                     num_workers=32, print_step=100,
+                     n_epochs=100, batch_size=64,
+                     lr=[0.01], schedule=[np.inf], dev_every=1, seed=0, use_nesterov=False,
+                     cache_size=32768, momentum=0.9, weight_decay=0.00001,
+                     num_workers=16, print_step=np.inf,
                      )
 
 builder = ConfigBuilder(
-                mod.find_config(model),
-                SpeechDataset.default_config(),
+                dset.SpeechDataset.default_config(),
                 global_config)
 parser = builder.build_argparse()
 si_config = builder.config_from_argparse(parser)
-si_config['model_class'] = mod.find_model(model)
-set_seed(si_config)
+si_config['model_class'] = mod.SimpleCNN
+si_train.set_seed(si_config)
 
-si_config['n_labels'] = 62
-manifest_dir = "manifests/reddots/"
-for tag in ['train', 'val', 'test']:
-    si_config['{}_manifest'.format(tag)]=os.path.join(manifest_dir,'si_{}_{}_manifest.csv'.format("reddots", tag))
+si_config['n_labels'] = 1260
+si_config['input_length'] = int(16000*0.1)
+manifest_dir = "../interspeech2018/manifests/voxc/"
+si_config['train_manifest'] = os.path.join(manifest_dir,'si_voxc_train_manifest.csv')
+si_config['val_manifest'] = os.path.join(manifest_dir,'si_voxc_val_manifest.csv')
+si_config['test_manifest'] = os.path.join(manifest_dir,'si_voxc_test_manifest.csv')
 
-si_config['input_length'] = int(16000*3)
-si_config['splice_length'] = int(16000*0.2)
+from torch.autograd import Variable
+import torch
+import torch.nn as nn
+
+si_model = si_config['model_class'](small=True)
+time_dim = si_config['input_length']//160+1
+si_config['time_dim'] = time_dim
+test_in = Variable(torch.zeros(1,1,time_dim,40), volatile=True)
+test_out = si_model(test_in)
+si_model.feat_size = test_out.size(1)
+si_model.output = nn.Linear(test_out.size(1), si_config["n_labels"])
+
+si_config['n_epochs'] = 50
 si_config['input_format'] = 'mfcc'
+si_config['output_file'] = ("models/voxc/si_train/full_train/si_voxc_0.1s_full.pt")
+loaders = dloader.get_loader(si_config, datasets=None)
+si_train.train(si_config, model=si_model, loaders=loaders)
 
-# si_model = si_config['model_class'](si_config)
-
-seq_len         = 20
-embd_size       = si_config['n_mels']
-n_layers        = 10
-kernel          = (5, embd_size)
-out_chs         = 64
-res_block_count = 5
-ans_size = si_config['n_labels']
-si_model = mod.GatedCNN(seq_len, embd_size, n_layers, kernel, out_chs, res_block_count, ans_size)
-si_config['input_file'] = ""
-si_config['output_file'] = "models/reddots/si_reddots_gatedcnn.pt"
-print(si_model)
-gatedcnn_train(si_config, model=si_model)
