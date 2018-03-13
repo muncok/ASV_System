@@ -8,7 +8,8 @@ import torch
 from torch.autograd import Variable
 import torch.utils.data as data
 
-from .train.verification_loss import verification_filter_score as opt_score
+from .train.verification_loss import verification_eer_score as eer_score
+from .train.verification_loss import verification_score as sim_score
 from .data import manage_audio
 from .data import dataset as dset
 from .data import dataloader as dloader
@@ -96,14 +97,14 @@ def sv_score(opt, val_dataloader, model, filter_types, lda=None):
     lda_eer_records = {k:[] for k in filter_types}
     lda_thresh_records = {k:[] for k in filter_types}
     model.eval()
-    for batch in tqdm_notebook(val_iter):
+    for batch in (val_iter):
         x, y = batch
         model_outputs = []
         time_dim = x.size(2)
-        splice_dim = opt.splice_length
-        split_points = range(0, time_dim-splice_dim, splice_dim)
+        splice_frame = opt.splice_length
+        split_points = range(0, time_dim-splice_frame, splice_frame)
         for point in split_points:
-            x_in = Variable(x.narrow(2, point, splice_dim))
+            x_in = Variable(x.narrow(2, point, splice_frame))
             if opt.cuda:
                 x_in = x_in.cuda()
             embed = model.embed(x_in)
@@ -122,13 +123,13 @@ def sv_score(opt, val_dataloader, model, filter_types, lda=None):
             y = y.cuda()
 
         for filter_type in filter_types:
-            eer, thresh = opt_score(model_output, target=y, n_classes=opt.classes_per_it_val,
+            eer, thresh = eer_score(model_output, target=y, n_classes=opt.classes_per_it_val,
                                     n_support=opt.num_support_val, n_query=opt.num_query_val,
                                     n_frames=opt.num_test_frames, filter_type=filter_type)
             eer_records[filter_type].append(eer)
             thresh_records[filter_type].append(thresh)
             if lda:
-                eer, thresh = opt_score(lda_output, target=y, n_classes=opt.classes_per_it_val,
+                eer, thresh = eer_score(lda_output, target=y, n_classes=opt.classes_per_it_val,
                                         n_support=opt.num_support_val, n_query=opt.num_query_val,
                                         n_frames=opt.num_test_frames, filter_type=filter_type)
                 lda_eer_records[filter_type].append(eer)
@@ -145,6 +146,44 @@ def sv_score(opt, val_dataloader, model, filter_types, lda=None):
                 thresh_record = lda_thresh_records[filter_type]
                 return_val[filter_type+"_lda"] = recToEER(eer_record, thresh_record, verbose=True)
     return return_val
+
+def similarities(opt, val_dataloader, model, lda=None):
+    pos_scores = []
+    neg_scores = []
+    if opt.cuda:
+        model = model.cuda()
+    val_iter = iter(val_dataloader)
+    model.eval()
+    for batch in (val_iter):
+        x, y = batch
+        model_outputs = []
+        time_dim = x.size(2)
+        splice_frame = opt.splice_frame
+        split_points = range(0, time_dim-splice_frame, splice_frame)
+        for point in split_points:
+            x_in = Variable(x.narrow(2, point, splice_frame))
+            if opt.cuda:
+                x_in = x_in.cuda()
+            embed = model.embed(x_in)
+            model_outputs.append(embed)
+        model_output = torch.stack(model_outputs, dim=-1).mean(-1)
+        if lda:
+            lda_output = model_output.cpu().data.numpy()
+            s, d, k = lda_output.shape
+            lda_output = np.transpose(lda_output, [0,2,1]).reshape(-1, d)
+            lda_output = lda.transform(lda_output).astype(np.float32)
+            lda_output = lda_output.reshape(s,k,-1).transpose([0,2,1])
+            if opt.cuda:
+                lda_output = Variable(torch.from_numpy(lda_output).cuda())
+            model_output = lda_output
+        y = Variable(y)
+        if opt.cuda:
+            y = y.cuda()
+        pos_score, neg_score = sim_score(model_output, y, opt.classes_per_it_val,
+                                           opt.num_support_val, opt.num_query_val)
+        pos_scores.extend(pos_score.numpy())
+        neg_scores.extend(neg_score.numpy())
+    return np.array(pos_scores).flatten(), np.array(neg_scores).flatten()
 
 def posterior_prob(opt, val_dataloader, model):
     val_iter = iter(val_dataloader)

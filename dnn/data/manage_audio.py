@@ -11,20 +11,20 @@ def set_speech_format(f):
     f.setsampwidth(2)
     f.setframerate(16000)
 
-def preprocess_audio(data, n_mels, dct_filters, feature="mfcc"):
+def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
     ## DCT Part
-    if feature == "mfcc":
+    if in_feature == "mfcc":
         data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
         data[data > 0] = np.log(data[data > 0])
         data = [np.matmul(dct_filters, x) for x in np.split(data, data.shape[1], axis=1)]
         data = np.array(data, order="F").squeeze(2).astype(np.float32)
         data = torch.from_numpy(data)
-    elif feature == "fbank":
+    elif in_feature == "fbank":
         data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
         data[data > 0] = np.log(data[data > 0])
         data = data.astype(np.float32).transpose()
         data = torch.from_numpy(data)
-    elif feature == "fft":
+    elif in_feature == "fft":
         data = fft_audio(data, 0.025, 0.010)
     else:
         raise NotImplementedError
@@ -50,7 +50,7 @@ def fft_audio(data, window_size, window_stride):
     spect.div_(std)
     return spect
 
-def preprocess_from_path(config, audio_path, method="mfcc"):
+def preprocess_from_path(config, audio_path, in_feature="mfcc"):
     data = librosa.core.load(audio_path, sr=16000)[0]
     n_mels = config['n_mels']
     filters = librosa.filters.dct(config["n_dct_filters"], config["n_mels"])
@@ -63,5 +63,5 @@ def preprocess_from_path(config, audio_path, method="mfcc"):
     # else:
         # # zero-padding the audio
         # data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
-    data = preprocess_audio(data, n_mels, filters, method)
+    data = preprocess_audio(data, n_mels, filters, in_feature)
     return data

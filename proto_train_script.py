@@ -1,15 +1,18 @@
 import torch
-from dnn_utils.train.prototypical_loss import prototypical_loss as p_loss
-from dnn_utils.sv_score import init_protonet, init_proto_loaders, init_seed, init_lr_scheduler, init_optim
-from dnn_utils.sv_score import train, evaluate
-from dnn_utils.utils.sv_parser import get_parser
+from dnn.train.prototypical_loss import prototypical_loss as p_loss
+from dnn.train.model import init_protonet, init_seed
+from dnn.prototypical_train import init_lr_scheduler, init_optim, train, evaluate
+from dnn.data.dataloader import init_proto_loaders
+from dnn.parser import get_sv_parser
 
 def secToSample(sec):
     return int(16000 * sec)
 
-options = get_parser().parse_args()
-options.train_manifest = "manifests/reddots/si_reddots_train_manifest.csv"
-options.val_manifest = "manifests/reddots/si_reddots_train_manifest.csv"
+options = get_sv_parser().parse_args()
+options.train_manifest = "../interspeech2018/manifests/commands/words/" \
+                         "sv_right_manifest.csv"
+options.val_manifest = "../interspeech2018/manifests/commands/words/" \
+                       "sv_right_manifest.csv"
 
 # audio options
 options.n_dct_filters = 40
@@ -26,12 +29,14 @@ if torch.cuda.is_available() and not options.cuda:
 
 init_seed(options)
 
-options.input_length = secToSample(options.input_length)
+options.splice_dim = 11
 tr_dataloader, val_dataloader = init_proto_loaders(options)
 
 #### train ####
 print("training")
-model = init_protonet(options)
+# options.input = "../interspeech2018/models/commands/word_aligned.pt"
+model = init_protonet(options, small=True, fine_tune=False)
+options.output = "../interspeech2018/models/commands/proto_right.pt"
 optim = init_optim(options, model)
 lr_scheduler = init_lr_scheduler(options, optim)
 train(opt=options,

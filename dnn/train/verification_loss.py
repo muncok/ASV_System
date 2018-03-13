@@ -156,17 +156,17 @@ def verification_score(input, target, n_classes, n_support, n_query):
     neg_dists = cosine_similarity(negq, prototypes)
     neg_dists = neg_dists.cpu().data if target.is_cuda else neg_dists.cpu()
     num_class = len(classes)
-    pos_label = np.eye(num_class)[np.array([[i] * n_query
-                                             for i in range(num_class)]).reshape(-1)]
-    neg_label = np.zeros((len(negq), num_class))
+    # pos_label = np.eye(num_class)[np.array([[i] * n_query
+    #                                          for i in range(num_class)]).reshape(-1)]
+    # neg_label = np.zeros((len(negq), num_class))
 
-    dists = torch.cat((pos_dists, neg_dists), 0)
-    labels = np.concatenate((pos_label, neg_label), axis=0)
-    eer = compute_eer(dists.numpy(), labels)
+    # dists = torch.cat((pos_dists, neg_dists), 0)
+    # labels = np.concatenate((pos_label, neg_label), axis=0)
+    # eer = compute_eer(dists.numpy(), labels)
 
-    return eer
+    return pos_dists, neg_dists
 
-def verification_filter_score(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
+def verification_eer_score(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
     input = inputs.mean(2)
     cputargs = target.cpu() if target.is_cuda else target
     cputargs = cputargs.data
