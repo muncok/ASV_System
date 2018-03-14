@@ -64,7 +64,6 @@ class VerificationBatchSampler(object):
                 replace=False)
             s = slice(self.sample_per_class * self.classes_per_it, len(batch))
             batch[s] = neg_sample
-            # np.random.shuffle(batch) # this should be uselsess (?)
             yield batch
 
     def __len__(self):

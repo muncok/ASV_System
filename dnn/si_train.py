@@ -9,6 +9,7 @@ import torch.utils.data as data
 
 from .train import model as mod
 from .data import dataloader as dloader
+from tqdm import tqdm
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
@@ -26,7 +27,7 @@ def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False
         accuracy = (preds == targets).sum() / batch_size
     loss = loss.cpu().data.numpy()[0]
     if verbose:
-        print("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
+        tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
     return accuracy
 
 def set_seed(config):
@@ -178,13 +179,13 @@ def train(config, loaders=None, model=None, _collate_fn=data.dataloader.default_
     criterion = nn.CrossEntropyLoss()
     max_acc = 0
     step_no = 0
-    from tqdm import tqdm
     for epoch_idx in range(config["n_epochs"]):
         for batch_idx, (model_ins, label_ins) in tqdm(enumerate(train_loader)):
             model.train()
             splice_timedim = config["splice_dim"]
             input_timedim = model_ins.size(2)
-            for i in range(0, input_timedim - splice_timedim + 1, splice_timedim):
+            random_stride = np.random.random_integers(splice_timedim//2, splice_timedim)
+            for i in range(0, input_timedim - splice_timedim + 1, random_stride):
                 model_in = model_ins.narrow(2, i, splice_timedim)
                 if not config["no_cuda"]:
                     model_in = model_in.cuda()
@@ -236,7 +237,7 @@ def train(config, loaders=None, model=None, _collate_fn=data.dataloader.default_
     for model_ins, label_ins in test_loader:
         input_timedim = model_ins.size(2)
         for i in range(0, model_ins.size(2) - splice_timedim + 1, splice_timedim):
-            model_in = model_ins.narrow(2, i, config["time_dim"])
+            model_in = model_ins.narrow(2, i, config["splice_dim"])
             model_in = Variable(model_in, requires_grad=False)
             if not config["no_cuda"]:
                 model_in = model_in.cuda()

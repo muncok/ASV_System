@@ -7,7 +7,7 @@ from dnn.data import dataset as dset
 from dnn.data import dataloader as dloader
 from dnn.parser import ConfigBuilder
 
-model = "SimpleCNN"
+model = "res15"
 dataset = "voxc"
 
 global_config = dict(model=model, dataset=dataset,
@@ -19,15 +19,17 @@ global_config = dict(model=model, dataset=dataset,
                      )
 
 builder = ConfigBuilder(
+                mod.find_config(model),
                 dset.SpeechDataset.default_config(),
-                global_config)
+                global_config
+            )
+
 parser = builder.build_argparse()
 si_config = builder.config_from_argparse(parser)
-si_config['model_class'] = mod.SimpleCNN
+si_config['model_class'] = mod.find_model(model)
 si_train.set_seed(si_config)
 
 si_config['n_labels'] = 1260
-si_config['input_length'] = int(16000*0.1)
 manifest_dir = "../interspeech2018/manifests/voxc/"
 si_config['train_manifest'] = os.path.join(manifest_dir,'si_voxc_train_manifest.csv')
 si_config['val_manifest'] = os.path.join(manifest_dir,'si_voxc_val_manifest.csv')
@@ -37,17 +39,18 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 
-si_model = si_config['model_class'](small=True)
-time_dim = si_config['input_length']//160+1
-si_config['time_dim'] = time_dim
-test_in = Variable(torch.zeros(1,1,time_dim,40), volatile=True)
-test_out = si_model(test_in)
-si_model.feat_size = test_out.size(1)
-si_model.output = nn.Linear(test_out.size(1), si_config["n_labels"])
+si_model = si_config['model_class'](si_config)
+si_config['input_length'] = int(16000*3)
+si_config['splice_dim'] = int(16000*0.1)//160+1
+# time_dim = si_config['splice_dim']
+# test_in = Variable(torch.zeros(1,1,time_dim,40), volatile=True)
+# test_out = si_model(test_in)
+# si_model.feat_size = test_out.size(1)
+# si_model.output = nn.Linear(test_out.size(1), si_config["n_labels"])
 
 si_config['n_epochs'] = 50
 si_config['input_format'] = 'mfcc'
-si_config['output_file'] = ("models/voxc/si_train/full_train/si_voxc_0.1s_full.pt")
+si_config['output_file'] = ("models/voxc/si_train/full_train/si_voxc_res15_0.1s_full.pt")
 loaders = dloader.get_loader(si_config, datasets=None)
 si_train.train(si_config, model=si_model, loaders=loaders)
 

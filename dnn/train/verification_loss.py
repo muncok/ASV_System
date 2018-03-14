@@ -130,7 +130,7 @@ def cosine_similarity_filter(x, y, n_frames, ispos, filter_type):
 
 def verification_score(input, target, n_classes, n_support, n_query):
     cputargs = target.cpu() if target.is_cuda else target
-    cputargs = cputargs.data
+    # cputargs = cputargs.data
     cpuinput = input.cpu() if target.is_cuda else input
 
     def supp_idxs(c):
@@ -138,10 +138,9 @@ def verification_score(input, target, n_classes, n_support, n_query):
 
     postargs = cputargs[:n_classes*(n_support + n_query)]
     classes = np.unique(postargs)
-    # n_query = len(np.where(cputargs.numpy() == classes[0])[0]) - n_support
     os_idxs = list(map(supp_idxs, classes))
-    prototypes = [cpuinput[i].mean(0).data.numpy().tolist() for i in os_idxs]
-    prototypes = Variable(torch.FloatTensor(prototypes))
+    prototypes = [cpuinput[i].mean(0).numpy().tolist() for i in os_idxs]
+    prototypes = (torch.FloatTensor(prototypes))
 
     oq_idxs = map(lambda c: np.where(cputargs.numpy() == c)
                             [0][n_support:], classes)
@@ -152,13 +151,9 @@ def verification_score(input, target, n_classes, n_support, n_query):
 
     ### cosine similarity
     pos_dists = cosine_similarity(oq, prototypes)
-    pos_dists = pos_dists.cpu().data if target.is_cuda else pos_dists.cpu()
+    pos_dists = pos_dists
     neg_dists = cosine_similarity(negq, prototypes)
-    neg_dists = neg_dists.cpu().data if target.is_cuda else neg_dists.cpu()
-    num_class = len(classes)
-    # pos_label = np.eye(num_class)[np.array([[i] * n_query
-    #                                          for i in range(num_class)]).reshape(-1)]
-    # neg_label = np.zeros((len(negq), num_class))
+    neg_dists = neg_dists
 
     # dists = torch.cat((pos_dists, neg_dists), 0)
     # labels = np.concatenate((pos_label, neg_label), axis=0)

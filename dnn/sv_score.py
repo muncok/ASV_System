@@ -1,7 +1,7 @@
 # coding=utf-8
 import numpy as np
 import scipy.stats as st
-from tqdm import tqdm, tqdm_notebook
+from tqdm import tqdm
 from time import sleep
 
 import torch
@@ -164,21 +164,14 @@ def similarities(opt, val_dataloader, model, lda=None):
             x_in = Variable(x.narrow(2, point, splice_frame))
             if opt.cuda:
                 x_in = x_in.cuda()
-            embed = model.embed(x_in)
+            embed = model.embed(x_in).cpu().data
             model_outputs.append(embed)
         model_output = torch.stack(model_outputs, dim=-1).mean(-1)
         if lda:
-            lda_output = model_output.cpu().data.numpy()
-            s, d, k = lda_output.shape
-            lda_output = np.transpose(lda_output, [0,2,1]).reshape(-1, d)
+            lda_output = model_output
+            s, d = lda_output.shape
             lda_output = lda.transform(lda_output).astype(np.float32)
-            lda_output = lda_output.reshape(s,k,-1).transpose([0,2,1])
-            if opt.cuda:
-                lda_output = Variable(torch.from_numpy(lda_output).cuda())
-            model_output = lda_output
-        y = Variable(y)
-        if opt.cuda:
-            y = y.cuda()
+            model_output = torch.from_numpy(lda_output)
         pos_score, neg_score = sim_score(model_output, y, opt.classes_per_it_val,
                                            opt.num_support_val, opt.num_query_val)
         pos_scores.extend(pos_score.numpy())
@@ -235,8 +228,8 @@ def enroll_uttr(config, model, test_loader=None):
 
 def enroll_frame(config, model, test_loader=None, _collate_fn=None):
     if not test_loader:
-        datasets = dset.SpeechDataset.read_manifest(config)
-        _,_,test_loader = dloader.get_loader(config, datasets, _collate_fn)
+       datasets = dset.SpeechDataset.read_manifest(config)
+       _,_,test_loader = dloader.get_loader(config, datasets, _collate_fn)
     if not config["no_cuda"]:
         torch.cuda.set_device(config["gpu_no"])
         model.cuda()

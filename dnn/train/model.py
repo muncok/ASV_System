@@ -549,6 +549,37 @@ def init_speechnet(opt):
     model = model.cuda() if opt.cuda else model
     return model
 
+def init_resnet(opt, fine_tune=False):
+    '''
+    Initialize the pre-trained resnet
+    '''
+    model_config = find_config(opt.model)
+    print(model_config)
+    model_config['n_labels'] = 10
+    model = find_model(opt.model)(model_config)
+    del model.output
+
+    if opt.input != None:
+        model_path = opt.input
+        to_state = model.state_dict()
+        from_state = torch.load(model_path)
+        valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
+        to_state.update(valid_state)
+        model.load_state_dict(to_state)
+        print("{} is loaded".format(model_path))
+
+    if fine_tune:
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.convb_4.parameters():
+            param.requires_grad = True
+        if hasattr(model, 'output'):
+            for param in model.output.parameters():
+                param.requires_grad = True
+
+    model = model.cuda() if opt.cuda else model
+    return model
+
 def init_protonet(opt, fine_tune=False, small=False):
     '''
     Initialize the pre-trained resnet
