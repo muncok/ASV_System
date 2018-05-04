@@ -31,8 +31,7 @@ def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
         data = fft_audio(data, 0.025, 0.010)
     else:
         raise NotImplementedError
-    # return data.unsqueeze(0)
-    return data
+    return data  # dims:3, with no channel dimension.
 
 def fft_audio(data, window_size, window_stride):
     n_fft = 480
@@ -53,18 +52,3 @@ def fft_audio(data, window_size, window_stride):
     spect.div_(std)
     return spect
 
-def preprocess_from_path(config, audio_path, in_feature="mfcc"):
-    data = librosa.core.load(audio_path, sr=16000)[0]
-    n_mels = config['n_mels']
-    filters = librosa.filters.dct(config["n_dct_filters"], config["n_mels"])
-    # in_len = config['input_length']
-    # if len(data) > in_len:
-        # # cliping the audio
-        # start_sample = np.random.randint(0, len(data) - in_len)
-        # data = data[start_sample:start_sample+in_len]
-        # # data = data[:in_len]
-    # else:
-        # # zero-padding the audio
-        # data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
-    data = preprocess_audio(data, n_mels, filters, in_feature)
-    return data

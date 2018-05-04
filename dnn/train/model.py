@@ -5,9 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-### honk_sv systems ###
-
 def init_seed(opt):
     '''
     Disable cudnn to maximize reproducibility
@@ -17,6 +14,11 @@ def init_seed(opt):
     torch.cuda.manual_seed(opt.manual_seed)
 
 def num_flat_features(x):
+    '''
+    flatten the activations in the way conv to fc
+    :param x:
+    :return:
+    '''
     size = x.size()[1:]
     num_features = 1
     for s in size:
@@ -53,13 +55,25 @@ def find_model(conf):
         return SpeechResModel
     elif conf.startswith("cnn"):
         return SpeechModel
-    else:
+    elif conf.startswith("Simple"):
+        return SimpleCNN
+    elif conf.startswith("LSTM"):
         return SpeechLSTMModel
+    else:
+        raise NotImplementedError
 
 def find_config(conf):
+    '''
+    It find config which will bed used to init a model.
+    :param conf:
+    :return: model config
+    '''
     if isinstance(conf, ConfigType):
         conf = conf.value
-    return _configs[conf]
+    if conf in _configs:
+        return _configs[conf]
+    else:
+        return {}
 
 def truncated_normal(tensor, std_dev=0.01):
     tensor.zero_()
@@ -75,9 +89,11 @@ class SerializableModule(nn.Module):
 
     def save(self, filename):
         torch.save(self.state_dict(), filename)
+        print("saved to {}".format(filename))
 
     def load(self, filename):
         self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
+        print("loaded from {}".format(filename))
 
     def load_partial(self, filename):
         to_state = self.state_dict()
@@ -88,7 +104,7 @@ class SerializableModule(nn.Module):
         to_state.update(valid_state)
         self.load_state_dict(to_state)
         assert(len(valid_state) > 0)
-        print("{} is loaded".format(filename))
+        print("loaded from {}".format(filename))
 
 
 class voxNet(SerializableModule):
@@ -104,12 +120,11 @@ class voxNet(SerializableModule):
         self.conv4_bn = nn.BatchNorm2d(256)
         self.conv5 = nn.Conv2d(256, 256, 3, stride=1, padding=1)
         self.conv5_bn = nn.BatchNorm2d(256)
-        self.fc6 = nn.Conv2d(256, 4096, [9, 1])
+        self.fc6 = nn.Conv2d(256, 4096, (9, 1))
         self.fc6_bn = nn.BatchNorm2d(4096)
         self.fc7 = nn.Linear(4096, 1024)
         self.fc7_bn = nn.BatchNorm2d(1024)
         self.fc8 = nn.Linear(1024, nb_class)
-
         self.feat_size = 1024
 
     def embed(self, x):
@@ -212,6 +227,7 @@ class SpeechLSTMModel(SerializableModule):
 
     def embed(self, x):
         # input: (sequence, batch, features)
+        x.transpose_(0,1)
 
         # hidden = self.hidden
         # x = x.contiguous()
@@ -325,6 +341,54 @@ class SpeechModel(SerializableModule):
     def forward(self, x):
         return self.output(x)
 
+
+
+
+_configs = {
+    ConfigType.CNN_SMALL.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=16,
+        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128, tf_variant=False),
+    ConfigType.CNN_FRAMES.value: dict(dropout_prob=0.5, height=20, width=40,  n_feature_maps1=128,
+                                     conv1_size=(6, 8), conv1_pool=(2, 3), conv1_stride=(1, 1),
+                                     conv2_size=(4, 4), conv2_pool=(1, 2), conv2_stride=(1, 1),
+                                     n_feature_maps2=256,
+                                     dnn1_size=512, tf_variant=True),
+    ConfigType.CNN_TRAD_POOL2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=64,
+        n_feature_maps2=64, conv1_size=(20, 8), conv2_size=(10, 4), conv1_pool=(2, 2), conv1_stride=(1, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), tf_variant=True),
+    ConfigType.CNN_ONE_STRIDE1.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=186,
+        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128, tf_variant=True),
+    ConfigType.CNN_TSTRIDE2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=78,
+        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(9, 4), conv1_pool=(1, 3), conv1_stride=(2, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_TSTRIDE4.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=100,
+        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(5, 4), conv1_pool=(1, 3), conv1_stride=(4, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_TSTRIDE8.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=126,
+        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(5, 4), conv1_pool=(1, 3), conv1_stride=(8, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_TPOOL2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=94,
+        n_feature_maps2=94, conv1_size=(21, 8), conv2_size=(6, 4), conv1_pool=(2, 3), conv1_stride=(1, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_TPOOL3.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=94,
+        n_feature_maps2=94, conv1_size=(15, 8), conv2_size=(6, 4), conv1_pool=(3, 3), conv1_stride=(1, 1),
+        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_ONE_FPOOL3.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=54,
+        conv1_size=(101, 8), conv1_pool=(1, 3), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_ONE_FSTRIDE4.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=186,
+        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 4), dnn1_size=128, dnn2_size=128),
+    ConfigType.CNN_ONE_FSTRIDE8.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=336,
+        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 8), dnn1_size=128, dnn2_size=128),
+    ConfigType.RES15.value: dict( use_dilation=True, n_layers=13, n_feature_maps=45),
+    ConfigType.RES8.value: dict( n_layers=6, n_feature_maps=45, res_pool=(4, 3), use_dilation=False),
+    ConfigType.RES26.value: dict( n_layers=24, n_feature_maps=45, res_pool=(2, 2), use_dilation=False),
+    ConfigType.RES15_NARROW.value: dict( use_dilation=True, n_layers=13, n_feature_maps=19),
+    ConfigType.RES15_WIDE.value: dict( use_dilation=True, n_layers=13, n_feature_maps=128),
+    ConfigType.RES8_NARROW.value: dict( n_layers=6, n_feature_maps=19, res_pool=(4, 3), use_dilation=False),
+    ConfigType.RES8_WIDE.value: dict( n_layers=6, n_feature_maps=128, res_pool=(4, 3), use_dilation=False),
+    ConfigType.RES26_NARROW.value: dict( n_layers=24, n_feature_maps=19, res_pool=(2, 2), use_dilation=False),
+    ConfigType.LSTM.value : dict( n_layers=3, h_dim=500)
+}
+
 def conv_block(in_channels, out_channels, pool_size=2):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
@@ -333,35 +397,39 @@ def conv_block(in_channels, out_channels, pool_size=2):
         nn.MaxPool2d(pool_size)
     )
 
-
-class MTLSpeechModel(SpeechModel):
+class SimpleCNN(SerializableModule):
     def __init__(self, config):
-        super().__init__(config)
-        n_labels1 = config["n_labels1"]
-        bn_size = config['bn_size']
-        self.output1 = nn.Linear(bn_size, n_labels1)
-
-    def forward(self, x, task=0):
-        x = super().forward(x, feature=True)
-        if task != 0:
-            return self.output1(x)
+        super().__init__()
+        hid_dim = 64
+        self.feat_size = 64
+        splice_frames = config['splice_frames']
+        self.convb_1 = conv_block(1, hid_dim)
+        self.convb_2 = conv_block(hid_dim, hid_dim)
+        self.convb_3 = conv_block(hid_dim, hid_dim)
+        if splice_frames < 21:
+            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
         else:
-            return self.output(x)
+            self.convb_4 = conv_block(hid_dim, hid_dim)
 
+        test_in = Variable(torch.zeros(1,1,splice_frames,40), volatile=True)
+        test_out = self.embed(test_in)
+        self.output = nn.Linear(test_out.size(1), config["n_labels"])
 
-class logRegModel(SpeechModel):
-    def __init__(self, config):
-        super().__init__(config)
-        self.linear = nn.Linear(1,1)
-
-    def forward(self, x, spk_model=None, feature=False):
-        x = super().forward(x, feature=True)
-        spk_model = spk_model.expand(x.size(0), x.size(1))
-        x = F.cosine_similarity(x, spk_model)
-        x = x.unsqueeze(1)
-        x = self.linear(x)
+    def embed(self, x):
+        if x.dim() == 3:
+            x = torch.unsqueeze(x, 1)
+        x = self.convb_1(x)
+        x = self.convb_2(x)
+        x = self.convb_3(x)
+        x = self.convb_4(x)
+        x = x.view(-1, num_flat_features(x))
         return x
 
+    def forward(self, x):
+        x = self.embed(x)
+        if hasattr(self, "output"):
+            x = self.output(x)
+        return x
 
 class GatedCNN(SerializableModule):
     '''
@@ -441,103 +509,20 @@ class GatedCNN(SerializableModule):
         h = self.embed(x)
         h = h.view(bs, -1) # (bs, Cout*seq_len)
         out = self.output(h) # (bs, ans_size)
-        # out = F.log_softmax(out)
         return out
 
-_configs = {
-    ConfigType.CNN_SMALL.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=16,
-        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128, tf_variant=False),
-    ConfigType.CNN_FRAMES.value: dict(dropout_prob=0.5, height=20, width=40,  n_feature_maps1=128,
-                                     conv1_size=(6, 8), conv1_pool=(2, 3), conv1_stride=(1, 1),
-                                     conv2_size=(4, 4), conv2_pool=(1, 2), conv2_stride=(1, 1),
-                                     n_feature_maps2=256,
-                                     dnn1_size=512, tf_variant=True),
-    ConfigType.CNN_TRAD_POOL2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=64,
-        n_feature_maps2=64, conv1_size=(20, 8), conv2_size=(10, 4), conv1_pool=(2, 2), conv1_stride=(1, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), tf_variant=True),
-    ConfigType.CNN_ONE_STRIDE1.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=186,
-        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128, tf_variant=True),
-    ConfigType.CNN_TSTRIDE2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=78,
-        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(9, 4), conv1_pool=(1, 3), conv1_stride=(2, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_TSTRIDE4.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=100,
-        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(5, 4), conv1_pool=(1, 3), conv1_stride=(4, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_TSTRIDE8.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=126,
-        n_feature_maps2=78, conv1_size=(16, 8), conv2_size=(5, 4), conv1_pool=(1, 3), conv1_stride=(8, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_TPOOL2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=94,
-        n_feature_maps2=94, conv1_size=(21, 8), conv2_size=(6, 4), conv1_pool=(2, 3), conv1_stride=(1, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_TPOOL3.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=94,
-        n_feature_maps2=94, conv1_size=(15, 8), conv2_size=(6, 4), conv1_pool=(3, 3), conv1_stride=(1, 1),
-        conv2_stride=(1, 1), conv2_pool=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_ONE_FPOOL3.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=54,
-        conv1_size=(101, 8), conv1_pool=(1, 3), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_ONE_FSTRIDE4.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=186,
-        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 4), dnn1_size=128, dnn2_size=128),
-    ConfigType.CNN_ONE_FSTRIDE8.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=336,
-        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 8), dnn1_size=128, dnn2_size=128),
-    ConfigType.RES15.value: dict( use_dilation=True, n_layers=13, n_feature_maps=45),
-    ConfigType.RES8.value: dict( n_layers=6, n_feature_maps=45, res_pool=(4, 3), use_dilation=False),
-    ConfigType.RES26.value: dict( n_layers=24, n_feature_maps=45, res_pool=(2, 2), use_dilation=False),
-    ConfigType.RES15_NARROW.value: dict( use_dilation=True, n_layers=13, n_feature_maps=19),
-    ConfigType.RES15_WIDE.value: dict( use_dilation=True, n_layers=13, n_feature_maps=128),
-    ConfigType.RES8_NARROW.value: dict( n_layers=6, n_feature_maps=19, res_pool=(4, 3), use_dilation=False),
-    ConfigType.RES8_WIDE.value: dict( n_layers=6, n_feature_maps=128, res_pool=(4, 3), use_dilation=False),
-    ConfigType.RES26_NARROW.value: dict( n_layers=24, n_feature_maps=19, res_pool=(2, 2), use_dilation=False),
-    ConfigType.LSTM.value : dict( n_layers=3, h_dim=500)
-}
-
-### protonet systems ###
-
-class SimpleCNN(SerializableModule):
-    def __init__(self, small=False):
-        super().__init__()
-        hid_dim = 64
-        self.feat_size = 64
-        self.convb_1 = conv_block(1, hid_dim)
-        self.convb_2 = conv_block(hid_dim, hid_dim)
-        self.convb_3 = conv_block(hid_dim, hid_dim)
-        if small:
-            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
-        else:
-            self.convb_4 = conv_block(hid_dim, hid_dim)
-
-    def load(self, filename, fine_tune=False):
-        self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
-        if fine_tune:
-            for param in self.parameters():
-                param.requires_grad = False
-            for param in self.convb_4.parameters():
-                param.requires_grad = True
-            if hasattr(self, 'output'):
-                for param in self.output.parameters():
-                    param.requires_grad = True
-        print("{} is loaded".format(filename))
-
-    def embed(self, x):
-        if x.dim() == 3:
-            x = torch.unsqueeze(x, 1)
-        x = self.convb_1(x)
-        x = self.convb_2(x)
-        x = self.convb_3(x)
-        x = self.convb_4(x)
-        x = x.view(-1, num_flat_features(x))
-        return x
-
-    def forward(self, x):
-        x = self.embed(x)
-        if hasattr(self, "output"):
-            x = self.output(x)
-        return x
-
 def init_speechnet(opt):
-    model_name = "res8-wide"
-    config = find_config(model_name)
-    config["n_labels"] = 1211
-    model_class = find_model(model_name)
+    '''
+    To generate model from protoent style option configuration.
+    :param opt:
+    :return:
+    '''
+    config = find_config(opt.model)
+    config["n_labels"] = 1
+    config["splice_frames"] = opt.splice_frames
+    model_class = find_model(opt.model)
     model = model_class(config)
+    del model.output  # not load the output layer
     if opt.input != None:
         model_path = opt.input
         to_state = model.state_dict()
@@ -546,85 +531,5 @@ def init_speechnet(opt):
         to_state.update(valid_state)
         model.load_state_dict(to_state)
         print("{} is loaded".format(model_path))
-    model = model.cuda() if opt.cuda else model
-    return model
-
-def init_resnet(opt, fine_tune=False):
-    '''
-    Initialize the pre-trained resnet
-    '''
-    model_config = find_config(opt.model)
-    print(model_config)
-    model_config['n_labels'] = 10
-    model = find_model(opt.model)(model_config)
-    del model.output
-
-    if opt.input != None:
-        model_path = opt.input
-        to_state = model.state_dict()
-        from_state = torch.load(model_path)
-        valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
-        to_state.update(valid_state)
-        model.load_state_dict(to_state)
-        print("{} is loaded".format(model_path))
-
-    if fine_tune:
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.convb_4.parameters():
-            param.requires_grad = True
-        if hasattr(model, 'output'):
-            for param in model.output.parameters():
-                param.requires_grad = True
-
-    model = model.cuda() if opt.cuda else model
-    return model
-
-def init_protonet(opt, fine_tune=False, small=False):
-    '''
-    Initialize the pre-trained resnet
-    '''
-    model = SimpleCNN(small=small)
-
-    if opt.input != None:
-        model_path = opt.input
-        to_state = model.state_dict()
-        from_state = torch.load(model_path)
-        valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
-        to_state.update(valid_state)
-        model.load_state_dict(to_state)
-        print("{} is loaded".format(model_path))
-
-    if fine_tune:
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.convb_4.parameters():
-            param.requires_grad = True
-        if hasattr(model, 'output'):
-            for param in model.output.parameters():
-                param.requires_grad = True
-
-
-    model = model.cuda() if opt.cuda else model
-    return model
-
-def init_fullnet(opt, fine_tune=False):
-    '''
-    Initialize the pre-trained resnet
-    '''
-    import torch.nn as nn
-    model = SimpleCNN()
-    load_state = torch.load(opt.input)
-    output_shape = load_state['output.weight'].shape
-    model.output = nn.Linear(output_shape[1], output_shape[0])
-
-    model.load_state_dict(torch.load(opt.input))
-    print("{} is loaded".format(opt.input))
-    if fine_tune:
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model.output.parameters():
-            param.requires_grad = True
-
     model = model.cuda() if opt.cuda else model
     return model

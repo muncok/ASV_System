@@ -128,7 +128,7 @@ def cosine_similarity_filter(x, y, n_frames, ispos, filter_type):
     else:
         raise NotImplementedError
 
-def verification_score(input, target, n_classes, n_support, n_query):
+def cosine_dists(input, target, n_classes, n_support, n_query):
     cputargs = target.cpu() if target.is_cuda else target
     # cputargs = cputargs.data
     cpuinput = input.cpu() if target.is_cuda else input
@@ -155,13 +155,9 @@ def verification_score(input, target, n_classes, n_support, n_query):
     neg_dists = cosine_similarity(negq, prototypes)
     neg_dists = neg_dists
 
-    # dists = torch.cat((pos_dists, neg_dists), 0)
-    # labels = np.concatenate((pos_label, neg_label), axis=0)
-    # eer = compute_eer(dists.numpy(), labels)
-
     return pos_dists, neg_dists
 
-def verification_eer_score(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
+def sv_eer_scores(inputs, target, n_classes, n_support, n_query, n_frames, filter_type):
     input = inputs.mean(2)
     cputargs = target.cpu() if target.is_cuda else target
     cputargs = cputargs.data
@@ -189,27 +185,6 @@ def verification_eer_score(inputs, target, n_classes, n_support, n_query, n_fram
     neg_dists = cosine_similarity_filter(negq, prototypes, n_frames, ispos=False, filter_type=filter_type)
     neg_dists = neg_dists.cpu().data if target.is_cuda else neg_dists.cpu()
     num_class = len(classes)
-    pos_label = np.eye(num_class)[np.array([[i] * n_query
-                                            for i in range(num_class)]).reshape(-1)]
-    neg_label = np.zeros((len(negq), num_class))
-
-    dists = torch.cat((pos_dists, neg_dists), 0)
-    labels = np.concatenate((pos_label, neg_label), axis=0)
-    eer = compute_eer(dists.numpy(), labels)
-
-    return eer
-
-def verification_sep_score(sup, posq, negq, classes):
-
-    prototypes = sup.view(len(classes), -1, sup.size(-1)).mean(1)
-
-    ### cosine similarity
-    pos_dists = cosine_similarity(posq, prototypes)
-    pos_dists = pos_dists.cpu().data if pos_dists.is_cuda else pos_dists.cpu()
-    neg_dists = cosine_similarity(negq, prototypes)
-    neg_dists = neg_dists.cpu().data if neg_dists.is_cuda else neg_dists.cpu()
-    num_class = len(classes)
-    n_query = int(posq.size(0) / num_class)
     pos_label = np.eye(num_class)[np.array([[i] * n_query
                                             for i in range(num_class)]).reshape(-1)]
     neg_label = np.zeros((len(negq), num_class))

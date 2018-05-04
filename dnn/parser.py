@@ -4,6 +4,8 @@ from collections import ChainMap
 import argparse
 
 from .train import model as mod
+from .data.dataset import SpeechDataset
+
 
 class ConfigBuilder(object):
     def __init__(self, *default_configs):
@@ -128,23 +130,21 @@ def get_sv_parser():
                         default=0.2)
     return parser
 
-def get_si_parser():
+def test_config(model):
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    # parser.add_argument("--model", choices=[x.value for x in list(mod.ConfigType)], default="cnn-trad-pool2", type=str)
-    # parser.add_argument("--dataset", choices=["voxc", "command"], default="voxc", type=str)
-    parser.add_argument("--output_file", default="./model.pt", type=str)
     config, _ = parser.parse_known_args()
 
-    global_config = dict(model=config.model, dataset=config.dataset, no_cuda=False, n_epochs=500, lr=[0.001],
+    global_config = dict(model=model, no_cuda=False, n_epochs=500, lr=[0.001],
                          schedule=[np.inf], batch_size=64, dev_every=1, seed=0,
-                         use_nesterov=False, input_file="", output_file=config.output_file, gpu_no=0, cache_size=32768,
+                         use_nesterov=False, input_file="", output_file="test.pt", gpu_no=0, cache_size=32768,
                          momentum=0.9, weight_decay=0.00001, num_workers = 16, print_step=1)
     builder = ConfigBuilder(
-        mod.find_config(config.model),
-        mod.SpeechDataset.default_config(),
+        mod.find_config(model),
+        SpeechDataset.default_config(),
         global_config)
+
     parser = builder.build_argparse()
-    # config = builder.config_from_argparse(parser)
-    # mod_cls = mod.find_model(config.model)
-    # config["model_class"] = mod_cls
-    return parser
+    config = builder.config_from_argparse(parser)
+    mod_cls = mod.find_model(model)
+    config["model_class"] = mod_cls
+    return config
