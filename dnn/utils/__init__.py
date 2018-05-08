@@ -3,3 +3,4 @@ def secToSample(sec):
 
 def secToFrames(sec):
     return secToSample(sec)//160+1
+

@@ -1,0 +1,14 @@
+# ignore generated specific type  files,
+*.pyc
+# manifest files
+*.csv
+# Jupyter Notebook
+*.ipynb_checkpoints
+# model files
+*.pt, *.pkl
+# directory
+models/
+manifests/ 
+.idea/
+# wav
+*.wav

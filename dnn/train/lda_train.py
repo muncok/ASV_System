@@ -6,8 +6,8 @@ from tqdm import tqdm
 import torch
 from torch.autograd import Variable
 
-from dnn_utils.sv_score import init_protonet, init_default_loaders, init_seed
-from dnn_utils.utils.sv_parser import get_parser
+from ..sv_score import init_protonet, init_default_loaders, init_seed
+from ..utils.sv_parser import get_parser
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 def embeds(opt, val_dataloader, model):

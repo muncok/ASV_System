@@ -3,34 +3,10 @@ import numpy as np
 from collections import ChainMap
 import argparse
 
-from .train import model as mod
-from .data.dataset import SpeechDataset
+from ..model.speechModel import find_config
+from ..data.dataset import SpeechDataset
 
 
-class ConfigBuilder(object):
-    def __init__(self, *default_configs):
-        self.default_config = ChainMap(*default_configs)
-
-    def build_argparse(self):
-        parser = argparse.ArgumentParser()
-        for key, value in self.default_config.items():
-            key = "--{}".format(key)
-            # default_config's values are inserted through default argument
-            if isinstance(value, tuple):
-                parser.add_argument(key, default=list(value), nargs=len(value), type=type(value[0]))
-            elif isinstance(value, list):
-                parser.add_argument(key, default=value, nargs="+", type=type(value[0]))
-            elif isinstance(value, bool) and not value:
-                parser.add_argument(key, action="store_true")
-            else:
-                parser.add_argument(key, default=value, type=type(value))
-        return parser
-
-    def config_from_argparse(self, parser=None):
-        if not parser:
-            parser = self.build_argparse()
-        args = vars(parser.parse_known_args()[0])
-        return ChainMap(args, self.default_config)
 
 def get_sv_parser():
     parser = argparse.ArgumentParser()
@@ -130,6 +106,31 @@ def get_sv_parser():
                         default=0.2)
     return parser
 
+class ConfigBuilder(object):
+    def __init__(self, *default_configs):
+        self.default_config = ChainMap(*default_configs)
+
+    def build_argparse(self):
+        parser = argparse.ArgumentParser()
+        for key, value in self.default_config.items():
+            key = "--{}".format(key)
+            # default_config's values are inserted through default argument
+            if isinstance(value, tuple):
+                parser.add_argument(key, default=list(value), nargs=len(value), type=type(value[0]))
+            elif isinstance(value, list):
+                parser.add_argument(key, default=value, nargs="+", type=type(value[0]))
+            elif isinstance(value, bool) and not value:
+                parser.add_argument(key, action="store_true")
+            else:
+                parser.add_argument(key, default=value, type=type(value))
+        return parser
+
+    def config_from_argparse(self, parser=None):
+        if not parser:
+            parser = self.build_argparse()
+        args = vars(parser.parse_known_args()[0])
+        return ChainMap(args, self.default_config)
+
 def test_config(model):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     config, _ = parser.parse_known_args()
@@ -139,12 +140,10 @@ def test_config(model):
                          use_nesterov=False, input_file="", output_file="test.pt", gpu_no=0, cache_size=32768,
                          momentum=0.9, weight_decay=0.00001, num_workers = 16, print_step=1)
     builder = ConfigBuilder(
-        mod.find_config(model),
+        find_config(model),
         SpeechDataset.default_config(),
         global_config)
 
     parser = builder.build_argparse()
     config = builder.config_from_argparse(parser)
-    mod_cls = mod.find_model(model)
-    config["model_class"] = mod_cls
     return config
