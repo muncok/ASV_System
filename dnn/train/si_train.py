@@ -2,11 +2,11 @@ import os
 import random
 import numpy as np
 
-from torch.autograd import Variable
 import torch
 import torch.nn as nn
 
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm_notebook
+from tqdm import tqdm
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
@@ -15,15 +15,13 @@ def make_abspath(rel_path):
 
 
 def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False):
-    print(loss)
     batch_size = labels.size(0)
     if not binary:
-        accuracy = (torch.max(scores, 1)[1].view(batch_size).data == labels.data).sum() / batch_size
+        accuracy = (torch.max(scores, 1)[1] == labels.data).sum().float() / batch_size
     else:
         preds = (scores.data > 0.5)
         targets = (labels.data == 1)
         accuracy = (preds == targets).sum() / batch_size
-    # loss = loss.cpu().data.numpy()[0]
     if verbose:
         tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
     return accuracy
@@ -41,7 +39,7 @@ def evaluate(config, model, test_loader):
     criterion = nn.CrossEntropyLoss()
     model.eval()
     accs = []
-    for X_batch, y_batch in test_loader:
+    for X_batch, y_batch in tqdm_notebook(test_loader, total=len(test_loader)):
         timedim = X_batch.size(2)
         for i in range(0, timedim - splice_frames+1 , splice_frames):
             X = X_batch.narrow(2, i, splice_frames)
@@ -50,9 +48,8 @@ def evaluate(config, model, test_loader):
                 X = X.cuda()
                 y = y.cuda()
             scores = model(X)
-            y = Variable(y, requires_grad=False)
             loss = criterion(scores, y)
-            accs.append(print_eval("test", scores, y, loss))
+            accs.append(print_eval("test", scores, y, loss.item()))
     avg_acc = np.mean(accs)
     print("final test accuracy: {}".format(avg_acc))
 
@@ -77,7 +74,7 @@ def si_train(config, loaders, model):
     print_step = config["print_step"]
     # training iteration
     for epoch_idx in range(config["n_epochs"]):
-        for batch_idx, (X_batch, y_batch) in (enumerate(train_loader)):
+        for batch_idx, (X_batch, y_batch) in tqdm_notebook(enumerate(train_loader), total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
             model.train()
             timedim = X_batch.size(2)
@@ -89,8 +86,6 @@ def si_train(config, loaders, model):
                     X = X.cuda()
                     y = y.cuda()
                 optimizer.zero_grad()
-                X.requires_grad =False
-                y.requires_grad =False
                 scores = model(X)
                 loss = criterion(scores, y)
                 loss.backward()
@@ -119,7 +114,6 @@ def si_train(config, loaders, model):
                         X = X.cuda()
                         y = y.cuda()
                     scores = model(X)
-                    y = Variable(y, requires_grad=False)
                     loss = criterion(scores, y)
                     accs.append(print_eval("dev", scores, y, loss.item()))
             avg_acc = np.mean(accs)
