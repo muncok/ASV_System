@@ -128,7 +128,7 @@ class SpeechDataset(data.Dataset):
         # mfcc hyper-parameters are hard coded.
         input_feature = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
         self._audio_cache[example] = input_feature
-        return input_feature.unsqueeze(1)
+        return input_feature.unsqueeze(0)
 
     @staticmethod
     def read_manifest(manifest_path):
