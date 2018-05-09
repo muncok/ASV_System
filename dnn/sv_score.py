@@ -27,6 +27,7 @@ def embeds(opt, val_dataloader, model, lda=None):
         print("LDA is loaded")
     for batch in (val_iter):
         x, y = batch
+        print(x.shape)
         time_dim = x.size(2)
         split_points = range(0, time_dim-splice_dim+1, splice_dim)
         model_outputs = []
