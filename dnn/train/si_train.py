@@ -6,7 +6,7 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 
-from tqdm import tqdm
+from tqdm import tqdm_notebook as tqdm
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
@@ -15,6 +15,7 @@ def make_abspath(rel_path):
 
 
 def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False):
+    print(loss)
     batch_size = labels.size(0)
     if not binary:
         accuracy = (torch.max(scores, 1)[1].view(batch_size).data == labels.data).sum() / batch_size
@@ -22,7 +23,7 @@ def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False
         preds = (scores.data > 0.5)
         targets = (labels.data == 1)
         accuracy = (preds == targets).sum() / batch_size
-    loss = loss.cpu().data.numpy()[0]
+    # loss = loss.cpu().data.numpy()[0]
     if verbose:
         tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
     return accuracy
@@ -76,18 +77,20 @@ def si_train(config, loaders, model):
     print_step = config["print_step"]
     # training iteration
     for epoch_idx in range(config["n_epochs"]):
-        for batch_idx, (X_batch, y_batch) in tqdm(enumerate(train_loader)):
+        for batch_idx, (X_batch, y_batch) in (enumerate(train_loader)):
+            # X_batch = (batch, channel, time, bank)
             model.train()
             timedim = X_batch.size(2)
             # random_stride = np.random.random_integers(splice_frames//2, splice_frames)
             for i in range(0, timedim - splice_frames + 1, splice_frames):
                 X = X_batch.narrow(2, i, splice_frames)
+                y = y_batch
                 if not config["no_cuda"]:
                     X = X.cuda()
-                    y = y_batch.cuda()
+                    y = y.cuda()
                 optimizer.zero_grad()
-                X = Variable(X, requires_grad=False)
-                y = Variable(y, requires_grad=False)
+                X.requires_grad =False
+                y.requires_grad =False
                 scores = model(X)
                 loss = criterion(scores, y)
                 loss.backward()
@@ -101,7 +104,7 @@ def si_train(config, loaders, model):
                         nesterov=config["use_nesterov"], momentum=config["momentum"],
                                                 weight_decay=config["weight_decay"])
                 if step_no % print_step == print_step -1:
-                    print_eval("train step #{}".format(step_no), scores, label_in, loss, verbose=True)
+                    print_eval("train step #{}".format(step_no), scores, y, loss.item(), verbose=True)
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
@@ -118,9 +121,9 @@ def si_train(config, loaders, model):
                     scores = model(X)
                     y = Variable(y, requires_grad=False)
                     loss = criterion(scores, y)
-                    accs.append(print_eval("dev", scores, y, loss))
+                    accs.append(print_eval("dev", scores, y, loss.item()))
             avg_acc = np.mean(accs)
-            print("epoch #{}, final dev accuracy: {}".format(epoch_idx,avg_acc))
+            print("epoch #{}, dev accuracy: {}".format(epoch_idx,avg_acc))
             if avg_acc > max_acc:
                 print("saving best model...")
                 max_acc = avg_acc

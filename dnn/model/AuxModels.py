@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -59,22 +58,23 @@ def conv_block(in_channels, out_channels, pool_size=2):
     )
 
 class SimpleCNN(SerializableModule):
-    def __init__(self, config):
+    def __init__(self, n_labels, input_frames):
         super().__init__()
         hid_dim = 64
         self.feat_size = 64
-        splice_frames = config['splice_frames']
         self.convb_1 = conv_block(1, hid_dim)
         self.convb_2 = conv_block(hid_dim, hid_dim)
         self.convb_3 = conv_block(hid_dim, hid_dim)
-        if splice_frames < 21:
+        if input_frames < 21:
             self.convb_4 = conv_block(hid_dim, hid_dim, 1)
         else:
             self.convb_4 = conv_block(hid_dim, hid_dim)
 
-        test_in = Variable(torch.zeros(1,1,splice_frames,40), volatile=True)
-        test_out = self.embed(test_in)
-        self.output = nn.Linear(test_out.size(1), config["n_labels"])
+        with torch.no_grad():
+            test_in = (torch.zeros(1,1,input_frames,40))
+            test_out = self.embed(test_in)
+            self.output = nn.Linear(test_out.size(1), n_labels)
+        self.embed_mode = False
 
     def embed(self, x):
         if x.dim() == 3:
@@ -88,7 +88,20 @@ class SimpleCNN(SerializableModule):
 
     def forward(self, x):
         x = self.embed(x)
-        if hasattr(self, "output"):
+        if not self.embed_mode:
             x = self.output(x)
         return x
+
+def _conv_bn_relu(in_channels, out_channels, kernel_size, padding):
+    return nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, kernel_size, padding),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU()
+    )
+
+class LongCNN(SerializableModule):
+    def __init__(self, config):
+        super().__init__()
+
+
 

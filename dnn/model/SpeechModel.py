@@ -27,7 +27,7 @@ class ConfigType(Enum):
     RES8_WIDE = "res8-wide"
     RES26_NARROW = "res26-narrow"
     LSTM = "lstm"
-    CNN_SMALL = "cnn-small"
+    CNN_LONG = "cnn-long"
     CNN_FRAMES = "cnn-frames"
 
 def find_config(conf):
@@ -44,9 +44,10 @@ def find_config(conf):
         return {}
 
 class SpeechModel(SerializableModule):
-    def __init__(self, config):
+    def __init__(self, config, model, n_labels):
         super().__init__()
-        n_labels = config["n_labels"]
+        # n_labels = config["n_labels"]
+        config = find_config(model)
         n_featmaps1 = config["n_feature_maps1"]
 
         conv1_size = config["conv1_size"] # (time, frequency)
@@ -63,53 +64,54 @@ class SpeechModel(SerializableModule):
             self.conv1.bias.data.zero_()
         self.pool1 = nn.MaxPool2d(conv1_pool)
 
-        x = Variable(torch.zeros(1, 1, height, width), volatile=True)
-        x = self.pool1(self.conv1(x))
-        conv_net_size = x.view(1, -1).size(1)
-        last_size = conv_net_size
-
-        if "conv2_size" in config:
-            conv2_size = config["conv2_size"]
-            conv2_pool = config["conv2_pool"]
-            conv2_stride = tuple(config["conv2_stride"])
-            n_featmaps2 = config["n_feature_maps2"]
-            self.conv2 = nn.Conv2d(n_featmaps1, n_featmaps2, conv2_size, stride=conv2_stride)
-            if tf_variant:
-                truncated_normal(self.conv2.weight.data)
-                self.conv2.bias.data.zero_()
-            self.pool2 = nn.MaxPool2d(conv2_pool)
-            x = self.pool2(self.conv2(x))
+        with torch.no_grad():
+            x = torch.zeros(1, 1, height, width)
+            x = self.pool1(self.conv1(x))
             conv_net_size = x.view(1, -1).size(1)
             last_size = conv_net_size
-        if not tf_variant:
-            self.lin = nn.Linear(conv_net_size, 32)
 
-        if "dnn1_size" in config:
-            dnn1_size = config["dnn1_size"]
-            last_size = dnn1_size
-            if tf_variant:
-                self.dnn1 = nn.Linear(conv_net_size, dnn1_size)
-                truncated_normal(self.dnn1.weight.data)
-                self.dnn1.bias.data.zero_()
-            else:
-                self.dnn1 = nn.Linear(32, dnn1_size)
-            if "dnn2_size" in config:
-                dnn2_size = config["dnn2_size"]
-                last_size = dnn2_size
-                self.dnn2 = nn.Linear(dnn1_size, dnn2_size)
+            if "conv2_size" in config:
+                conv2_size = config["conv2_size"]
+                conv2_pool = config["conv2_pool"]
+                conv2_stride = tuple(config["conv2_stride"])
+                n_featmaps2 = config["n_feature_maps2"]
+                self.conv2 = nn.Conv2d(n_featmaps1, n_featmaps2, conv2_size, stride=conv2_stride)
                 if tf_variant:
-                    truncated_normal(self.dnn2.weight.data)
-                    self.dnn2.bias.data.zero_()
-        if "bn_size" in config:
-            self.bn_size = config["bn_size"]
-            self.bottleneck = nn.Linear(last_size, self.bn_size)
-            last_size = self.bn_size
+                    truncated_normal(self.conv2.weight.data)
+                    self.conv2.bias.data.zero_()
+                self.pool2 = nn.MaxPool2d(conv2_pool)
+                x = self.pool2(self.conv2(x))
+                conv_net_size = x.view(1, -1).size(1)
+                last_size = conv_net_size
+            if not tf_variant:
+                self.lin = nn.Linear(conv_net_size, 32)
 
-        self.output = nn.Linear(last_size, n_labels)
-        if tf_variant:
-            truncated_normal(self.output.weight.data)
-            self.output.bias.data.zero_()
-        self.dropout = nn.Dropout(dropout_prob)
+            if "dnn1_size" in config:
+                dnn1_size = config["dnn1_size"]
+                last_size = dnn1_size
+                if tf_variant:
+                    self.dnn1 = nn.Linear(conv_net_size, dnn1_size)
+                    truncated_normal(self.dnn1.weight.data)
+                    self.dnn1.bias.data.zero_()
+                else:
+                    self.dnn1 = nn.Linear(32, dnn1_size)
+                if "dnn2_size" in config:
+                    dnn2_size = config["dnn2_size"]
+                    last_size = dnn2_size
+                    self.dnn2 = nn.Linear(dnn1_size, dnn2_size)
+                    if tf_variant:
+                        truncated_normal(self.dnn2.weight.data)
+                        self.dnn2.bias.data.zero_()
+            if "bn_size" in config:
+                self.bn_size = config["bn_size"]
+                self.bottleneck = nn.Linear(last_size, self.bn_size)
+                last_size = self.bn_size
+
+            self.output = nn.Linear(last_size, n_labels)
+            if tf_variant:
+                truncated_normal(self.output.weight.data)
+                self.output.bias.data.zero_()
+            self.dropout = nn.Dropout(dropout_prob)
 
         self.feat_size = self.output.in_features
 
@@ -139,9 +141,10 @@ class SpeechModel(SerializableModule):
         return self.output(x)
 
 class SpeechResModel(SerializableModule):
-    def __init__(self, config):
+    def __init__(self, model, n_labels):
         super().__init__()
-        n_labels = config["n_labels"]
+        # n_labels = config["n_labels"]
+        config = find_config(model)
         n_maps = config["n_feature_maps"]
         self.conv0 = nn.Conv2d(1, n_maps, (3, 3), padding=(1, 1), bias=False)
         if "res_pool" in config:
@@ -187,13 +190,14 @@ class SpeechResModel(SerializableModule):
 
 
 _configs = {
-    ConfigType.CNN_SMALL.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=16,
-        conv1_size=(101, 8), conv1_pool=(1, 1), conv1_stride=(1, 1), dnn1_size=128, dnn2_size=128, tf_variant=False),
     ConfigType.CNN_FRAMES.value: dict(dropout_prob=0.5, height=20, width=40,  n_feature_maps1=128,
                                      conv1_size=(6, 8), conv1_pool=(2, 3), conv1_stride=(1, 1),
                                      conv2_size=(4, 4), conv2_pool=(1, 2), conv2_stride=(1, 1),
                                      n_feature_maps2=256,
                                      dnn1_size=512, tf_variant=True),
+    ConfigType.CNN_LONG.value: dict(dropout_prob=0.5, height=301, width=40,  n_feature_maps1=64,
+                                          n_feature_maps2=64, conv1_size=(20, 8), conv2_size=(10, 4), conv1_pool=(2, 2), conv1_stride=(1, 1),
+                                          conv2_stride=(1, 1), conv2_pool=(1, 1), tf_variant=True),
     ConfigType.CNN_TRAD_POOL2.value: dict(dropout_prob=0.5, height=101, width=40,  n_feature_maps1=64,
         n_feature_maps2=64, conv1_size=(20, 8), conv2_size=(10, 4), conv1_pool=(2, 2), conv1_stride=(1, 1),
         conv2_stride=(1, 1), conv2_pool=(1, 1), tf_variant=True),

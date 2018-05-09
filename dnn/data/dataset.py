@@ -128,7 +128,7 @@ class SpeechDataset(data.Dataset):
         # mfcc hyper-parameters are hard coded.
         input_feature = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
         self._audio_cache[example] = input_feature
-        return input_feature
+        return input_feature.unsqueeze(1)
 
     @staticmethod
     def read_manifest(manifest_path):
@@ -151,7 +151,7 @@ class SpeechDataset(data.Dataset):
         samples = {}
         for idx, row in df.iterrows():
             # file should contain their subfolder name
-            path = os.path.join(data_dir, row.path)
+            path = os.path.join(data_dir, row.file)
             if hasattr(row, "label"):
                 samples[path] = row.label
             else:

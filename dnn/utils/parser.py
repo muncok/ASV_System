@@ -3,10 +3,8 @@ import numpy as np
 from collections import ChainMap
 import argparse
 
-from ..model.speechModel import find_config
+from ..model.SpeechModel import find_config
 from ..data.dataset import SpeechDataset
-
-
 
 def get_sv_parser():
     parser = argparse.ArgumentParser()
@@ -140,7 +138,6 @@ def test_config(model):
                          use_nesterov=False, input_file="", output_file="test.pt", gpu_no=0, cache_size=32768,
                          momentum=0.9, weight_decay=0.00001, num_workers = 16, print_step=1)
     builder = ConfigBuilder(
-        find_config(model),
         SpeechDataset.default_config(),
         global_config)
 
