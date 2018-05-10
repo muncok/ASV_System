@@ -111,7 +111,6 @@ class SpeechDataset(data.Dataset):
             if len(data) > in_len:
                 start_sample = np.random.randint(0, len(data) - in_len)
                 data = data[start_sample:start_sample+in_len]
-                data = data[:in_len]
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
 
