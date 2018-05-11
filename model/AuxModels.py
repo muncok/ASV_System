@@ -92,16 +92,42 @@ class SimpleCNN(SerializableModule):
             x = self.output(x)
         return x
 
-def _conv_bn_relu(in_channels, out_channels, kernel_size, padding):
+def _conv_bn_relu(in_channels, out_channels, kernel_size, stride):
     return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, kernel_size, padding),
+        nn.Conv2d(in_channels, out_channels, kernel_size, stride),
         nn.BatchNorm2d(out_channels),
         nn.ReLU()
     )
 
 class LongCNN(SerializableModule):
-    def __init__(self, config):
+    def __init__(self, config, n_labels):
         super().__init__()
+        self.convb_1 = _conv_bn_relu(1, 32, (7, 3), (2, 1))
+        self.convb_2 = _conv_bn_relu(32, 32, (7, 3), (2, 1))
+        self.convb_3= _conv_bn_relu(32, 64, (7, 3), (2, 1))
+        with torch.no_grad():
+            x = torch.zeros((1, 1, config["splice_frames"], 40))
+            x = self.embed(x)
+        self.fc = nn.Linear(x.size(1), n_labels)
+
+    def embed(self, x):
+        if x.dim() == 3:
+            x = torch.unsqueeze(x, 1)
+        x = self.convb_1(x)
+        x = self.convb_2(x)
+        x = self.convb_3(x)
+        x = nn.AvgPool2d(2)(x)
+        x = x.view(-1, num_flat_features(x))
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.fc(x)
+        return x
+
+
+
+
 
 
 

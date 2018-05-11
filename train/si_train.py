@@ -74,7 +74,7 @@ def si_train(config, loaders, model):
     print_step = config["print_step"]
     # training iteration
     for epoch_idx in range(config["n_epochs"]):
-        for batch_idx, (X_batch, y_batch) in tqdm_notebook(enumerate(train_loader), total=len(train_loader)):
+        for batch_idx, (X_batch, y_batch) in tqdm(enumerate(train_loader), total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
             model.train()
             timedim = X_batch.size(2)
@@ -122,3 +122,5 @@ def si_train(config, loaders, model):
                 print("saving best model...")
                 max_acc = avg_acc
                 model.save(config["output_file"])
+    # test
+    evaluate(config, model, test_loader)

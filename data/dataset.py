@@ -52,6 +52,7 @@ class SpeechDataset(data.Dataset):
         self.filters = librosa.filters.dct(config["n_dct_filters"], config["n_mels"])
         self.window_size = config["window_size"]
         self.window_stride =  config["window_stride"]
+        self.data_folder = config["data_folder"]
 
         if set_type == "train":
             self._load_bg_noise(config["bkg_noise_folder"])
@@ -67,7 +68,6 @@ class SpeechDataset(data.Dataset):
         config["n_mels"] = 40
         config["timeshift_ms"] = 100
         config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
-        config["data_folder"] = "/home/muncok/DL/dataset/SV_sets"
         config["window_size"]= 0.025
         config["window_stride"]= 0.010
         config["input_clip"] = False
@@ -145,17 +145,16 @@ class SpeechDataset(data.Dataset):
             samples[tokens[0]] = int(tokens[1])
         return samples
 
-    @staticmethod
-    def read_df(data_dir, df):
-        samples = {}
-        for idx, row in df.iterrows():
-            # file should contain their subfolder name
-            path = os.path.join(data_dir, row.file)
-            if hasattr(row, "label"):
-                samples[path] = row.label
-            else:
-                samples[path] = -1
-        return samples
+    @classmethod
+    def read_df(cls, config, df, set_type):
+        files = df.file.tolist()
+        if "label" in df.columns:
+            labels = df.label.tolist()
+        else:
+            labels = [-1] * len(df)
+        samples = dict(zip(files, labels))
+        dataset = cls(samples, set_type, config)
+        return dataset
 
     def _load_bg_noise(self, bg_folder):
         bg_noise_files = []
@@ -173,7 +172,7 @@ class SpeechDataset(data.Dataset):
         self.bg_noise_audio = [librosa.core.load(file, sr=16000)[0] for file in bg_noise_files]
 
     def __getitem__(self, index):
-        return self.preprocess(self.audio_files[index]), self.audio_labels[index]
+        return self.preprocess(os.path.join(self.data_folder, self.audio_files[index])), self.audio_labels[index]
 
     def __len__(self):
         return len(self.audio_labels)

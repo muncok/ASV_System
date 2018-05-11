@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import math
@@ -17,7 +16,7 @@ class TDNN(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.check_valid_context(context)
-        self.kernel_width, context = self.get_kernel_width(context,full_context)
+        self.kernel_width, context = self.get_kernel_width(context,full_context)  # return len(context), context
         self.register_buffer('context',torch.LongTensor(context))
         self.full_context = full_context
         stdv = 1./math.sqrt(input_dim)

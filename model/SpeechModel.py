@@ -141,10 +141,10 @@ class SpeechModel(SerializableModule):
         return self.output(x)
 
 class SpeechResModel(SerializableModule):
-    def __init__(self, model, n_labels):
+    def __init__(self, arch, n_labels):
         super().__init__()
         # n_labels = config["n_labels"]
-        config = find_config(model)
+        config = find_config(arch)
         n_maps = config["n_feature_maps"]
         self.conv0 = nn.Conv2d(1, n_maps, (3, 3), padding=(1, 1), bias=False)
         if "res_pool" in config:
