@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 
+from .model import SerializableModule
+
 """Time Delay Neural Network as mentioned in the 1989 paper by Waibel et al. (Hinton) and the 2015 paper by Peddinti et al. (Povey)"""
 
 class TDNN(nn.Module):
@@ -36,6 +38,8 @@ class TDNN(nn.Module):
         # if type(self.bias.data) == torch.cuda.FloatTensor and self.cuda_flag == False:
         #     self.context = self.context.cuda()
         #     self.cuda_flag = True
+        if x.dim() == 4:
+            x = x.squeeze(1)
         conv_out = self.special_convolution(x, self.kernel, self.context, self.bias)
         return F.relu(conv_out)
 
@@ -75,3 +79,8 @@ class TDNN(nn.Module):
         start = 0 if context[0] >= 0 else -1*context[0]
         end = input_sequence_length if context[-1] <= 0 else input_sequence_length - context[-1]
         return range(start, end)
+
+class TdnnModel(SerializableModule):
+    def __init__(self, config, n_labels):
+        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
+        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
