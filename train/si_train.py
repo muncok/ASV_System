@@ -35,6 +35,9 @@ def set_seed(config):
     random.seed(seed)
 
 def evaluate(config, model, test_loader):
+    if not config["no_cuda"]:
+        torch.cuda.set_device(config["gpu_no"])
+        model.cuda()
     splice_frames = config["splice_frames"]
     criterion = nn.CrossEntropyLoss()
     model.eval()
@@ -51,6 +54,36 @@ def evaluate(config, model, test_loader):
             loss = criterion(scores, y)
             accs.append(print_eval("test", scores, y, loss.item()))
     avg_acc = np.mean(accs)
+    print("final test accuracy: {}".format(avg_acc))
+
+def agg_evaluate(config, model, test_loader):
+    if not config["no_cuda"]:
+        torch.cuda.set_device(config["gpu_no"])
+        model.cuda()
+    splice_frames = config["splice_frames"]
+    criterion = nn.CrossEntropyLoss()
+    model.eval()
+    with torch.no_grad():
+        accs = []
+        for X_batch, y_batch in test_loader:
+            timedim = X_batch.size(2)
+            # model_outputs = torch.tensor(0)
+            model_outputs = torch.tensor(0)
+            for i in range(0, timedim - splice_frames + 1, splice_frames):
+                X = X_batch.narrow(2, i, splice_frames)
+                y = y_batch
+                if not config["no_cuda"]:
+                    X = X.cuda()
+                    y = y.cuda()
+                if model_outputs.dim() == 0:
+                    model_outputs = model.embed(X)
+                else:
+                    model_outputs += model.embed(X)
+            agg_embed = model_outputs / (timedim // splice_frames)
+            scores = model.output(agg_embed)
+            loss = criterion(scores, y)
+            accs.append(print_eval("dev", scores, y, loss.item()))
+        avg_acc = np.mean(accs)
     print("final test accuracy: {}".format(avg_acc))
 
 def si_train(config, loaders, model):
@@ -79,7 +112,8 @@ def si_train(config, loaders, model):
             model.train()
             timedim = X_batch.size(2)
             # random_stride = np.random.random_integers(splice_frames//2, splice_frames)
-            for i in range(0, timedim - splice_frames + 1, splice_frames):
+            loss_sum = 0
+            for i in range(0, timedim - splice_frames + 1, 1):
                 X = X_batch.narrow(2, i, splice_frames)
                 y = y_batch
                 if not config["no_cuda"]:
@@ -88,35 +122,43 @@ def si_train(config, loaders, model):
                 optimizer.zero_grad()
                 scores = model(X)
                 loss = criterion(scores, y)
+                loss_sum += loss.item()
                 loss.backward()
                 optimizer.step()
                 step_no += 1
                 # learning rate change
-                if epoch_idx > schedule_steps[sched_idx]:
-                    sched_idx += 1
-                    print("changing learning rate to {}".format(config["lr"][sched_idx]))
-                    optimizer = torch.optim.SGD(learnable_params, lr=config["lr"][sched_idx],
-                        nesterov=config["use_nesterov"], momentum=config["momentum"],
-                                                weight_decay=config["weight_decay"])
-                if step_no % print_step == print_step -1:
-                    print_eval("train step #{}".format(step_no), scores, y, loss.item(), verbose=True)
+            if epoch_idx > schedule_steps[sched_idx]:
+                sched_idx += 1
+                print("changing learning rate to {}".format(config["lr"][sched_idx]))
+                optimizer = torch.optim.SGD(learnable_params, lr=config["lr"][sched_idx],
+                    nesterov=config["use_nesterov"], momentum=config["momentum"],
+                                            weight_decay=config["weight_decay"])
+            if step_no % print_step == print_step -1:
+                print_eval("train step #{}".format(step_no), scores, y, loss_sum/print_step, verbose=True)
 
         # evaluation on validation set
-        with torch.no_grad():
-            if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
+        if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
+            with torch.no_grad():
                 model.eval()
                 accs = []
                 for X_batch, y_batch in dev_loader:
                     timedim = X_batch.size(2)
-                    for i in range(0, timedim - splice_frames+1 , splice_frames):
+                    model_outputs = torch.tensor(0)
+                    for i in range(0, timedim - splice_frames + 1, 1):
                         X = X_batch.narrow(2, i, splice_frames)
                         y = y_batch
                         if not config["no_cuda"]:
                             X = X.cuda()
                             y = y.cuda()
-                        scores = model(X)
-                        loss = criterion(scores, y)
-                        accs.append(print_eval("dev", scores, y, loss.item()))
+                        optimizer.zero_grad()
+                        if model_outputs.dim() == 0:
+                            model_outputs = model.embed(X)
+                        else:
+                            model_outputs += model.embed(X)
+                    agg_embed = model_outputs / (timedim // splice_frames)
+                    scores = model.output(agg_embed)
+                    loss = criterion(scores, y)
+                    accs.append(print_eval("dev", scores, y, loss.item()))
                 avg_acc = np.mean(accs)
                 print("epoch #{}, dev accuracy: {}".format(epoch_idx,avg_acc))
                 if avg_acc > max_acc:

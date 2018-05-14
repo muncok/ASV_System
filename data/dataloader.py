@@ -30,13 +30,15 @@ def _collate_fn(batch):
     targets = torch.LongTensor(targets)
     return inputs, targets
 
-def init_default_loader(dataset, shuffle):
+def init_default_loader(config, dataset, shuffle):
     '''
     Initialize the datasets, samplers and dataloaders for si training
     '''
+    batch_size = config["batch_size"]
+    num_workers = config["num_workers"]
     val_dataloader = torch.utils.data.DataLoader(dataset,
-                                                 batch_size=64,
-                                                 num_workers=8,
+                                                 batch_size=batch_size,
+                                                 num_workers=num_workers,
                                                  shuffle=shuffle)
     return val_dataloader
 

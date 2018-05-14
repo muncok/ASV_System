@@ -5,6 +5,7 @@ from torch.autograd import Variable
 import math
 
 from .model import SerializableModule
+from .AuxModels import SimpleCNN
 
 """Time Delay Neural Network as mentioned in the 1989 paper by Waibel et al. (Hinton) and the 2015 paper by Peddinti et al. (Povey)"""
 
@@ -38,8 +39,6 @@ class TDNN(nn.Module):
         # if type(self.bias.data) == torch.cuda.FloatTensor and self.cuda_flag == False:
         #     self.context = self.context.cuda()
         #     self.cuda_flag = True
-        if x.dim() == 4:
-            x = x.squeeze(1)
         conv_out = self.special_convolution(x, self.kernel, self.context, self.bias)
         return F.relu(conv_out)
 
@@ -82,5 +81,16 @@ class TDNN(nn.Module):
 
 class TdnnModel(SerializableModule):
     def __init__(self, config, n_labels):
-        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
-        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
+        super().__init__()
+        self.extractor = SimpleCNN(config, n_labels, embed_mode=True)  # [-4, +4] 9 frames
+        feat_dim = self.extractor.feat_dim
+        self.tdnn1 = TDNN([-2, 2], input_dim=feat_dim, output_dim=500, full_context=False)
+        self.tdnn2 = TDNN([-4, 4], input_dim=500, output_dim=1024, full_context=False)
+        self.output = nn.Linear(1024, n_labels)
+
+    def forward(self, x):
+        x = self.extractor(x)
+        x = self.tdnn1(x)
+        x = self.tdnn2(x)
+        x = self.output(x)
+        return x
