@@ -6,11 +6,6 @@ import torch
 windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman': scipy.signal.blackman,
            'bartlett': scipy.signal.bartlett}
 
-def set_speech_format(f):
-    f.setnchannels(1)
-    f.setsampwidth(2)
-    f.setframerate(16000)
-
 def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
     ## DCT Part
     if in_feature == "mfcc":
@@ -18,6 +13,7 @@ def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
         data[data > 0] = np.log(data[data > 0])
         data = [np.matmul(dct_filters, x) for x in np.split(data, data.shape[1], axis=1)]
         data = np.array(data, order="F").squeeze(2).astype(np.float32)
+        ## appending deltas
         # data_delta = librosa.feature.delta(data)
         # data_delta2 = librosa.feature.delta(data, order=2)
         # data = np.stack([data, data_delta, data_delta2], axis=0)
