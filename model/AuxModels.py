@@ -95,6 +95,7 @@ class SimpleCNN(SerializableModule):
             x = self.output(x)
         return x
 
+
 def _conv_bn_relu(in_channels, out_channels, kernel_size, stride):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel_size, stride),

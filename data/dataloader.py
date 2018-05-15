@@ -15,17 +15,17 @@ def _collate_fn(batch):
         return p[0].size(0)
 
     longest_sample = max(batch, key=func)[0]
-    freq_size = longest_sample.size(1)
+    freq_size = longest_sample.size(2)
     minibatch_size = len(batch)
-    max_seqlength = longest_sample.size(0)
-    inputs = torch.zeros(minibatch_size, 1, max_seqlength,freq_size)
+    max_seqlength = longest_sample.size(1)
+    inputs = torch.zeros(minibatch_size, 1, max_seqlength, freq_size)
     targets = []
     for x in range(minibatch_size):
         sample = batch[x]
         tensor = sample[0]
         target = sample[1]
-        seq_length = tensor.size(0)
-        inputs[x][0].narrow(0, 0, seq_length).copy_(tensor)
+        seq_length = tensor.size(1)
+        inputs[x].narrow(1, 0, seq_length).copy_(tensor)
         targets.append(target)
     targets = torch.LongTensor(targets)
     return inputs, targets
@@ -36,21 +36,24 @@ def init_default_loader(config, dataset, shuffle):
     '''
     batch_size = config["batch_size"]
     num_workers = config["num_workers"]
-    val_dataloader = torch.utils.data.DataLoader(dataset,
+    dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=batch_size,
                                                  num_workers=num_workers,
-                                                 shuffle=shuffle)
-    return val_dataloader
+                                                 shuffle=shuffle,)
+    return dataloader
 
-def init_maxlengh_loader(dataset):
+def init_maxlengh_loader(config, dataset, shuffle):
     '''
     Initialize the datasets, samplers and dataloaders for si training
     '''
-    val_dataloader = torch.utils.data.DataLoader(dataset,
-                                                 batch_size=64,
-                                                 num_workers=8,
+    batch_size = config["batch_size"]
+    num_workers = config["num_workers"]
+    dataloader = torch.utils.data.DataLoader(dataset,
+                                                 batch_size=batch_size,
+                                                 num_workers=num_workers,
+                                                 shuffle=shuffle,
                                                  collate_fn=_collate_fn)
-    return val_dataloader
+    return dataloader
 
 def init_prototypical_loaders(opt, train_dataset, val_dataset):
     '''
