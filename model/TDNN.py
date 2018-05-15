@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 
-from .model import SerializableModule
+from .model import SerializableModule, num_flat_features
+from .AuxModels import conv_block
 
 """Time Delay Neural Network as mentioned in the 1989 paper by Waibel et al. (Hinton) and the 2015 paper by Peddinti et al. (Povey)"""
 
@@ -38,8 +39,6 @@ class TDNN(nn.Module):
         # if type(self.bias.data) == torch.cuda.FloatTensor and self.cuda_flag == False:
         #     self.context = self.context.cuda()
         #     self.cuda_flag = True
-        if x.dim() == 4:
-            x = x.squeeze(1)
         conv_out = self.special_convolution(x, self.kernel, self.context, self.bias)
         return F.relu(conv_out)
 
@@ -60,7 +59,8 @@ class TDNN(nn.Module):
         # Perform the convolution with relevant input frames
         for c, i in enumerate(valid_steps):
             features = torch.index_select(x, 2, context+i)
-            xs[:,:,c] = F.conv1d(features, kernel, bias = bias)[:,:,0]
+            xs[:, :, c] = F.conv1d(features, kernel, bias=bias)[:, :, 0]
+        xs = xs.transpose(1,2).contiguous()
         return xs
 
     @staticmethod
@@ -80,7 +80,81 @@ class TDNN(nn.Module):
         end = input_sequence_length if context[-1] <= 0 else input_sequence_length - context[-1]
         return range(start, end)
 
+class TdnnCNN(SerializableModule):
+    def __init__(self, config, n_labels, embed_mode=False):
+        super().__init__()
+        self.splice_frames = config["splice_frames"]
+        hid_dim = 64
+        self.feat_size = 64
+        self.convb_1 = conv_block(1, hid_dim)
+        self.convb_2 = conv_block(hid_dim, hid_dim)
+        self.convb_3 = conv_block(hid_dim, hid_dim)
+        if self.splice_frames < 21:
+            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
+        else:
+            self.convb_4 = conv_block(hid_dim, hid_dim)
+
+        with torch.no_grad():
+            test_in = torch.zeros((1, 1, self.splice_frames, 40))
+            test_out = self.embed(test_in)
+            self.feat_dim = test_out.size(-1)
+            if not embed_mode:
+                self.output = nn.Linear(self.feat_dim, n_labels)
+        self.embed_mode = embed_mode
+
+    def embed(self, seq_x):
+        # input is full sequence, not a snippet
+        if seq_x.dim() == 3:
+            seq_x = torch.unsqueeze(seq_x, 1)
+        timedim = seq_x.size(2)
+        embeds = []
+        for i in range(0, timedim - self.splice_frames + 1, self.splice_frames):
+            x = seq_x.narrow(2, i, self.splice_frames)
+            x = self.convb_1(x)
+            x = self.convb_2(x)
+            x = self.convb_3(x)
+            x = self.convb_4(x)
+            x = x.view(-1, num_flat_features(x))
+            embeds.append(x)
+        x = torch.stack(embeds, dim=1)  # consistency for TDNN layer
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        if not self.embed_mode:
+            x = self.output(x)
+        return x
+
+
 class TdnnModel(SerializableModule):
-    def __init__(self, config, n_labels):
-        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
-        self.tdnn1 = TDNN([-10, 10], input_dim=40, output_dim=128, full_context=True)
+    def __init__(self, config, n_labels, embed_mode=False):
+        super().__init__()
+        self.embed_mode = embed_mode
+        self.extractor = TdnnCNN(config, n_labels, embed_mode=True)  # [-4, +4] 9 frames
+        feat_dim = self.extractor.feat_dim
+        self.tdnn1 = TDNN([-2, 2], input_dim=feat_dim, output_dim=256, full_context=False)
+        self.tdnn2 = TDNN([-4, 4], input_dim=256, output_dim=512, full_context=False)
+        with torch.no_grad():
+            test_in = torch.zeros((1, 1, config['input_frames'], 40))
+            x = self.extractor(test_in)
+            x = self.tdnn1(x)
+            x = self.tdnn2(x)
+            test_out = x.view(-1, num_flat_features(x))
+            feat_dim = test_out.size(-1)
+        self.fc = nn.Linear(feat_dim, 1024)
+        self.output = nn.Linear(1024, n_labels)
+
+    def embed(self, x):
+        x = self.extractor(x)
+        x = self.tdnn1(x)
+        x = self.tdnn2(x)
+        x = x.view(-1, num_flat_features(x))
+        x = self.fc(x)
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        if not self.embed_mode:
+            x = F.relu(x)
+            x = self.output(x)
+        return x

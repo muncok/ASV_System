@@ -58,7 +58,7 @@ def conv_block(in_channels, out_channels, pool_size=2):
     )
 
 class SimpleCNN(SerializableModule):
-    def __init__(self, config, n_labels):
+    def __init__(self, config, n_labels, embed_mode=False):
         super().__init__()
         input_frames = config["splice_frames"]
         hid_dim = 64
@@ -74,8 +74,10 @@ class SimpleCNN(SerializableModule):
         with torch.no_grad():
             test_in = torch.zeros((1, 1, input_frames, 40))
             test_out = self.embed(test_in)
-            self.output = nn.Linear(test_out.size(1), n_labels)
-        self.embed_mode = False
+            self.feat_dim = test_out.size(1)
+            if not embed_mode:
+                self.output = nn.Linear(self.feat_dim, n_labels)
+        self.embed_mode = embed_mode
 
     def embed(self, x):
         if x.dim() == 3:
@@ -92,6 +94,7 @@ class SimpleCNN(SerializableModule):
         if not self.embed_mode:
             x = self.output(x)
         return x
+
 
 def _conv_bn_relu(in_channels, out_channels, kernel_size, stride):
     return nn.Sequential(
