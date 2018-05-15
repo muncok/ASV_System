@@ -132,29 +132,28 @@ class TdnnModel(SerializableModule):
         self.embed_mode = embed_mode
         self.extractor = TdnnCNN(config, n_labels, embed_mode=True)  # [-4, +4] 9 frames
         feat_dim = self.extractor.feat_dim
-        self.tdnn1 = TDNN([-2, 2], input_dim=feat_dim, output_dim=256, full_context=False)
-        self.tdnn2 = TDNN([-4, 4], input_dim=256, output_dim=512, full_context=False)
+        self.tdnn1 = TDNN([-2, 2], input_dim=feat_dim, output_dim=512, full_context=True)
+        self.tdnn2 = TDNN([-4, 4], input_dim=512, output_dim=1024, full_context=True)
         with torch.no_grad():
             test_in = torch.zeros((1, 1, config['input_frames'], 40))
             x = self.extractor(test_in)
             x = self.tdnn1(x)
             x = self.tdnn2(x)
-            test_out = x.view(-1, num_flat_features(x))
-            feat_dim = test_out.size(-1)
-        self.fc = nn.Linear(feat_dim, 1024)
-        self.output = nn.Linear(1024, n_labels)
+            out_feat_dim = x.size(-1)
+        # self.fc = nn.Linear(feat_dim, 1024)
+        self.output = nn.Linear(out_feat_dim, n_labels)
 
     def embed(self, x):
         x = self.extractor(x)
         x = self.tdnn1(x)
         x = self.tdnn2(x)
-        x = x.view(-1, num_flat_features(x))
-        x = self.fc(x)
+        if self.embed_mode:
+            x = torch.mean(x, dim=1)
+        # x = x.view(-1, num_flat_features(x))
         return x
 
     def forward(self, x):
         x = self.embed(x)
         if not self.embed_mode:
-            x = F.relu(x)
             x = self.output(x)
         return x
