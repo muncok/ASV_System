@@ -3,106 +3,7 @@ import numpy as np
 from collections import ChainMap
 import argparse
 
-from ..model.SpeechModel import find_config
 from ..data.dataset import SpeechDataset
-
-def get_sv_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-nep', '--epochs',
-                        type=int,
-                        help='number of epochs to train for',
-                        default=100)
-
-    parser.add_argument('-lr', '--learning_rate',
-                        type=float,
-                        help='learning rate for the model, default=0.001',
-                        default=0.001)
-
-    parser.add_argument('-lrS', '--lr_scheduler_step',
-                        type=int,
-                        help='StepLR learning rate scheduler step, default=20',
-                        default=20)
-
-    parser.add_argument('-lrG', '--lr_scheduler_gamma',
-                        type=float,
-                        help='StepLR learning rate scheduler gamma, default=0.5',
-                        default=0.5)
-
-    parser.add_argument('-its', '--iterations',
-                        type=int,
-                        help='number of episodes per epoch, default=100',
-                        default=100)
-
-    parser.add_argument('-cTr', '--classes_per_it_tr',
-                        type=int,
-                        help='number of random classes per episode for training, default=60',
-                        default=60)
-
-    parser.add_argument('-nsTr', '--num_support_tr',
-                        type=int,
-                        help='number of samples per class to use as support for training, default=5',
-                        default=5)
-
-    parser.add_argument('-nqTr', '--num_query_tr',
-                        type=int,
-                        help='number of samples per class to use as query for training, default=5',
-                        default=5)
-
-    parser.add_argument('-cVa', '--classes_per_it_val',
-                        type=int,
-                        help='number of random classes per episode for validation, default=5',
-                        default=5)
-
-    parser.add_argument('-nsVa', '--num_support_val',
-                        type=int,
-                        help='number of samples per class to use as support for validation, default=5',
-                        default=5)
-
-    parser.add_argument('-nqVa', '--num_query_val',
-                        type=int,
-                        help='number of samples per class to use as query for validation, default=15',
-                        default=15)
-
-    parser.add_argument('-nTestF', '--num_test_frames',
-                        type=int,
-                        help='number of samples per class to use as query for validation, default=15',
-                        default=1)
-
-    parser.add_argument('-seed', '--manual_seed',
-                        type=int,
-                        help='input for the manual seeds initializations',
-                        default=7)
-
-    parser.add_argument('--cuda',
-                        action='store_true',
-                        help='enables cuda',
-                        default=True)
-
-    parser.add_argument('--input',
-                        type=str,
-                        help='model path to be loaded',
-                        default=None)
-
-    parser.add_argument('--output',
-                        type=str,
-                        help='model path to be saved',
-                        default=None)
-
-    parser.add_argument("--mode",
-                        choices=["train", "eval", "sv_score", "posterior", "lda_train"],
-                        default="train",
-                        type=str)
-
-    parser.add_argument('-inLen', '--input_length',
-                        type=int,
-                        help='length of input audio, sec',
-                        default=3)
-
-    parser.add_argument('-spLen', '--splice_length',
-                        type=int,
-                        help='length of spliced audio snippet, sec',
-                        default=0.2)
-    return parser
 
 class ConfigBuilder(object):
     def __init__(self, *default_configs):
@@ -136,7 +37,7 @@ def test_config(model):
     global_config = dict(model=model, no_cuda=False, n_epochs=500, lr=[0.001],
                          schedule=[np.inf], batch_size=64, dev_every=1, seed=0,
                          use_nesterov=False, input_file="", output_file="test.pt", gpu_no=0, cache_size=32768,
-                         momentum=0.9, weight_decay=0.00001, num_workers = 16, print_step=1)
+                         momentum=0.9, weight_decay=0.00001, num_workers = 32, print_step=1)
     builder = ConfigBuilder(
         SpeechDataset.default_config(),
         global_config)
@@ -144,3 +45,50 @@ def test_config(model):
     parser = builder.build_argparse()
     config = builder.config_from_argparse(parser)
     return config
+
+def train_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-nep', '--epochs',
+                        type=int,
+                        help='number of epochs to train for',
+                        default=140)
+
+    parser.add_argument('-dataset',
+                        type=str,
+                        help='dataset',
+                        default='voxc')
+
+    parser.add_argument('-model',
+                        type=str,
+                        help='model',
+                        choices=['TdnnModel', 'SimpleCNN', 'TdnnStatModel']
+                        )
+
+    parser.add_argument('-suffix',
+                        type=str,
+                        help='suffix for model.pt name',
+                        default='')
+
+    parser.add_argument('-inSec', '--input_seconds',
+                        type=float,
+                        help='length of input audio, sec',
+                        default=3)
+
+    parser.add_argument('-spSec', '--splice_seconds',
+                        type=float,
+                        help='length of spliced audio snippet, sec',
+                        default=0.2)
+
+    parser.add_argument('-stSec', '--stride_seconds',
+                        type=float,
+                        help='interval of audio snippets, sec',
+                        default=1)
+
+    parser.add_argument('-s_epoch', '--start_epoch',
+                        type=int,
+                        help='where the epoch starts',
+                        default=0)
+    parser.add_argument('-cuda',
+                        action = 'store_true',
+                        default= False)
+    return parser

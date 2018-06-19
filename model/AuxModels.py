@@ -79,6 +79,16 @@ class SimpleCNN(SerializableModule):
                 self.output = nn.Linear(self.feat_dim, n_labels)
         self.embed_mode = embed_mode
 
+    # def embed(self, x):
+    #     if x.dim() == 3:
+    #         x = torch.unsqueeze(x, 1)
+    #     x = self.convb_1(x)
+    #     x = self.convb_2(x)
+    #     x = self.convb_3(x)
+    #     x = self.convb_4(x)
+    #     x = x.view(-1, num_flat_features(x))
+    #     return x
+
     def embed(self, x):
         if x.dim() == 3:
             x = torch.unsqueeze(x, 1)

@@ -51,3 +51,13 @@ class SerializableModule(nn.Module):
         self.load_state_dict(to_state)
         assert(len(valid_state) > 0)
         print("loaded from {}".format(filename))
+
+class statistic_pool(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        # x: (batch, 1, time, bank)
+        mean = x.mean(1, keep_dims=False)
+        std = x.std(1, keep_dims=False)
+
