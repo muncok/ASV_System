@@ -3,6 +3,7 @@ import os
 import random
 import numpy as np
 from enum import Enum
+import pandas as pd
 
 import torch
 import torch.utils.data as data
@@ -23,6 +24,25 @@ class SimpleCache(dict):
             super().__setitem__(key, value)
         return value
 
+def find_dataset(config, dataset_name):
+    if dataset_name == "voxc":
+        config['data_folder'] = "dataset/voxceleb/wav"
+        df = pd.read_pickle("dataset/dataframes/Voxc_Dataframe.pkl")
+        n_labels = 1260
+    elif dataset_name == "reddots":
+        config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
+        df = pd.read_pickle(
+                "dataset/dataframes/reddots/Reddots_Dataframe.pkl")
+        n_labels = 70
+    elif dataset_name == "reddots_vad":
+        config['data_folder'] = "vad/reddots_vad/"
+        df = pd.read_pickle(
+                "/home/muncok/DL/projects/sv_experiments/dataset/dataframes/reddots/reddots_vad.pkl")
+        n_labels = 70
+    else:
+        print("{} is not exist".format(dataset_name))
+        raise FileNotFoundError
+    return df, n_labels
 
 class DatasetType(Enum):
     TRAIN = 0
@@ -44,7 +64,7 @@ class SpeechDataset(data.Dataset):
         self._audio_cache = SimpleCache(config["cache_size"])
         self._file_cache = SimpleCache(config["cache_size"])
         # input audio config
-        self.input_length = config["input_length"]
+        self.input_samples = config["input_samples"]
         self.input_format = config["input_format"]
         self.input_clip = config["input_clip"]
         # input feature config
@@ -65,7 +85,7 @@ class SpeechDataset(data.Dataset):
         config = {}
         config["noise_prob"] = 0.0
         config["n_dct_filters"] = 40
-        config["input_length"] = 16000
+        config["input_samples"] = 16000
         config["n_mels"] = 40
         config["timeshift_ms"] = 100
         config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
@@ -90,7 +110,7 @@ class SpeechDataset(data.Dataset):
             except KeyError:
                 pass
 
-        in_len = self.input_length
+        in_len = self.input_samples
         # background noise
         if self.bg_noise_audio:
             bg_noise = random.choice(self.bg_noise_audio)
@@ -190,7 +210,7 @@ class mfccDataset(data.Dataset):
         self._audio_cache = SimpleCache(config["cache_size"])
         self._file_cache = SimpleCache(config["cache_size"])
         # input audio config
-        self.input_length = config["input_length"]
+        self.input_samples = config["input_samples"]
         self.input_clip = config["input_clip"]
 
     def preprocess(self, example):
@@ -198,7 +218,7 @@ class mfccDataset(data.Dataset):
         data = np.load(example) if file_data is None else file_data
         self._file_cache[example] = data
         # input clipping
-        in_len = self.input_length
+        in_len = self.input_samples
         if self.input_clip:
             if len(data) > in_len:
                 start_sample = np.random.randint(0, len(data) - in_len)

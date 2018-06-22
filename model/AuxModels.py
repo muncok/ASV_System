@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .model import SerializableModule, num_flat_features
+from .commons import SerializableModule, num_flat_features
 from .Angular_loss import AngleLinear
 
 class voxNet(SerializableModule):
@@ -49,20 +49,6 @@ class voxNet(SerializableModule):
         return fc8_out
 
 
-def conv_block(in_channels, out_channels, pool_size=2):
-    if pool_size > 1:
-        return nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            nn.MaxPool2d(pool_size)
-        )
-    else:
-        return nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-        )
 
 class SimpleCNN(SerializableModule):
     def __init__(self, config, n_labels):
@@ -134,9 +120,9 @@ class LongCNN(SerializableModule):
         return x
 
 class AngleConv4(SerializableModule):
-    def __init__(self, config, n_labels, loss="Angular"):
+    def __init__(self, config, n_labels):
         super().__init__()
-
+        loss_type = config["loss"]
         input_frames = config["splice_frames"]
         hid_dim = 64
         self.convb_1 = conv_block(1, hid_dim)
@@ -153,7 +139,7 @@ class AngleConv4(SerializableModule):
             test_out = x.view(-1, num_flat_features(x))
             self.feat_dim = test_out.size(1)
             self.fc = nn.Linear(self.feat_dim,512)
-            if loss == "Angular":
+            if loss_type == "angle":
                 self.output = AngleLinear(512, n_labels, m=4)
             else:
                 self.output = nn.Linear(512, n_labels)
