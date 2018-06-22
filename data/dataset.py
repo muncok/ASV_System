@@ -1,10 +1,11 @@
-import torch.utils.data as data
 import librosa
 import os
 import random
 import numpy as np
 from enum import Enum
-from chainmap import ChainMap
+
+import torch
+import torch.utils.data as data
 
 from .manage_audio import preprocess_audio
 
@@ -177,120 +178,50 @@ class SpeechDataset(data.Dataset):
     def __len__(self):
         return len(self.audio_labels)
 
-## from protonet
-# class embedDataset(data.Dataset):
-#
-#     def __init__(self, data, set_type, config):
-#         super().__init__()
-#         self.set_type = set_type
-#         self.audio_files = list(data.keys())
-#         self.audio_labels = list(data.values())
-#         self.n_dct = config.n_dct_filters
-#         self.input_length = config.input_length
-#         self.timeshift_ms = config.timeshift_ms
-#         self.filters = librosa.filters.dct(config.n_dct_filters, config.n_mels)
-#         self.n_mels = config.n_mels
-#         self._audio_cache = SimpleCache(config.cache_size)
-#         self._file_cache = SimpleCache(config.cache_size)
-#         self.window_size = config.window_size
-#         self.window_stride = config.window_stride
-#         self.input_format = config.input_format
-#         self.input_clip = config.input_clip
-#
-#     @staticmethod
-#     def default_config():
-#         config = {}
-#         config.n_dct_filters = 40
-#         config.input_length = 16000
-#         config.n_mels = 40
-#         config.timeshift_ms = 100
-#         config.data_folder = "/home/muncok/DL/dataset/SV_sets"
-#         config.window_size= 0.025
-#         config.window_stride= 0.010
-#         config.input_clip = False
-#         return config
-#
-#     def _timeshift_audio(self, data):
-#         shift = (16000 * self.timeshift_ms) // 1000
-#         shift = random.randint(-shift, shift)
-#         a = -min(0, shift)
-#         b = max(0, shift)
-#         data = np.pad(data, (a, b), "constant")
-#         return data[:len(data) - a] if a else data[b:]
-#
-#     def preprocess(self, example):
-#         if random.random() < 0.7:
-#             try:
-#                 return self._audio_cache[example]
-#             except KeyError:
-#                 pass
-#
-#         file_data = self._file_cache.get(example)
-#         data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
-#         self._file_cache[example] = data
-#
-#         if self.input_clip:
-#             in_len = self.input_length
-#             if len(data) > in_len:
-#                 # chopping the audio
-#                 start_sample = np.random.randint(0, len(data) - in_len)
-#                 data = data[start_sample:start_sample+in_len]
-#                 # data = data[:in_len]
-#             else:
-#                 # zero-padding the audio
-#                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
-#
-#         # use_clean = self.set_type != DatasetType.TRAIN
-#         # if not use_clean:
-#         #     data = self._timeshift_audio(data)
-#
-#         input_feature = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
-#         self._audio_cache[example] = input_feature
-#         return input_feature
-#
-#     @classmethod
-#     def read_manifests(cls, config, onlyVal=False):
-#         sets = [{}, {}]
-#
-#         train_files = open(config.train_manifest, "r")
-#         val_files = open(config.val_manifest, "r")
-#
-#         if not onlyVal:
-#             tag = DatasetType.TRAIN
-#             for sample in train_files:
-#                 tokens = sample.rstrip().split(',')
-#                 sets[tag.value][tokens[0]] = tokens[1]
-#
-#         tag = DatasetType.DEV
-#         for sample in val_files:
-#             tokens = sample.rstrip().split(',')
-#             sets[tag.value][tokens[0]] = tokens[1]
-#
-#         if not onlyVal:
-#             datasets = (cls(sets[0], DatasetType.TRAIN, config), cls(sets[1], DatasetType.DEV, config))
-#         else:
-#             datasets = cls(sets[1], DatasetType.DEV, config)
-#
-#         return datasets
-#
-#     @classmethod
-#     def read_df(cls, config, df):
-#         dataset = {}
-#
-#         data_dir = config.data_folder
-#         for idx, row in df.iterrows():
-#             path = os.path.join(data_dir, row.file)
-#             if hasattr(row, 'label'):
-#                 dataset[path] = row.label
-#             else:
-#                 dataset[path] = 1
-#
-#         dataset = cls(dataset, DatasetType.DEV, config)
-#         return dataset
-#
-#     def __getitem__(self, index):
-#         return self.preprocess(self.audio_files[index]), self.audio_labels[index]
-#
-#     def __len__(self):
-#         return len(self.audio_labels)
+class mfccDataset(data.Dataset):
+    def __init__(self, data, set_type, config):
+        super().__init__()
+        self.set_type = set_type
+        # data
+        self.files = list(data.keys())
+        self.labels = list(data.values())
+        self.data_folder = config["data_folder"]
+        # cache
+        self._audio_cache = SimpleCache(config["cache_size"])
+        self._file_cache = SimpleCache(config["cache_size"])
+        # input audio config
+        self.input_length = config["input_length"]
+        self.input_clip = config["input_clip"]
 
+    def preprocess(self, example):
+        file_data = self._file_cache.get(example)
+        data = np.load(example) if file_data is None else file_data
+        self._file_cache[example] = data
+        # input clipping
+        in_len = self.input_length
+        if self.input_clip:
+            if len(data) > in_len:
+                start_sample = np.random.randint(0, len(data) - in_len)
+                data = data[start_sample:start_sample+in_len]
+            else:
+                data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+        data = data[:,:20]
+        data = torch.from_numpy(data).unsqueeze(0)
+        return data
+
+    @classmethod
+    def read_df(cls, config, df, set_type):
+        files = df.file.tolist()
+        if "label" in df.columns:
+            labels = df.label.tolist()
+        else:
+            labels = [-1] * len(df)
+        samples = dict(zip(files, labels))
+        dataset = cls(samples, set_type, config)
+        return dataset
+
+    def __getitem__(self, index):
+        return self.preprocess(os.path.join(self.data_folder, self.files[index])), self.labels[index]
+
+    def __len__(self):
+        return len(self.labels)

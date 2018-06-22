@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 from .model import SerializableModule, num_flat_features
+from .Angular_loss import AngleLinear
 
 class voxNet(SerializableModule):
     def __init__(self, nb_class):
@@ -50,15 +50,22 @@ class voxNet(SerializableModule):
 
 
 def conv_block(in_channels, out_channels, pool_size=2):
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, 3, padding=1),
-        nn.BatchNorm2d(out_channels),
-        nn.ReLU(),
-        nn.MaxPool2d(pool_size)
-    )
+    if pool_size > 1:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool2d(pool_size)
+        )
+    else:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
 class SimpleCNN(SerializableModule):
-    def __init__(self, config, n_labels, embed_mode=False):
+    def __init__(self, config, n_labels):
         super().__init__()
         input_frames = config["splice_frames"]
         hid_dim = 64
@@ -75,19 +82,7 @@ class SimpleCNN(SerializableModule):
             test_in = torch.zeros((1, 1, input_frames, 40))
             test_out = self.embed(test_in)
             self.feat_dim = test_out.size(1)
-            if not embed_mode:
-                self.output = nn.Linear(self.feat_dim, n_labels)
-        self.embed_mode = embed_mode
-
-    # def embed(self, x):
-    #     if x.dim() == 3:
-    #         x = torch.unsqueeze(x, 1)
-    #     x = self.convb_1(x)
-    #     x = self.convb_2(x)
-    #     x = self.convb_3(x)
-    #     x = self.convb_4(x)
-    #     x = x.view(-1, num_flat_features(x))
-    #     return x
+            self.output = nn.Linear(self.feat_dim, n_labels)
 
     def embed(self, x):
         if x.dim() == 3:
@@ -101,8 +96,7 @@ class SimpleCNN(SerializableModule):
 
     def forward(self, x):
         x = self.embed(x)
-        if not self.embed_mode:
-            x = self.output(x)
+        x = self.output(x)
         return x
 
 
@@ -139,9 +133,43 @@ class LongCNN(SerializableModule):
         x = self.output(x)
         return x
 
+class AngleConv4(SerializableModule):
+    def __init__(self, config, n_labels, loss="Angular"):
+        super().__init__()
 
+        input_frames = config["splice_frames"]
+        hid_dim = 64
+        self.convb_1 = conv_block(1, hid_dim)
+        self.convb_2 = conv_block(hid_dim, hid_dim*2, 2)
+        self.convb_3 = conv_block(hid_dim*2, hid_dim*3)
+        self.convb_4 = conv_block(hid_dim*3, hid_dim*3, 2)
 
+        with torch.no_grad():
+            test_in = torch.zeros((1, 1, input_frames, 20))
+            x = self.convb_1(test_in)
+            x = self.convb_2(x)
+            x = self.convb_3(x)
+            x = self.convb_4(x)
+            test_out = x.view(-1, num_flat_features(x))
+            self.feat_dim = test_out.size(1)
+            self.fc = nn.Linear(self.feat_dim,512)
+            if loss == "Angular":
+                self.output = AngleLinear(512, n_labels, m=4)
+            else:
+                self.output = nn.Linear(512, n_labels)
 
+    def embed(self, x):
+        if x.dim() == 3:
+            x = torch.unsqueeze(x, 1)
+        x = self.convb_1(x)
+        x = self.convb_2(x)
+        x = self.convb_3(x)
+        x = self.convb_4(x)
+        x = x.view(-1, num_flat_features(x))
+        x = self.fc(x)
+        return x
 
-
-
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.output(x)
+        return x

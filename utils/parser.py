@@ -60,8 +60,13 @@ def train_parser():
 
     parser.add_argument('-model',
                         type=str,
-                        help='model',
-                        choices=['TdnnModel', 'SimpleCNN', 'TdnnStatModel']
+                        help='type of model',
+                        )
+
+    parser.add_argument('-input_file',
+                        type=str,
+                        help='model path to be loaded',
+                        default=None,
                         )
 
     parser.add_argument('-suffix',
@@ -74,20 +79,21 @@ def train_parser():
                         help='length of input audio, sec',
                         default=3)
 
-    parser.add_argument('-spSec', '--splice_seconds',
-                        type=float,
-                        help='length of spliced audio snippet, sec',
-                        default=0.2)
+    parser.add_argument('-spFr', '--splice_frames',
+                        type=int,
+                        help='number of spliced frames, frames',
+                        default=21)
 
-    parser.add_argument('-stSec', '--stride_seconds',
-                        type=float,
-                        help='interval of audio snippets, sec',
+    parser.add_argument('-stFr', '--stride_frames',
+                        type=int,
+                        help='moving stride interval, frames',
                         default=1)
 
     parser.add_argument('-s_epoch', '--start_epoch',
                         type=int,
                         help='where the epoch starts',
                         default=0)
+
     parser.add_argument('-cuda',
                         action = 'store_true',
                         default= False)

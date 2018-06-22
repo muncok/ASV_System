@@ -7,6 +7,7 @@ import torch.nn as nn
 
 from tqdm import tqdm_notebook
 from tqdm import tqdm
+from ..model.Angular_loss import AngleLoss
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
@@ -26,6 +27,7 @@ def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False
         tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
     return accuracy
 
+
 def set_seed(config):
     seed = config["seed"]
     torch.manual_seed(seed)
@@ -33,6 +35,7 @@ def set_seed(config):
     if not config["no_cuda"]:
         torch.cuda.manual_seed(seed)
     random.seed(seed)
+
 
 def evaluate(config, model, test_loader):
     if not config["no_cuda"]:
@@ -140,6 +143,7 @@ def si_train(config, loaders, model, tqdm_v=tqdm):
     # test
     evaluate(config, model, test_loader)
 
+
 def si_tdnn_train(config, loaders, model):
     train_loader, dev_loader, test_loader = loaders
     if not config["no_cuda"]:
@@ -151,7 +155,8 @@ def si_tdnn_train(config, loaders, model):
             if param.requires_grad == True]
     optimizer = torch.optim.SGD(learnable_params, lr=config["lr"][0], nesterov=config["use_nesterov"],
                                 weight_decay=config["weight_decay"], momentum=config["momentum"])
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = AngleLoss()
 
     schedule_steps = config["schedule"]
     schedule_steps.append(np.inf)
@@ -167,8 +172,8 @@ def si_tdnn_train(config, loaders, model):
         model.train()
         for batch_idx, (X_batch, y_batch) in tqdm(enumerate(train_loader), total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
-            for i in range(0, X_batch.size(2)-(splice_frames+12), stride_frames):
-                X = X_batch.narrow(2, i, splice_frames+12)
+            for i in range(0, X_batch.size(2)-(splice_frames)+1, stride_frames):
+                X = X_batch.narrow(2, i, splice_frames)
                 y = y_batch
                 if not config["no_cuda"]:
                     X = X.cuda()
@@ -184,6 +189,8 @@ def si_tdnn_train(config, loaders, model):
                 optimizer.step()
             step_no += 1
             if step_no % print_step == print_step -1:
+                if isinstance(scores, tuple):
+                    scores = scores[0]
                 print_eval("train step #{}".format(step_no), scores, y, loss.item(), verbose=True)
 
         # learning rate change
@@ -201,8 +208,8 @@ def si_tdnn_train(config, loaders, model):
                 model.eval()
                 accs = []
                 for X_batch, y_batch in tqdm(dev_loader, total=len(dev_loader)):
-                    for i in range(0, X_batch.size(2)-(splice_frames+12), 1):
-                        X = X_batch.narrow(2, i, splice_frames+12)
+                    for i in range(0, X_batch.size(2)-(splice_frames)+1, 1):
+                        X = X_batch.narrow(2, i, splice_frames)
                         y = y_batch
                         if not config["no_cuda"]:
                             X = X.cuda()
@@ -214,6 +221,8 @@ def si_tdnn_train(config, loaders, model):
                         # y = y.unsqueeze(1).expand(y.size(0), n_feat_per_seq)
                         # y = y.contiguous().view(-1)
                         loss = criterion(scores, y)
+                    if isinstance(scores, tuple):
+                        scores = scores[0]
                         accs.append(print_eval("dev", scores, y, loss.item()))
 
                 avg_acc = np.mean(accs)
@@ -227,7 +236,7 @@ def si_tdnn_train(config, loaders, model):
                     model.save(config["output_file"])
 
 
-def si_full_train(config, loaders, model):
+def si_angular_train(config, loaders, model, criterion):
     train_loader, dev_loader, test_loader = loaders
     if not config["no_cuda"]:
         torch.cuda.set_device(config["gpu_no"])
@@ -238,7 +247,7 @@ def si_full_train(config, loaders, model):
             if param.requires_grad == True]
     optimizer = torch.optim.SGD(learnable_params, lr=config["lr"][0], nesterov=config["use_nesterov"],
                                 weight_decay=config["weight_decay"], momentum=config["momentum"])
-    criterion = nn.CrossEntropyLoss()
+    # criterion = AngleLoss()
 
     schedule_steps = config["schedule"]
     schedule_steps.append(np.inf)
@@ -246,24 +255,29 @@ def si_full_train(config, loaders, model):
     max_acc = 0
     step_no = 0
     print_step = config["print_step"]
+    splice_frames = config["splice_frames"]
+    stride_frames = config["stride_frames"]
 
     # training iteration
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         model.train()
         for batch_idx, (X_batch, y_batch) in tqdm(enumerate(train_loader), total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
-            X = X_batch
-            y = y_batch
-            if not config["no_cuda"]:
-                X = X.cuda()
-                y = y.cuda()
-            optimizer.zero_grad()
-            scores = model(X)
-            loss = criterion(scores, y)
-            loss.backward()
-            optimizer.step()
+            for i in range(0, X_batch.size(2)-splice_frames, stride_frames):
+                X = X_batch.narrow(2, i, splice_frames)
+                y = y_batch
+                if not config["no_cuda"]:
+                    X = X.cuda()
+                    y = y.cuda()
+                optimizer.zero_grad()
+                scores = model(X)
+                loss = criterion(scores, y)
+                loss.backward()
+                optimizer.step()
             step_no += 1
-            if step_no % print_step == print_step -1:
+            if step_no % print_step == print_step - 1:
+                if isinstance(scores, tuple):
+                    scores = scores[0]
                 print_eval("train step #{}".format(step_no), scores, y, loss.item(), verbose=True)
 
         # learning rate change
@@ -281,15 +295,18 @@ def si_full_train(config, loaders, model):
                 model.eval()
                 accs = []
                 for X_batch, y_batch in tqdm(dev_loader, total=len(dev_loader)):
-                    X = X_batch
-                    y = y_batch
-                    if not config["no_cuda"]:
-                        X = X.cuda()
-                        y = y.cuda()
-                    optimizer.zero_grad()
-                    scores = model(X)
-                    loss = criterion(scores, y)
-                    accs.append(print_eval("dev", scores, y, loss.item()))
+                    for i in range(0, X_batch.size(2)-splice_frames, 1):
+                        X = X_batch.narrow(2, i, splice_frames)
+                        y = y_batch
+                        if not config["no_cuda"]:
+                            X = X.cuda()
+                            y = y.cuda()
+                        optimizer.zero_grad()
+                        scores = model(X)
+                        loss = criterion(scores, y)
+                    if isinstance(scores, tuple):
+                        scores = scores[0]
+                        accs.append(print_eval("dev", scores[0], y, loss.item()))
 
                 avg_acc = np.mean(accs)
                 print("epoch #{}, dev accuracy: {}".format(epoch_idx,avg_acc))

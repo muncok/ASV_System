@@ -6,6 +6,7 @@ import math
 
 from .model import SerializableModule, num_flat_features
 from .AuxModels import conv_block
+from .Angular_loss import AngleLinear
 
 """Time Delay Neural Network as mentioned in the 1989 paper by Waibel et al. (Hinton) and the 2015 paper by Peddinti et al. (Povey)"""
 
@@ -173,7 +174,7 @@ class TdnnStatCNN(SerializableModule):
         x = self.embed(x)
         return x
 
-class TdnnModel(SerializableModule):
+class CTdnnModel(SerializableModule):
     def __init__(self, config, n_labels, embed_mode=False):
         super().__init__()
         self.embed_mode = embed_mode
@@ -237,4 +238,74 @@ class TdnnStatModel(SerializableModule):
         x = self.embed(x)
         if not self.embed_mode:
             x = self.output(x)
+        return x
+
+class TdnnModel(SerializableModule):
+    def __init__(self, config, n_labels):
+        super().__init__()
+        input_dim_ = config['input_dim']
+        self.tdnn1 = TDNN([-2, 2], input_dim=input_dim_, output_dim=512, full_context=True)
+        self.tdnn2 = TDNN([-1, 1], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn3 = TDNN([-1, 1], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn4 = TDNN([0, 0], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn5 = TDNN([0, 0], input_dim=512, output_dim=1500, full_context=True)
+        self.fc1 = nn.Linear(1500*2, 512)
+        self.fc2 = nn.Linear(512, 300)
+        self.output = nn.Linear(300, n_labels)
+
+    def embed(self, x):
+        if x.dim() == 4:
+            x = x.squeeze(1)
+        # print("x_shape: {}".format(x.shape))
+        x = self.tdnn1(x)
+        x = self.tdnn2(x)
+        x = self.tdnn3(x)
+        x = self.tdnn4(x)
+        x = self.tdnn5(x)
+        mean = x.mean(1)
+        std = x.std(1)
+        stat = torch.cat([mean, std], -1)
+        x = self.fc1(stat)
+        x = self.fc2(x)
+        # print(stat.shape)
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.output(x)
+        return x
+
+class TdnnAngleModel(SerializableModule):
+    def __init__(self, config, n_labels):
+        super().__init__()
+        input_dim_ = config['input_dim']
+        self.tdnn1 = TDNN([-2, 2], input_dim=input_dim_, output_dim=512, full_context=True)
+        self.tdnn2 = TDNN([-1, 1], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn3 = TDNN([-1, 1], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn4 = TDNN([0, 0], input_dim=512, output_dim=512, full_context=True)
+        self.tdnn5 = TDNN([0, 0], input_dim=512, output_dim=1500, full_context=True)
+        self.fc1 = nn.Linear(1500*2, 512)
+        self.fc2 = nn.Linear(512, 300)
+        self.output = AngleLinear(300, n_labels)
+
+    def embed(self, x):
+        if x.dim() == 4:
+            x = x.squeeze(1)
+        # print("x_shape: {}".format(x.shape))
+        x = self.tdnn1(x)
+        x = self.tdnn2(x)
+        x = self.tdnn3(x)
+        x = self.tdnn4(x)
+        x = self.tdnn5(x)
+        mean = x.mean(1)
+        std = x.std(1)
+        stat = torch.cat([mean, std], -1)
+        x = self.fc1(stat)
+        x = self.fc2(x)
+        # print(stat.shape)
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.output(x)
         return x

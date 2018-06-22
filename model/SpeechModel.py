@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from .model import SerializableModule, truncated_normal
+from .Angular_loss import AngleLinear
 
 class ConfigType(Enum):
     CNN_TRAD_POOL2 = "cnn-trad-pool2" # default full model (TF variant)
@@ -161,7 +162,8 @@ class SpeechResModel(SerializableModule):
         for i, conv in enumerate(self.convs):
             self.add_module("bn{}".format(i + 1), nn.BatchNorm2d(n_maps, affine=False))
             self.add_module("conv{}".format(i + 1), conv)
-        self.output = nn.Linear(n_maps, n_labels)
+        self.output = nn.Linear(n_maps, n_maps)
+        self.anglelinear = AngleLinear(n_maps, n_labels)
         self.feat_size = self.output.in_features
 
     def embed(self, x):
@@ -186,7 +188,9 @@ class SpeechResModel(SerializableModule):
 
     def forward(self, x):
         x = self.embed(x)
-        return self.output(x)
+        x = self.output(x)
+        x = self.anglelinear(x)
+        return x
 
 
 _configs = {
