@@ -46,10 +46,14 @@ def find_model(config, model_type, n_labels):
         config["loss"] = "angle"
         si_model = TDNN.TdnnModel(config, n_labels)
         criterion = AngleLoss()
-    elif model_type == "Angular":
+    elif model_type == "Conv4Angular":
         config["loss"] = "angle"
         si_model = AuxModels.AngleConv4(config, n_labels)
         criterion = AngleLoss()
+    elif model_type == "Conv4Soft":
+        config["loss"] = "softmax"
+        si_model = AuxModels.AngleConv4(config, n_labels)
+        criterion = nn.CrossEntropyLoss()
     else:
         raise NotImplementedError
     return si_model, criterion

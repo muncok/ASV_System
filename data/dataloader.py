@@ -1,9 +1,9 @@
 import torch
-import torch.utils.data as data
+# import torch.utils.data as data
 
 from .prototypical_batch_sampler import PrototypicalBatchSampler
 from .verification_batch_sampler import VerificationBatchSampler
-from .dataset import SpeechDataset
+# from .dataset import SpeechDataset
 
 def _collate_fn(batch):
     """
@@ -43,17 +43,17 @@ def init_default_loader(config, dataset, shuffle):
                                                  shuffle=shuffle,)
     return dataloader
 
-def init_loaders_from_df(config, dfs):
+def init_loaders_from_df(config, dfs, dataset_class):
     '''
     loaders from dataframes, train, val, test
     '''
     loaders = []
     for i, df in enumerate(dfs):
         if i == 0:
-            dataset = SpeechDataset.read_df(config, df, "train")
+            dataset = dataset_class.read_df(config, df, "train")
             loader = init_default_loader(config, dataset, True)
         else:
-            dataset = SpeechDataset.read_df(config, df, "test")
+            dataset = dataset_class.read_df(config, df, "test")
             loader = init_default_loader(config, dataset, False)
         loaders.append(loader)
     return loaders

@@ -27,22 +27,35 @@ class SimpleCache(dict):
 def find_dataset(config, dataset_name):
     if dataset_name == "voxc":
         config['data_folder'] = "dataset/voxceleb/wav"
+        config['input_dim'] = 40
         df = pd.read_pickle("dataset/dataframes/Voxc_Dataframe.pkl")
         n_labels = 1260
+        dset = SpeechDataset
+    elif dataset_name == "voxc_mfcc":
+        config['data_folder'] = "dataset/voxceleb/mfcc"
+        config['input_dim'] = 20
+        df = pd.read_pickle("dataset/dataframes/Voxc_Mfcc_Dataframe1.pkl")
+        n_labels = 1260
+        dset = mfccDataset
     elif dataset_name == "reddots":
         config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
+        config['input_dim'] = 40
         df = pd.read_pickle(
                 "dataset/dataframes/reddots/Reddots_Dataframe.pkl")
         n_labels = 70
+        dset = SpeechDataset
     elif dataset_name == "reddots_vad":
         config['data_folder'] = "vad/reddots_vad/"
+        config['input_dim'] = 40
         df = pd.read_pickle(
                 "/home/muncok/DL/projects/sv_experiments/dataset/dataframes/reddots/reddots_vad.pkl")
         n_labels = 70
+        dset = SpeechDataset
     else:
         print("{} is not exist".format(dataset_name))
         raise FileNotFoundError
-    return df, n_labels
+    return df, dset, n_labels
+
 
 class DatasetType(Enum):
     TRAIN = 0
@@ -210,7 +223,7 @@ class mfccDataset(data.Dataset):
         self._audio_cache = SimpleCache(config["cache_size"])
         self._file_cache = SimpleCache(config["cache_size"])
         # input audio config
-        self.input_samples = config["input_samples"]
+        self.input_frames = config["input_frames"]
         self.input_clip = config["input_clip"]
 
     def preprocess(self, example):
@@ -218,7 +231,7 @@ class mfccDataset(data.Dataset):
         data = np.load(example) if file_data is None else file_data
         self._file_cache[example] = data
         # input clipping
-        in_len = self.input_samples
+        in_len = self.input_frames
         if self.input_clip:
             if len(data) > in_len:
                 start_sample = np.random.randint(0, len(data) - in_len)

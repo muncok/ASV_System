@@ -1,8 +1,9 @@
-# coding=utf-8
 import numpy as np
 import pandas as pd
 import pickle
+
 import scipy.stats as st
+from sklearn.metrics import roc_curve
 from tqdm import tqdm
 
 import torch
@@ -20,10 +21,13 @@ def recToEER(eer_record, thresh_record, verbose=False):
 def lda_on_tensor(tensor, lda):
     return torch.from_numpy(lda.transform(tensor.numpy()).astype(np.float32))
 
-def embeds_utterance(opt, val_dataloader, model, lda=None):
+def embeds_utterance(config, val_dataloader, model, lda=None):
+    if not config["no_cuda"]:
+        torch.cuda.set_device(config["gpu_no"])
+        model.cuda()
     val_iter = iter(val_dataloader)
     model.eval()
-    splice_dim = opt['splice_frames']
+    splice_dim = config['splice_frames']
     embeddings = []
     labels = []
     for batch in tqdm(val_iter, total=len(val_iter)):
@@ -33,7 +37,7 @@ def embeds_utterance(opt, val_dataloader, model, lda=None):
         model_outputs = []
         for point in split_points:
             x_in = Variable(x.narrow(2, point, splice_dim+12))
-            if not opt['no_cuda']:
+            if not config['no_cuda']:
                 x_in = x_in.cuda()
             model_outputs.append(model.embed(x_in).cpu().data)
         model_output = torch.stack(model_outputs, dim=0)
@@ -59,3 +63,24 @@ def compute_cordination(trn, ndx):
 
     cord = [x_cord, y_cord]
     pickle.dump(cord, open("../dataset/dataframes/reddots/m_part1/ndx_idxs.pkl", "wb"))
+
+
+def decision_cost(sim_array, ths, labels, cost_miss=10, cost_fa=1, p_target=0.01):
+    decision = sim_array > ths
+    incorrect_decisions = (decision != labels)
+    non_targets = (labels == 0)
+    targets = (labels == 1)
+    fa_rate = np.sum(incorrect_decisions[non_targets]) / np.sum(decision)
+    miss_rate = np.sum(incorrect_decisions[targets]) / np.sum(~decision)
+    cost = cost_miss * miss_rate * p_target + cost_fa * fa_rate * (1-p_target)
+    return cost
+
+def compute_eer(pos_scores, neg_scores):
+    score_vector = np.concatenate([pos_scores, neg_scores])
+    label_vector = np.concatenate([np.ones(len(pos_scores)), np.zeros(len(neg_scores))])
+    fpr, tpr, thres = roc_curve(label_vector, score_vector, pos_label=1)
+    eer = np.min([fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))],
+                 1-tpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]])
+    thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+    print("eer:{:.3f}, thres:{:.4f}".format(eer*100, thres))
+

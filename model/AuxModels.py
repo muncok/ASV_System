@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .commons import SerializableModule, num_flat_features
+from .commons import SerializableModule, num_flat_features, conv_block
 from .Angular_loss import AngleLinear
 
 class voxNet(SerializableModule):

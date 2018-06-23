@@ -55,7 +55,6 @@ def set_input_config(config, args):
     config['splice_frames'] = args.splice_frames
     config['stride_frames'] = args.stride_frames
     config['input_format'] = args.input_format
-    config['input_dim'] = args.input_dim
     return config
 
 def set_train_config(config, args):
@@ -95,7 +94,7 @@ def train_parser():
     parser.add_argument('-dataset',
                         type=str,
                         help='dataset',
-                        default='voxc')
+                        default='')
 
     parser.add_argument('-model',
                         type=str,
@@ -133,10 +132,10 @@ def train_parser():
                         help='moving stride interval, frames',
                         default=1)
 
-    parser.add_argument('-inDim', '--input_dim',
-                        type=int,
-                        help='input_dimension',
-                        default=40)
+    # parser.add_argument('-inDim', '--input_dim',
+                        # type=int,
+                        # help='input_dimension',
+                        # default=40)
 
     parser.add_argument('-s_epoch', '--start_epoch',
                         type=int,
