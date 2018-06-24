@@ -2,9 +2,14 @@ import numpy as np
 
 def split_df(df):
     if 'set' in df.columns:
-        train_df = df[df.set == 'train']
-        val_df = df[df.set == 'val']
-        test_df = df[df.set == 'test']
+        if df.set.dtype == 'int64':
+            train_df = df[df.set == 1]
+            val_df = df[df.set == 2]
+            test_df = df[df.set == 3]
+        else:
+            train_df = df[(df.set == 'train')]
+            val_df = df[(df.set == 'val')]
+            test_df = df[(df.set == 'test')]
     else:
         print("split randomly")
         np.random.seed(3)
