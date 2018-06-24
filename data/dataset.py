@@ -37,6 +37,18 @@ def find_dataset(config, dataset_name):
         df = pd.read_pickle("dataset/dataframes/Voxc_Mfcc_Dataframe1.pkl")
         n_labels = 1260
         dset = mfccDataset
+    elif dataset_name == "mini_voxc_mfcc":
+        config['data_folder'] = "dataset/voxceleb/mfcc"
+        config['input_dim'] = 20
+        df = pd.read_pickle("dataset/dataframes/si_mini_voxc.pkl")
+        n_labels = 70
+        dset = mfccDataset
+    elif dataset_name == "sess_voxc_mfcc":
+        config['data_folder'] = "dataset/voxceleb/mfcc"
+        config['input_dim'] = 20
+        df = pd.read_pickle("dataset/dataframes/si_sess_voxc.pkl")
+        n_labels = 215
+        dset = mfccDataset
     elif dataset_name == "reddots":
         config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
         config['input_dim'] = 40
@@ -181,7 +193,11 @@ class SpeechDataset(data.Dataset):
 
     @classmethod
     def read_df(cls, config, df, set_type):
-        files = df.file.tolist()
+        if 'file' in df.columns:
+            files = df.file.tolist()
+        else:
+            files = df.wav.tolist()
+
         if "label" in df.columns:
             labels = df.label.tolist()
         else:
@@ -244,7 +260,11 @@ class mfccDataset(data.Dataset):
 
     @classmethod
     def read_df(cls, config, df, set_type):
-        files = df.file.tolist()
+        if 'file' in df.columns:
+            files = df.file.tolist()
+        else:
+            files = df.feat.tolist()
+
         if "label" in df.columns:
             labels = df.label.tolist()
         else:
