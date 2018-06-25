@@ -46,13 +46,21 @@ def find_model(config, model_type, n_labels):
         config["loss"] = "angle"
         si_model = TDNN.TdnnModel(config, n_labels)
         criterion = AngleLoss()
+    elif model_type == "CTdnnModel":
+        config["loss"] = "softmax"
+        si_model = TDNN.CTdnnModel(config, n_labels)
+        criterion = nn.CrossEntropyLoss()
     elif model_type == "Conv4Angular":
         config["loss"] = "angle"
-        si_model = AuxModels.AngleConv4(config, n_labels)
+        si_model = AuxModels.Conv4Angle(config, n_labels)
         criterion = AngleLoss()
     elif model_type == "Conv4Soft":
         config["loss"] = "softmax"
-        si_model = AuxModels.AngleConv4(config, n_labels)
+        si_model = AuxModels.Conv4Angle(config, n_labels)
+        criterion = nn.CrossEntropyLoss()
+    elif model_type == "ResNet34":
+        config["loss"] = "softmax"
+        si_model = AuxModels.ResNet34([3,4,6,3], n_labels)
         criterion = nn.CrossEntropyLoss()
     else:
         raise NotImplementedError

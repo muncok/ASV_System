@@ -30,24 +30,25 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
     splice_dim = config['splice_frames']
     embeddings = []
     labels = []
-    for batch in tqdm(val_iter, total=len(val_iter)):
-        x, y = batch
-        time_dim = x.size(2)
-        split_points = range(0, time_dim-(splice_dim+12), splice_dim)
-        model_outputs = []
-        for point in split_points:
-            x_in = Variable(x.narrow(2, point, splice_dim+12))
-            if not config['no_cuda']:
-                x_in = x_in.cuda()
-            model_outputs.append(model.embed(x_in).cpu().data)
-        model_output = torch.stack(model_outputs, dim=0)
-        model_output = model_output.mean(0)
-        if lda is not None:
-            model_output = torch.from_numpy(lda.transform(model_output.numpy()).astype(np.float32))
-        embeddings.append(model_output)
-        labels.append(y.numpy())
-    embeddings = torch.cat(embeddings)
-    labels = np.hstack(labels)
+    with torch.no_grad():
+        for batch in tqdm(val_iter, total=len(val_iter)):
+            x, y = batch
+            time_dim = x.size(2)
+            split_points = range(0, time_dim-(splice_dim), 1)
+            model_outputs = []
+            for point in split_points:
+                x_in = Variable(x.narrow(2, point, splice_dim))
+                if not config['no_cuda']:
+                    x_in = x_in.cuda()
+                model_outputs.append(model.embed(x_in).cpu().data)
+            model_output = torch.stack(model_outputs, dim=0)
+            model_output = model_output.mean(0)
+            if lda is not None:
+                model_output = torch.from_numpy(lda.transform(model_output.numpy()).astype(np.float32))
+            embeddings.append(model_output)
+            labels.append(y.numpy())
+        embeddings = torch.cat(embeddings)
+        labels = np.hstack(labels)
     return embeddings, labels
 
 def compute_cordination(trn, ndx):

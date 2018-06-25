@@ -28,19 +28,19 @@ def find_dataset(config, dataset_name):
     if dataset_name == "voxc":
         config['data_folder'] = "dataset/voxceleb/wav"
         config['input_dim'] = 40
-        df = pd.read_pickle("dataset/dataframes/Voxc_Dataframe.pkl")
+        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = SpeechDataset
     elif dataset_name == "voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
         config['input_dim'] = 20
-        df = pd.read_pickle("dataset/dataframes/Voxc_Mfcc_Dataframe1.pkl")
+        df = pd.read_pickle("dataset/dataframes/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = mfccDataset
     elif dataset_name == "mini_voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
         config['input_dim'] = 20
-        df = pd.read_pickle("dataset/dataframes/si_mini_voxc.pkl")
+        df = pd.read_pickle("dataset/dataframes/voxc/si_mini_voxc.pkl")
         n_labels = 70
         dset = mfccDataset
     elif dataset_name == "sess_voxc_mfcc":
@@ -241,6 +241,7 @@ class mfccDataset(data.Dataset):
         # input audio config
         self.input_frames = config["input_frames"]
         self.input_clip = config["input_clip"]
+        self.input_dim = config["input_dim"]
 
     def preprocess(self, example):
         file_data = self._file_cache.get(example)
@@ -254,7 +255,7 @@ class mfccDataset(data.Dataset):
                 data = data[start_sample:start_sample+in_len]
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
-        data = data[:,:20]
+        data = data[:,:self.input_dim]
         data = torch.from_numpy(data).unsqueeze(0)
         return data
 
