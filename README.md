@@ -1,5 +1,6 @@
 * Requirements
-    ---
+
+    ----------
     
     * Dependencies:
         * pytorch-0.4.0  http://pytorch.org/  
@@ -21,7 +22,8 @@
             - soon
  
 * Directory Structure
-    ----
+
+    ----------
     
         sv_system  
         ├── train                           # speaker identification model training (d-vector)   
@@ -34,7 +36,8 @@
         └── README.md                       # this file  
     
 * Demos
-    ---
+
+    ----------
     
     * si_model_train
     
