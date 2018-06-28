@@ -41,13 +41,11 @@
     
     * si_model_train
     
-            python si_model_train.py -batch 128  -dataset voxc -model CTdnnModel -loss softmax 
-            -inFr 100 -spFr 10 -stFr 3  -lrs 0.1 -nep 300 -version 1 -cuda
+            python si_model_train.py -batch 128  -dataset voxc -model CTdnnModel -loss softmax -inFr 100 -spFr 10 -stFr 3  -lrs 0.1 -nep 300 -version 1 -cuda
         
         for more details for arguments Type:
         
-            python si_model_train.py -h
+            python si_model_train.py -h  
     * sv_score  
        
-            python sv_score_voxc.py -model ResNet34 -dataset voxc 
-            -input_file models/si_voxc_ResNet34.pt -inFr 400 -spFr 400 -cuda
+            python sv_score_voxc.py -model ResNet34 -dataset voxc -input_file models/si_voxc_ResNet34.pt -inFr 400 -spFr 400 -cuda
