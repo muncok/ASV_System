@@ -60,8 +60,12 @@ def find_model(config, model_type, n_labels):
         criterion = nn.CrossEntropyLoss()
     elif model_type == "ResNet34":
         config["loss"] = "softmax"
-        si_model = AuxModels.ResNet34([3,4,6,3], n_labels)
+        si_model = AuxModels.ResNet34(config, [3,4,6,3], n_labels)
         criterion = nn.CrossEntropyLoss()
+    elif model_type == "ResNet34Angular":
+        config["loss"] = "angle"
+        si_model = AuxModels.ResNet34(config, [3,4,6,3], n_labels)
+        criterion = AngleLoss()
     else:
         raise NotImplementedError
     return si_model, criterion

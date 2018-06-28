@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import pandas as pd
 import pickle
@@ -34,7 +35,7 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
         for batch in tqdm(val_iter, total=len(val_iter)):
             x, y = batch
             time_dim = x.size(2)
-            split_points = range(0, time_dim-(splice_dim), 1)
+            split_points = range(0, time_dim-(splice_dim)+1, 1)
             model_outputs = []
             for point in split_points:
                 x_in = Variable(x.narrow(2, point, splice_dim))
@@ -80,8 +81,11 @@ def compute_eer(pos_scores, neg_scores):
     score_vector = np.concatenate([pos_scores, neg_scores])
     label_vector = np.concatenate([np.ones(len(pos_scores)), np.zeros(len(neg_scores))])
     fpr, tpr, thres = roc_curve(label_vector, score_vector, pos_label=1)
-    eer = np.min([fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))],
-                 1-tpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]])
-    thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+    # eer = np.min([fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))],
+                 # 1-tpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]])
+    # thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+    from scipy.optimize import brentq
+    from scipy.interpolate import interp1d
+    eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    thres = interp1d(fpr, thres)(eer)
     print("eer:{:.3f}, thres:{:.4f}".format(eer*100, thres))
-

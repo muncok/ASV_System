@@ -34,10 +34,10 @@ def default_config(model):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     config, _ = parser.parse_known_args()
 
-    global_config = dict(model=model, n_epochs=50, dev_every=1,
+    global_config = dict(model=model, n_epochs=80, dev_every=1,
             seed=0, use_nesterov=False, input_file="",
             output_file="test.pt", gpu_no=0, cache_size=32768,
-            momentum=0.9, weight_decay=0.00001, num_workers = 16,
+            momentum=0.9, weight_decay=0.0001, num_workers = 16,
             print_step=1)
 
     builder = ConfigBuilder(
@@ -65,6 +65,7 @@ def set_train_config(config, args):
     config['schedule'] = args.lr_schedule
     config['batch_size'] = args.batch_size
     config['no_cuda'] = not args.cuda
+    config['suffix'] = args.suffix
     return config
 
 def train_parser():

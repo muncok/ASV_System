@@ -7,7 +7,7 @@ from .commons import SerializableModule, num_flat_features, conv_block
 from .Angular_loss import AngleLinear
 
 class ResNet34(ResNet):
-    def __init__(self, layers, n_labels=1000):
+    def __init__(self, config, layers, n_labels=1000):
         self.inplanes = 16
         super(ResNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 16, kernel_size=7, stride=2, padding=3,
@@ -19,7 +19,12 @@ class ResNet34(ResNet):
         self.layer2 = self._make_layer(BasicBlock, 32, layers[1], stride=2)
         self.layer3 = self._make_layer(BasicBlock, 64, layers[2], stride=2)
         self.layer4 = self._make_layer(BasicBlock, 128, layers[3], stride=2)
-        self.fc = nn.Linear(128 * BasicBlock.expansion, n_labels)
+        self.fc = nn.Linear(128 * BasicBlock.expansion, 128)
+        loss_type = config["loss"]
+        if loss_type == "angle":
+            self.output = AngleLinear(128, n_labels)
+        else:
+            self.output = nn.Linear(128, n_labels)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -28,7 +33,26 @@ class ResNet34(ResNet):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
+    def save(self, filename):
+        torch.save(self.state_dict(), filename)
+        print("saved to {}".format(filename))
+
+    def load(self, filename):
+        self.load_state_dict(torch.load(filename, map_location=lambda storage, loc: storage))
+        print("loaded from {}".format(filename))
+
+    def load_partial(self, filename):
+        to_state = self.state_dict()
+        from_state = torch.load(filename)
+        valid_state = {k:v for k,v in from_state.items() if k in to_state.keys()}
+        valid_state.pop('output.weight', None)
+        valid_state.pop('output.bias', None)
+        to_state.update(valid_state)
+        self.load_state_dict(to_state)
+        assert(len(valid_state) > 0)
+        print("loaded from {}".format(filename))
+
+    def embed(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -42,6 +66,12 @@ class ResNet34(ResNet):
         x = F.avg_pool2d(x,x.shape[-2:])
         x = x.view(x.size(0), -1)
         x = self.fc(x)
+
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.output(x)
 
         return x
 

@@ -34,21 +34,33 @@ def find_dataset(config, dataset_name):
     elif dataset_name == "voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
         config['input_dim'] = 20
-        df = pd.read_pickle("dataset/dataframes/si_voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260
-        dset = mfccDataset
+        dset = featDataset
     elif dataset_name == "mini_voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
         config['input_dim'] = 20
         df = pd.read_pickle("dataset/dataframes/voxc/si_mini_voxc.pkl")
         n_labels = 70
-        dset = mfccDataset
+        dset = featDataset
+    elif dataset_name == "voxc_fbank":
+        config['data_folder'] = "dataset/voxceleb/fbank"
+        config['input_dim'] = 64
+        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        n_labels = 1260
+        dset = featDataset
+    elif dataset_name == "voxc_fbank_xvector":
+        config['data_folder'] = "dataset/voxceleb/fbank-xvector"
+        config['input_dim'] = 64
+        df = pd.read_pickle("dataset/dataframes/voxc/voxc_dataframe.pkl")
+        n_labels = 1260
+        dset = featDataset
     elif dataset_name == "sess_voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
         config['input_dim'] = 20
-        df = pd.read_pickle("dataset/dataframes/si_sess_voxc.pkl")
+        df = pd.read_pickle("dataset/dataframes/voxc/si_sess_voxc.pkl")
         n_labels = 215
-        dset = mfccDataset
+        dset = featDataset
     elif dataset_name == "reddots":
         config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
         config['input_dim'] = 40
@@ -227,7 +239,7 @@ class SpeechDataset(data.Dataset):
     def __len__(self):
         return len(self.audio_labels)
 
-class mfccDataset(data.Dataset):
+class featDataset(data.Dataset):
     def __init__(self, data, set_type, config):
         super().__init__()
         self.set_type = set_type
@@ -244,9 +256,19 @@ class mfccDataset(data.Dataset):
         self.input_dim = config["input_dim"]
 
     def preprocess(self, example):
-        file_data = self._file_cache.get(example)
-        data = np.load(example) if file_data is None else file_data
-        self._file_cache[example] = data
+
+        # file_data = self._file_cache.get(example)
+        # try:
+            # data = np.load(example) if file_data is None else file_data
+        # except FileNotFoundError:
+            # data = np.zeros((1, self.input_dim))
+        # self._file_cache[example] = data
+
+        try:
+            data = np.load(example)
+        except FileNotFoundError:
+            data = np.zeros((1, self.input_dim))
+
         # input clipping
         in_len = self.input_frames
         if self.input_clip:
@@ -256,7 +278,7 @@ class mfccDataset(data.Dataset):
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
         data = data[:,:self.input_dim]
-        data = torch.from_numpy(data).unsqueeze(0)
+        data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 
     @classmethod
