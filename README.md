@@ -11,14 +11,14 @@
    
     * Datasets  
         * VoxCeleb1
-          - [homepage](http://www.robots.ox.ac.uk/~vgg/data/voxceleb/) 
-          - [GoogleDrive](https://drive.google.com/drive/folders/1__Ob2AUuAdzVDRCVhKtKSvGmTKHUKTuR)
+            - [homepage](http://www.robots.ox.ac.uk/~vgg/data/voxceleb/) 
+            - [GoogleDrive](https://drive.google.com/drive/folders/1__Ob2AUuAdzVDRCVhKtKSvGmTKHUKTuR)
         * Reddots   
-          - [homepage](https://sites.google.com/site/thereddotsproject/)
+            - [homepage](https://sites.google.com/site/thereddotsproject/)
         * SpeechCommand
-          - [homapage](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)
+            - [homapage](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)
         * dataframes for above datasets
-          - soon
+            - soon
  
 * Directory Structure
     ----
@@ -34,7 +34,7 @@
         └── README.md                       # this file  
     
 * Demos
-    -------
+    ---
     
     * si_model_train
     
