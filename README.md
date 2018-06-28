@@ -46,6 +46,7 @@
         for more details for arguments Type:
         
             python si_model_train.py -h  
+            
     * sv_score  
        
             python sv_score_voxc.py -model ResNet34 -dataset voxc -input_file models/si_voxc_ResNet34.pt -inFr 400 -spFr 400 -cuda
