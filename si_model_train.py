@@ -1,16 +1,13 @@
 # coding: utf-8
 import os
 
-from utils.parser import (default_config, train_parser, set_config)
-
 from data.data_utils import split_df, find_dataset
 from data.dataloader import init_loaders_from_df
-
 from model.model_utils import find_model
-
-from train.train_utils import find_criterion, set_seed
+from utils.parser import (default_config, train_parser, set_config)
 import train.si_train_v0 as si_train_v0
 import train.si_train_v1 as si_train_v1
+from train.train_utils import find_criterion, set_seed
 
 #########################################
 # Parser
