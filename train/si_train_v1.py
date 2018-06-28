@@ -47,13 +47,13 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     lr_change_cnt = 0
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         loss_sum = 0
-        splice_frames = np.random.randint(300, 800)
-        train_loader.dataset.input_frames = splice_frames
+        input_frames = np.random.randint(300, 800)
+        train_loader.dataset.input_frames = input_frames
         model.train()
         for batch_idx, (X, y) in tqdm_v(enumerate(train_loader),
                 total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
-            # X = X_batch.narrow(2, 0, splice_frames)
+            # X = X_batch.narrow(2, 0, input_frames)
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()
@@ -69,8 +69,8 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                 # schedule over iteration
                 print_eval("train step #{}".format(step_no), scores, y,
                         loss_sum/(batch_idx+1), verbose=True)
-            splice_frames = np.random.randint(300, 800)
-            train_loader.dataset.input_frames = splice_frames
+            input_frames = np.random.randint(300, 800)
+            train_loader.dataset.input_frames = input_frames
         # change lr accoring to training loss
         scheduler.step(loss_sum)
         curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
@@ -91,7 +91,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                 # dev_loader.dataset.input_frames = 500
                 # for (X, y) in tqdm_v(dev_loader,
                         # total=len(dev_loader)):
-                    # # X = X_batch.narrow(2, 0, splice_frames)
+                    # # X = X_batch.narrow(2, 0, input_frames)
                     # if not config["no_cuda"]:
                         # X = X.cuda()
                         # y = y.cuda()

@@ -173,7 +173,7 @@ class CTdnnModel(SerializableModule):
     def embed(self, x):
         x = self.extractor(x)
         # input: (batch_size, seq, input_dim)
-        print(x.shape)
+        # print(x.shape)
         x = self.tdnn1(x)
         x = self.tdnn2(x)
         x = self.tdnn3(x)
