@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 from .train_utils import print_eval
 
-from sv_system.data.dataset import find_dataset
+from sv_system.data.dataset import featDataset
 from sv_system.sv_score.score_utils import embeds_utterance
 from sv_system.data.dataloader import init_default_loader
 from sklearn.metrics import roc_curve
@@ -34,8 +34,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
 
     # sv_score
     voxc_test_df = pd.read_pickle("dataset/dataframes/voxc/sv_voxc_dataframe.pkl")
-    _, dset, n_labels = find_dataset(config, config['dataset'])
-    voxc_test_dset = dset.read_df(config, voxc_test_df, "test")
+    voxc_test_dset = featDataset.read_df(config, voxc_test_df, "test")
     val_dataloader = init_default_loader(config, voxc_test_dset, shuffle=False)
     trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
     cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]

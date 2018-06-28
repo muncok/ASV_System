@@ -1,51 +1,50 @@
-## TODO List
-
-- [x] basic training 
-- [x] model save and load
-- [x] all catergory for identification (1250 claases) -- but low acc, about 33%
-- [x] learning optimization -- now following paper settings
-- [x] speaker verification (basic: siamense network)
-- [ ] speaker model improvement
-- [ ] Convolution? LSTM?
-- [x] shuffle inputs 
-- [x] audio read, random clipping for each samples 
-- [x] make use of ASVspoof2017 dataset 
-
-## Installation:
-
-* Dependencies:
-    * pytorch
-        
-        http://pytorch.org/
+* Requirements
+    ---
     
-    * torch-audio
-            
-            git clone https://github.com/pytorch/audio.git
-            cd audio
-            pip install cffi
-            python setup.py install
+    * Dependencies:
+        * pytorch-0.4.0  http://pytorch.org/  
+            `pip install torch`
+        * librosa  
+            `pip install librosa`
+        * scipy, sklearn, numpy, pandas...  
+            `pip install $package`
+   
+    * Datasets  
+        * VoxCeleb1
+          - [homepage](http://www.robots.ox.ac.uk/~vgg/data/voxceleb/) 
+          - [GoogleDrive](https://drive.google.com/drive/folders/1__Ob2AUuAdzVDRCVhKtKSvGmTKHUKTuR)
+        * Reddots   
+          - [homepage](https://sites.google.com/site/thereddotsproject/)
+        * SpeechCommand
+          - [homapage](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)
+        * dataframes for above datasets
+          - soon
+ 
+* Directory Structure
+    ----
+    
+        sv_system  
+        ├── train                           # speaker identification model training (d-vector)   
+        ├── sv_score                        # speaker verification scoring (Equal Error Rate)  
+        ├── data                            # handling the datasets  
+        ├── utils                           # including an util for parser  
+        ├── si_model_train.py               # script for si_model training  
+        ├── sv_score_reddots.py             # script for sv_score on reddots dataset  
+        ├── sv_score_voxc.py                # script for sv_score on voxceleb dataset   
+        └── README.md                       # this file  
+    
+* Demos
+    -------
+    
+    * si_model_train
+    
+            python si_model_train.py -batch 128  -dataset voxc -model CTdnnModel -loss softmax 
+            -inFr 100 -spFr 10 -stFr 3  -lrs 0.1 -nep 300 -version 1 -cuda
         
-    * scipy
-
-* Dataset
-    * VoxCeleb
-
-    |                 | dev     | test  |
-    |-----------------|---------|-------|
-    | # of speakers   | 1,211   | 40    |
-    | # of videos     | 21,819  | 677   |
-    | # of utterances | 139,124 | 6,255 |
-
-    http://www.robots.ox.ac.uk/~vgg/data/voxceleb/
-
-    * ASVspoof2017
-
-    |                         | dev    | train  | eval   | total  |
-    |-------------------------|--------|--------|--------|--------|
-    | # of speakers           | 8      | 10     | 24     | 42     |
-    | # of replay sessions    | 10     | 6      | 161    | 177    |
-    | # of replay configs     | 10     | 3      | 110    | 123    |
-    | # of genuine utterances | 760    | 1508   | 1298   | 3566   |
-    | # of replay utterances  | 950    | 1508   | 12008  | 14466  |
-
-    https://datashare.is.ed.ac.uk/handle/10283/2778
+        for more details for arguments Type:
+        
+            python si_model_train.py -h
+    * sv_score  
+       
+            python sv_score_voxc.py -model ResNet34 -dataset voxc 
+            -input_file models/si_voxc_ResNet34.pt -inFr 400 -spFr 400 -cuda
