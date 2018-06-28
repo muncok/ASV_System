@@ -15,7 +15,7 @@ from sv_system.sv_score.score_utils import embeds_utterance
 from sv_system.data.dataloader import init_default_loader
 from sklearn.metrics import roc_curve
 
-def si_res_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=tqdm):
+def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=tqdm):
     train_loader, dev_loader, test_loader = loaders
     if not config["no_cuda"]:
         torch.cuda.set_device(config["gpu_no"])

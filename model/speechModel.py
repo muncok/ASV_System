@@ -3,10 +3,9 @@ from enum import Enum
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
-from .model import SerializableModule, truncated_normal
-from .Angular_loss import AngleLinear
+from .model import SerializableModule , truncated_normal
+from .angleLoss import AngleLinear
 
 class ConfigType(Enum):
     CNN_TRAD_POOL2 = "cnn-trad-pool2" # default full model (TF variant)

@@ -7,8 +7,6 @@ import torch.nn as nn
 from tqdm import tqdm
 from .train_utils import print_eval
 
-
-
 def evaluate(config, model, test_loader, tqdm_v=tqdm):
     splice_frames = config["splice_frames"]
     stride_frames = config["stride_frames"]

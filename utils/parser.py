@@ -2,8 +2,14 @@
 from collections import ChainMap
 import argparse
 
-from ..data.dataset import SpeechDataset
-from . import framesToSample
+def secToSample(sec):
+    return int(16000 * sec)
+
+def secToFrames(sec):
+    return secToSample(sec)//160+1
+
+def framesToSample(fr):
+    return (fr-1)*160
 
 class ConfigBuilder(object):
     def __init__(self, *default_configs):
@@ -30,6 +36,18 @@ class ConfigBuilder(object):
         args = vars(parser.parse_known_args()[0])
         return ChainMap(args, self.default_config)
 
+def default_audio_config():
+    config = {}
+    config["noise_prob"] = 0.0
+    config["n_dct_filters"] = 40
+    config["input_samples"] = 16000
+    config["n_mels"] = 40
+    config["timeshift_ms"] = 100
+    config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
+    config["window_size"]= 0.025
+    config["window_stride"]= 0.010
+    return config
+
 def default_config(model):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     config, _ = parser.parse_known_args()
@@ -41,30 +59,31 @@ def default_config(model):
             print_step=1)
 
     builder = ConfigBuilder(
-        SpeechDataset.default_config(),
+        default_audio_config(),
         global_config)
 
     parser = builder.build_argparse()
     config = builder.config_from_argparse(parser)
     return config
 
-def set_input_config(config, args):
+def set_config(config, args):
     config['input_clip'] = True
     config['input_frames'] = args.input_frames
     config['input_samples'] = framesToSample(args.input_frames)
     config['splice_frames'] = args.splice_frames
     config['stride_frames'] = args.stride_frames
     config['input_format'] = args.input_format
-    return config
+    config['dataset'] = args.dataset
 
-def set_train_config(config, args):
-    config['input_file'] = args.input_file
     config['n_epochs'] = args.epochs
     config['s_epoch'] = args.start_epoch
     config['lr'] = args.lrs
+    config['loss'] = args.loss
     config['schedule'] = args.lr_schedule
     config['batch_size'] = args.batch_size
     config['no_cuda'] = not args.cuda
+
+    config['input_file'] = args.input_file
     config['suffix'] = args.suffix
     return config
 
@@ -74,6 +93,11 @@ def train_parser():
                         type=int,
                         help='number of epochs to train for',
                         default=140)
+
+    parser.add_argument('-batch', '--batch_size',
+                        type=int,
+                        help='batch size',
+                        default=64)
 
     parser.add_argument('-lrs', '--lrs',
                         type=float,
@@ -87,11 +111,6 @@ def train_parser():
                         help='check points of changing learning lates',
                         default=[1e4, 5e4])
 
-    parser.add_argument('-batch', '--batch_size',
-                        type=int,
-                        help='batch size',
-                        default=64)
-
     parser.add_argument('-dataset',
                         type=str,
                         help='dataset',
@@ -102,18 +121,37 @@ def train_parser():
                         help='type of model',
                         )
 
+    parser.add_argument('-loss',
+                        type=str,
+                        help='type of loss',
+                        choices=['softmax', 'angular'],
+                        default='softmax'
+                        )
+
+    parser.add_argument('-version',
+                        type=int,
+                        help='version of si_train code',
+                        choices=[0, 1],
+                        default=1
+                        )
+
     parser.add_argument('-input_file',
                         type=str,
                         help='model path to be loaded',
                         default=None,
                         )
 
+    parser.add_argument('-s_epoch', '--start_epoch',
+                        type=int,
+                        help='where the epoch starts',
+                        default=0)
+
     parser.add_argument('-suffix',
                         type=str,
                         help='suffix for model.pt name',
                         default='')
 
-    parser.add_argument('-inFo', '--input_format',
+    parser.add_argument('-inFm', '--input_format',
                         type=str,
                         help='input feature, mfcc, fbank',
                         default="fbank")
@@ -137,11 +175,6 @@ def train_parser():
                         # type=int,
                         # help='input_dimension',
                         # default=40)
-
-    parser.add_argument('-s_epoch', '--start_epoch',
-                        type=int,
-                        help='where the epoch starts',
-                        default=0)
 
     parser.add_argument('-cuda',
                         action = 'store_true',

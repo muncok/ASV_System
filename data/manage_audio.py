@@ -24,8 +24,8 @@ def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
         data = data.astype(np.float32).transpose()
         data = torch.from_numpy(data)
         mean = data.mean(0) # along time dimension
-        # std = data.std(0)
         data.add_(-mean)
+        # std = data.std(0)
         # data.div_(std)
     elif in_feature == "fft":
         data = fft_audio(data, 0.025, 0.010)

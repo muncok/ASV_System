@@ -117,21 +117,6 @@ class SpeechDataset(data.Dataset):
         else:
             self.bg_noise_audio = None
 
-    @staticmethod
-    def default_config():
-        config = {}
-        config["noise_prob"] = 0.0
-        config["n_dct_filters"] = 40
-        config["input_samples"] = 16000
-        config["n_mels"] = 40
-        config["timeshift_ms"] = 100
-        config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
-        config["window_size"]= 0.025
-        config["window_stride"]= 0.010
-        config["input_clip"] = False
-        config["input_format"] = "fbank"
-        return config
-
     def _timeshift_audio(self, data):
         shift = (16000 * self.timeshift_ms) // 1000
         shift = random.randint(-shift, shift)
@@ -271,6 +256,7 @@ class featDataset(data.Dataset):
 
         # input clipping
         in_len = self.input_frames
+        # print("in_len: {}".format(in_len))
         if self.input_clip:
             if len(data) > in_len:
                 start_sample = np.random.randint(0, len(data) - in_len)
@@ -278,6 +264,7 @@ class featDataset(data.Dataset):
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
         data = data[:,:self.input_dim]
+        # print("data shape: {}".format(data.shape))
         data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 

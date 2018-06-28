@@ -1,11 +1,12 @@
+# This codes based on  https://github.com/SiddGururani/Pytorch-TDNN
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import math
 
-from .commons import SerializableModule, num_flat_features, conv_block
-from .Angular_loss import AngleLinear
+from .model import SerializableModule, num_flat_features
+from .model import AngleLinear
 
 """Time Delay Neural Network as mentioned in the 1989 paper by Waibel et al. (Hinton) and the 2015 paper by Peddinti et al. (Povey)"""
 
@@ -96,59 +97,28 @@ def statistic_pool(x):
     stat = torch.cat([mean, std], -1)
     return stat
 
+def conv_block(in_channels, out_channels, pool_size=2):
+    if pool_size > 1:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool2d(pool_size)
+        )
+    else:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
 class TdnnCNN(SerializableModule):
     def __init__(self, config, n_labels, embed_mode=False):
         super().__init__()
-        self.splice_frames = config["splice_frames"]
-        hid_dim = 64
-        self.feat_size = 64
-        self.convb_1 = conv_block(1, hid_dim)
-        self.convb_2 = conv_block(hid_dim, hid_dim)
-        self.convb_3 = conv_block(hid_dim, hid_dim)
-        if self.splice_frames < 21:
-            self.convb_4 = conv_block(hid_dim, hid_dim, 1)
-        else:
-            self.convb_4 = conv_block(hid_dim, hid_dim)
-
-        input_dim = config['input_dim']
-        with torch.no_grad():
-            test_in = torch.zeros((1, 1, self.splice_frames, input_dim))
-            test_out = self.embed(test_in)
-            self.feat_dim = test_out.size(-1)
-            if not embed_mode:
-                self.output = nn.Linear(self.feat_dim, n_labels)
-        self.embed_mode = embed_mode
-
-    def embed(self, seq_x):
-        # input is full sequence, not a snippet
-        embeds = []
-        if seq_x.dim() == 3:
-            seq_x = seq_x.unsqueeze(1)
-        for i in range(0, seq_x.size(2) - self.splice_frames+1, 1):
-            x = seq_x.narrow(2, i, self.splice_frames)
-            x = self.convb_1(x)
-            x = self.convb_2(x)
-            x = self.convb_3(x)
-            x = self.convb_4(x)
-            x = x.view(-1, num_flat_features(x))
-            embeds.append(x)
-        x = torch.stack(embeds, dim=1)  # consistency for TDNN layer
-        return x
-
-    def forward(self, x):
-        x = self.embed(x)
-        if not self.embed_mode:
-            x = self.output(x)
-        return x
-
-class TdnnStatCNN(SerializableModule):
-    def __init__(self, config, n_labels):
-        super().__init__()
+        self.input_frames = config["input_frames"]
         self.splice_frames = config["splice_frames"]
         self.stride_frames = config["stride_frames"]
         hid_dim = 64
-        self.feat_size = 64
         self.convb_1 = conv_block(1, hid_dim)
         self.convb_2 = conv_block(hid_dim, hid_dim)
         self.convb_3 = conv_block(hid_dim, hid_dim)
@@ -159,16 +129,16 @@ class TdnnStatCNN(SerializableModule):
 
         input_dim = config['input_dim']
         with torch.no_grad():
-            test_in = torch.zeros((1, 1, self.splice_frames, input_dim))
-            test_out = self.embed(test_in)
+            test_in = torch.zeros((1, 1, self.input_frames, input_dim))
+            test_out = self.forward(test_in)
             self.feat_dim = test_out.size(-1)
 
-    def embed(self, seq_x):
+    def forward(self, seq_x):
         # input is full sequence, not a snippet
         embeds = []
         if seq_x.dim() == 3:
             seq_x = seq_x.unsqueeze(1)
-        for i in range(0, seq_x.size(2) - self.splice_frames+1, self.stride_frames):
+        for i in range(0, seq_x.size(2)-self.splice_frames+1, self.stride_frames):
             x = seq_x.narrow(2, i, self.splice_frames)
             x = self.convb_1(x)
             x = self.convb_2(x)
@@ -177,11 +147,9 @@ class TdnnStatCNN(SerializableModule):
             x = x.view(-1, num_flat_features(x))
             embeds.append(x)
         x = torch.stack(embeds, dim=1)  # consistency for TDNN layer
+
         return x
 
-    def forward(self, x):
-        x = self.embed(x)
-        return x
 
 class CTdnnModel(SerializableModule):
     def __init__(self, config, n_labels, embed_mode=False):
@@ -195,14 +163,17 @@ class CTdnnModel(SerializableModule):
         self.tdnn3 = TDNN([-4, 4], input_dim=1024, output_dim=1024, full_context=True)
         self.tdnn4 = TDNN([0, 0], input_dim=1024, output_dim=1024, full_context=True)
         with torch.no_grad():
+            seq_len = config['input_frames']
             input_dim = config['input_dim']
-            test_in = torch.zeros((1, 1, config['splice_frames'], input_dim))
+            test_in = torch.zeros((1, 1, seq_len, input_dim))
             test_out = self.embed(test_in)
             out_feat_dim = test_out.size(-1)
         self.output = nn.Linear(out_feat_dim, n_labels)
 
     def embed(self, x):
         x = self.extractor(x)
+        # input: (batch_size, seq, input_dim)
+        print(x.shape)
         x = self.tdnn1(x)
         x = self.tdnn2(x)
         x = self.tdnn3(x)

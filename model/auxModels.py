@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torchvision.models.resnet import ResNet, BasicBlock
 
-from .commons import SerializableModule, num_flat_features, conv_block
-from .Angular_loss import AngleLinear
+from .model import SerializableModule, num_flat_features
+from .model import AngleLinear
 
 class ResNet34(ResNet):
     def __init__(self, config, layers, n_labels=1000):
@@ -119,6 +120,20 @@ class voxNet(SerializableModule):
         return fc8_out
 
 
+def conv_block(in_channels, out_channels, pool_size=2):
+    if pool_size > 1:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool2d(pool_size)
+        )
+    else:
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
 class SimpleCNN(SerializableModule):
     def __init__(self, config, n_labels):
@@ -190,7 +205,7 @@ class LongCNN(SerializableModule):
         x = self.output(x)
         return x
 
-class Conv4Angle(SerializableModule):
+class Conv4(SerializableModule):
     def __init__(self, config, n_labels):
         super().__init__()
         loss_type = config["loss"]
