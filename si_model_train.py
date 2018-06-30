@@ -48,20 +48,20 @@ if si_config['input_file']:
 else:
     # starting
     output_dir = ("models/compare_train_methods/{dset}/"
-            "{model}_{in_format}_{in_len}f_{s_len}f").format(
+            "{model}/{in_format}_{in_len}f_{s_len}f_{suffix}").format(
                     dset=dataset, model=model,
                     in_len=si_config["input_frames"],
                     s_len=si_config["splice_frames"],
-                    in_format=si_config["input_format"])
+                    in_format=si_config["input_format"],
+                    suffix=si_config["suffix"])
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
     # suffix: e1, e2 ...
     done = False
     e = 0
     while not done:
-        output_file = "e{version:02d}{suffix}.pt".format(
-                version=e,
-                suffix=si_config['suffix'])
+        output_file = "e{version:02d}.pt".format(
+                version=e,)
         si_config['output_file'] = os.path.join(output_dir, output_file)
         if not os.path.isfile(si_config['output_file']):
             done = True

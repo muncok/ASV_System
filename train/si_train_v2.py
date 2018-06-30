@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import MultiStepLR
 
 from tqdm import tqdm
 from .train_utils import print_eval
@@ -16,6 +16,10 @@ from sv_system.data.dataloader import init_default_loader
 from sklearn.metrics import roc_curve
 
 from tensorboardX import SummaryWriter
+
+"""
+MultiStep LR scheduler
+"""
 
 def get_dir_path(file_path):
     return "/".join(file_path.split("/")[:-1])
@@ -33,8 +37,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     # learnable_params = [param for param in model.parameters() if param.requires_grad == True]
     optimizer = torch.optim.SGD(model.parameters(), lr=config["lr"][0], nesterov=config["use_nesterov"],
                                 weight_decay=config["weight_decay"], momentum=config["momentum"])
-    scheduler = ReduceLROnPlateau(optimizer, 'min', min_lr=0.001, factor=0.5,
-            patience=20)
+    scheduler = MultiStepLR(optimizer, milestones=[114, 140, 160], gamma=0.5)
     criterion_ = criterion
 
     # max_acc = 0
@@ -54,6 +57,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     prev_lr = config["lr"][0]
     lr_change_cnt = 0
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
+        scheduler.step()
         writer.add_scalar("train/lr", prev_lr, epoch_idx)
         loss_sum = 0
         input_frames = np.random.randint(300, 800)
@@ -90,7 +94,6 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
         writer.add_scalar('train/loss', loss_sum, epoch_idx)
         writer.add_scalar('train/acc', avg_acc, epoch_idx)
         # change lr accoring to training loss
-        scheduler.step(loss_sum)
         curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
         print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
             loss_sum, curr_lr))

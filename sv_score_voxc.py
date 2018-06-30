@@ -8,11 +8,12 @@ from sklearn.metrics import roc_curve
 from scipy.optimize import brentq
 from scipy.interpolate import interp1d
 
-from sv_system.data.dataloader import init_default_loader
-from sv_system.model import find_model
-from sv_system.utils.parser import default_config, train_parser, set_input_config, set_train_config
-from sv_system.data.dataset import find_dataset
-from score_utils import embeds_utterance
+from data.dataloader import init_default_loader
+from model.model_utils import find_model
+from utils.parser import default_config, train_parser, set_config
+from data.data_utils import find_dataset
+from sv_score.score_utils import embeds_utterance
+from train.train_utils import find_criterion
 
 def embed_path(model_path, file_name="embed.pkl"):
     dir_path = os.path.join(*model_path.split("/")[:-1])
@@ -26,15 +27,15 @@ args = parser.parse_args()
 model = args.model
 
 si_config = default_config(model)
-si_config = set_input_config(si_config, args)
-si_config = set_train_config(si_config, args)
+si_config = set_config(si_config, args)
 
 #########################################
 # Model Initialization
 #########################################
 # set data_folder, input_dim, n_labels, and dset
 _, dset, n_labels = find_dataset(si_config, args.dataset)
-si_model, criterion = find_model(si_config, model, n_labels)
+si_model = find_model(si_config, model, n_labels)
+criterion = find_criterion(si_config, model, n_labels)
 si_model.load_partial(si_config["input_file"])
 lda = None
 

@@ -12,6 +12,8 @@ def find_model(config, model_type, n_labels):
         model = auxModels.Conv4(config, n_labels)
     elif model_type == "ResNet34":
         model = auxModels.ResNet34(config, [3,4,6,3], n_labels)
+    elif model_type == "ScaleResNet34":
+        model = auxModels.ScaleResNet34(config, [3,4,6,3], n_labels)
     else:
         raise NotImplementedError
 
