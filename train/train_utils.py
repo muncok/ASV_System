@@ -48,8 +48,8 @@ def init_seed(opt):
 def find_criterion(config, model_type, n_labels):
     if config["loss"] == "softmax":
         criterion = nn.CrossEntropyLoss()
-    elif config["loss"] == "angle":
-        criterion == AngleLoss()
+    elif config["loss"] == "angular":
+        criterion = AngleLoss()
     else:
         raise NotImplementedError
     return criterion

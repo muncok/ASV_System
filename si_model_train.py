@@ -1,12 +1,11 @@
 # coding: utf-8
 import os
 
+from train import (si_train_v0, si_train_v1, si_train_v2)
 from data.data_utils import split_df, find_dataset
 from data.dataloader import init_loaders_from_df
 from model.model_utils import find_model
 from utils.parser import (default_config, train_parser, set_config)
-import train.si_train_v0 as si_train_v0
-import train.si_train_v1 as si_train_v1
 from train.train_utils import find_criterion, set_seed
 
 #########################################
@@ -41,9 +40,10 @@ print("Our model: {}".format(model))
 if si_config['input_file']:
     # start with "input_file"
     si_model.load(si_config['input_file'])
+    si_config['output_file'] = args.output_file
     if args.start_epoch > 0:
     # continuing
-        si_model['output_file'] = si_config['input_file']
+        si_config['output_file'] = si_config['input_file']
         print("training start from {} epoch".format(args.start_epoch))
 else:
     # starting
@@ -56,6 +56,8 @@ else:
                     suffix=si_config["suffix"])
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
+    else:
+        print("experiment directory already exist, pleas check the suffix")
     # suffix: e1, e2 ...
     done = False
     e = 0
@@ -81,6 +83,9 @@ if train_ver == 0:
             criterion=criterion)
 elif train_ver == 1:
     si_train_v1.si_train(si_config, model=si_model, loaders=loaders,
+            criterion=criterion)
+elif train_ver == 2:
+    si_train_v2.si_train(si_config, model=si_model, loaders=loaders,
             criterion=criterion)
 
 #########################################

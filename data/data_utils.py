@@ -12,7 +12,7 @@ def find_dataset(config, dataset_name):
         dset = SpeechDataset
     elif dataset_name == "voxc_mfcc":
         config['data_folder'] = "dataset/voxceleb/mfcc"
-        config['input_dim'] = 20
+        config['input_dim'] = 40
         df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = featDataset
@@ -31,7 +31,7 @@ def find_dataset(config, dataset_name):
     elif dataset_name == "voxc_fbank_xvector":
         config['data_folder'] = "dataset/voxceleb/fbank-xvector"
         config['input_dim'] = 64
-        df = pd.read_pickle("dataset/dataframes/voxc/voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = featDataset
     elif dataset_name == "sess_voxc_mfcc":

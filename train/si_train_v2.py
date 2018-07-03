@@ -37,7 +37,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     # learnable_params = [param for param in model.parameters() if param.requires_grad == True]
     optimizer = torch.optim.SGD(model.parameters(), lr=config["lr"][0], nesterov=config["use_nesterov"],
                                 weight_decay=config["weight_decay"], momentum=config["momentum"])
-    scheduler = MultiStepLR(optimizer, milestones=[114, 140, 160], gamma=0.5)
+    scheduler = MultiStepLR(optimizer, milestones=[25, 35], gamma=0.1)
     criterion_ = criterion
 
     # max_acc = 0
@@ -101,7 +101,8 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
             lr_change_cnt += 1
             print("saving model before the lr changed")
             prev_lr = curr_lr
-            model.save(config["output_file"].rstrip('.pt')+".{}.pt".format(lr_change_cnt))
+            # save the model before the lr change
+            model.save(config["output_file"].rstrip('.pt')+".{:.4}.pt".format(prev_lr))
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
