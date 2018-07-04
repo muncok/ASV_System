@@ -27,7 +27,6 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
 
     train_loader, dev_loader, test_loader = loaders
     if not config["no_cuda"]:
-        torch.cuda.set_device(config["gpu_no"])
         model.cuda()
 
     # optimizer

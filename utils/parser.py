@@ -54,7 +54,7 @@ def default_config(model):
 
     global_config = dict(model=model, dev_every=1,
             use_nesterov=False,
-            gpu_no=0, cache_size=32768,
+            gpu_no=[0], cache_size=32768,
             momentum=0.9, weight_decay=0.0001, num_workers=16,
             print_step=100)
 
@@ -78,6 +78,7 @@ def set_config(config, args, mode='train'):
     config['input_file'] = args.input_file
     config['loss'] = args.loss
     config['batch_size'] = args.batch_size
+    config['gpu_no'] = args.gpu_no
 
     if mode == 'train':
         config['n_epochs'] = args.epochs
@@ -188,6 +189,13 @@ def train_parser():
                         type=int,
                         help='training seed',
                         default=1337
+                        )
+
+    parser.add_argument('-gpu_no',
+                        type=int,
+                        nargs='+',
+                        help='gpu device ids',
+                        default=[0]
                         )
 
     parser.add_argument('-cuda',

@@ -1,3 +1,5 @@
+import torch
+
 from . import tdnnModel
 from . import auxModels
 from . import resNet34Models
@@ -21,5 +23,8 @@ def find_model(config, model_type, n_labels):
         model = resNet34Models.ScaleResNet34(config, [3,4,6,3], n_labels)
     else:
         raise NotImplementedError
+
+    if len(config['gpu_no']) > 1:
+        model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
 
     return model
