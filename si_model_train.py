@@ -18,7 +18,7 @@ dataset = args.dataset
 train_ver = args.version
 
 si_config = default_config(model)
-si_config = set_config(si_config, args)
+si_config = set_config(si_config, args, 'train')
 
 #########################################
 # Dataset loaders

@@ -66,7 +66,7 @@ def default_config(model):
     config = builder.config_from_argparse(parser)
     return config
 
-def set_config(config, args):
+def set_config(config, args, mode='train'):
     config['input_clip'] = True
     config['input_frames'] = args.input_frames
     config['input_samples'] = framesToSample(args.input_frames)
@@ -74,18 +74,19 @@ def set_config(config, args):
     config['stride_frames'] = args.stride_frames
     config['input_format'] = args.input_format
     config['dataset'] = args.dataset
-
-    config['n_epochs'] = args.epochs
-    config['s_epoch'] = args.start_epoch
-    config['lr'] = args.lrs
-    config['loss'] = args.loss
-    config['schedule'] = args.lr_schedule
-    config['batch_size'] = args.batch_size
     config['no_cuda'] = not args.cuda
-    config['seed'] = args.seed
-
     config['input_file'] = args.input_file
-    config['suffix'] = args.suffix
+    config['loss'] = args.loss
+    config['batch_size'] = args.batch_size
+
+    if mode == 'train':
+        config['n_epochs'] = args.epochs
+        config['s_epoch'] = args.start_epoch
+        config['lr'] = args.lrs
+        config['schedule'] = args.lr_schedule
+        config['seed'] = args.seed
+        config['suffix'] = args.suffix
+
     return config
 
 def train_parser():
@@ -201,12 +202,24 @@ def score_parser():
                         help='batch size',
                         default=64)
 
+    parser.add_argument('-dataset',
+                        type=str,
+                        help='dataset',
+                        default='')
+
     parser.add_argument('-model',
                         type=str,
                         help='type of model',
                         )
 
-    parser.add_argument('-model_file',
+    parser.add_argument('-loss',
+                        type=str,
+                        help='type of loss',
+                        choices=['softmax', 'angular'],
+                        default='softmax'
+                        )
+
+    parser.add_argument('-input_file',
                         type=str,
                         help='model path to be loaded',
                         default=None,

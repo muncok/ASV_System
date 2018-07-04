@@ -27,7 +27,7 @@ args = parser.parse_args()
 model = args.model
 
 si_config = default_config(model)
-si_config = set_config(si_config, args)
+si_config = set_config(si_config, args, 'test')
 
 #########################################
 # Model Initialization

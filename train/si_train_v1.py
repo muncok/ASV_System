@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from tqdm import tqdm
-from .train_utils import print_eval
+from .train_utils import (print_eval, get_dir_path, save_before_lr_change)
 
 from sv_system.data.dataset import featDataset
 from sv_system.sv_score.score_utils import embeds_utterance
@@ -17,8 +17,6 @@ from sklearn.metrics import roc_curve
 
 from tensorboardX import SummaryWriter
 
-def get_dir_path(file_path):
-    return "/".join(file_path.split("/")[:-1])
 
 def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=tqdm):
     log_dir = get_dir_path(config['output_file'])
@@ -52,7 +50,6 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
 
     # training iteration
     prev_lr = config["lr"][0]
-    lr_change_cnt = 0
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         writer.add_scalar("train/lr", prev_lr, epoch_idx)
         loss_sum = 0
@@ -86,20 +83,16 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
             train_loader.dataset.input_frames = input_frames
 
         avg_acc = np.mean(accs)
+        curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
+        print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
+            loss_sum, curr_lr))
         # tensorboard
         writer.add_scalar('train/loss', loss_sum, epoch_idx)
         writer.add_scalar('train/acc', avg_acc, epoch_idx)
         # change lr accoring to training loss
         scheduler.step(loss_sum)
-        curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
-        print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
-            loss_sum, curr_lr))
         if prev_lr != curr_lr:
-            lr_change_cnt += 1
-            print("saving model before the lr changed")
-            prev_lr = curr_lr
-            # save the model before the lr change
-            model.save(config["output_file"].rstrip('.pt')+".{:.4}.pt".format(prev_lr))
+            save_before_lr_change(config, model, curr_lr)
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
