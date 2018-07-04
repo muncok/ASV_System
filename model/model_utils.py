@@ -19,6 +19,8 @@ def find_model(config, model_type, n_labels):
         model = resNet34Models.ResNet34_v1(config, [3,4,6,3], n_labels)
     elif model_type == "ResNet34_v2":
         model = resNet34Models.ResNet34_v2(config, [3,4,6,3], n_labels)
+    elif model_type == "ResNet34_v3":
+        model = resNet34Models.ResNet34_v3(config, [3,4,6,3], n_labels)
     elif model_type == "ScaleResNet34":
         model = resNet34Models.ScaleResNet34(config, [3,4,6,3], n_labels)
     else:
