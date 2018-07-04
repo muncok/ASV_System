@@ -19,7 +19,7 @@
         * SpeechCommand
             - [homapage](https://ai.googleblog.com/2017/08/launching-speech-commands-dataset.html)
         * dataframes for above datasets
-            - soon
+            - [GoogleDrive](https://drive.google.com/open?id=17LwA37xbMft4ciqHKh0ntxf-Q79T0vL2)
  
 * Directory Structure
 
