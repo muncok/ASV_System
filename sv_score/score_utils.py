@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 import scipy.stats as st
 from sklearn.metrics import roc_curve, auc
 from tqdm import tqdm
@@ -90,7 +89,6 @@ def compute_eer(pos_scores, neg_scores):
     thres = interp1d(fpr, thres)(eer)
     print("eer:{:.3f}, thres:{:.4f}".format(eer*100, thres))
 
-import numpy as np
 
 def plot_eer(score_vector, label_vector):
     # Compute ROC curve and ROC area for each class

@@ -9,14 +9,14 @@ from sklearn.metrics import roc_curve
 
 from sv_system.data.dataloader import init_default_loader
 from sv_system.model import find_model
-from sv_system.utils.parser import default_config, train_parser, set_input_config, set_train_config
+from sv_system.utils.parser import default_config, score_parser, set_input_config, set_train_config
 from sv_system.data.dataset import SpeechDataset
 from score_utils import embeds_utterance
 
 #########################################
 # Parser
 #########################################
-parser = train_parser()
+parser = score_parser()
 args = parser.parse_args()
 model = args.model
 dataset = args.dataset

@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 
 from data.dataloader import init_default_loader
 from model.model_utils import find_model
-from utils.parser import default_config, train_parser, set_config
+from utils.parser import default_config, score_parser, set_config
 from data.data_utils import find_dataset
 from sv_score.score_utils import embeds_utterance
 from train.train_utils import find_criterion
@@ -22,12 +22,12 @@ def embed_path(model_path, file_name="embed.pkl"):
 #########################################
 # Parser
 #########################################
-parser = train_parser()
+parser = score_parser()
 args = parser.parse_args()
 model = args.model
 
 si_config = default_config(model)
-si_config = set_config(si_config, args)
+si_config = set_config(si_config, args, 'test')
 
 #########################################
 # Model Initialization
