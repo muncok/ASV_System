@@ -4,7 +4,8 @@ from . import tdnnModel
 from . import auxModels
 from . import resNet34Models
 
-def find_model(config, model_type, n_labels):
+def find_model(config, n_labels):
+    model_type = config["model"]
     if model_type == "SimpleCNN":
         model = auxModels.SimpleCNN(config, n_labels)
     elif model_type == "TdnnModel":
@@ -26,7 +27,7 @@ def find_model(config, model_type, n_labels):
     else:
         raise NotImplementedError
 
-    if len(config['gpu_no']) > 1:
-        model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
+    # if len(config['gpu_no']) > 1:
+        # model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
 
     return model

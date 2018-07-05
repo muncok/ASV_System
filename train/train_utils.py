@@ -55,7 +55,6 @@ def find_criterion(config, model_type, n_labels):
     return criterion
 
 def save_before_lr_change(config, model, new_lr):
-    print("saving model before the lr changed")
     # save the model before the lr change
     model.save(config["output_file"].rstrip('.pt')+".{:.4}.pt".format(new_lr))
 

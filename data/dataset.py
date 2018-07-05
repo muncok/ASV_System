@@ -186,17 +186,17 @@ class featDataset(data.Dataset):
 
     def preprocess(self, example):
 
-        # file_data = self._file_cache.get(example)
-        # try:
-            # data = np.load(example) if file_data is None else file_data
-        # except FileNotFoundError:
-            # data = np.zeros((1, self.input_dim))
-        # self._file_cache[example] = data
-
+        file_data = self._file_cache.get(example)
         try:
-            data = np.load(example)
+            data = np.load(example) if file_data is None else file_data
         except FileNotFoundError:
             data = np.zeros((1, self.input_dim))
+        self._file_cache[example] = data
+
+        # try:
+            # data = np.load(example)
+        # except FileNotFoundError:
+            # data = np.zeros((1, self.input_dim))
 
         # input clipping
         in_len = self.input_frames

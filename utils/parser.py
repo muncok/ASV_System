@@ -81,10 +81,10 @@ def set_config(config, args, mode='train'):
     config['gpu_no'] = args.gpu_no
 
     if mode == 'train':
-        config['n_epochs'] = args.epochs
-        config['s_epoch'] = args.start_epoch
+        config['n_epochs'] = args.n_epochs
+        config['s_epoch'] = args.s_epoch
         config['lr'] = args.lrs
-        config['schedule'] = args.lr_schedule
+        config['lr_schedule'] = args.lr_schedule
         config['seed'] = args.seed
         config['suffix'] = args.suffix
 
@@ -92,7 +92,7 @@ def set_config(config, args, mode='train'):
 
 def train_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-nep', '--epochs',
+    parser.add_argument('-nep', '--n_epochs',
                         type=int,
                         help='number of epochs to train for',
                         default=140)
@@ -108,11 +108,11 @@ def train_parser():
                         help='learning lates',
                         default=[0.01, 0.001])
 
-    parser.add_argument('-lr_sch', '--lr_schedule',
+    parser.add_argument('-sch', '--lr_schedule',
                         type=int,
                         nargs='+',
                         help='check points of changing learning lates',
-                        default=[1e4, 5e4])
+                        default=[])
 
     parser.add_argument('-dataset',
                         type=str,
@@ -150,7 +150,7 @@ def train_parser():
                         default="test.pt",
                         )
 
-    parser.add_argument('-s_epoch', '--start_epoch',
+    parser.add_argument('-s_epoch',
                         type=int,
                         help='where the epoch starts',
                         default=0)
@@ -179,11 +179,6 @@ def train_parser():
                         type=int,
                         help='moving stride interval, frames',
                         default=1)
-
-    # parser.add_argument('-inDim', '--input_dim',
-                        # type=int,
-                        # help='input_dimension',
-                        # default=40)
 
     parser.add_argument('-seed',
                         type=int,
@@ -252,11 +247,6 @@ def score_parser():
                         type=int,
                         help='moving stride interval, frames',
                         default=1)
-
-    # parser.add_argument('-inDim', '--input_dim',
-                        # type=int,
-                        # help='input_dimension',
-                        # default=40)
 
     parser.add_argument('-cuda',
                         action = 'store_true',

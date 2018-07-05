@@ -31,7 +31,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     optimizer = torch.optim.SGD(model.parameters(), lr=config["lr"][0], nesterov=config["use_nesterov"],
                                 weight_decay=config["weight_decay"], momentum=config["momentum"])
     scheduler = ReduceLROnPlateau(optimizer, 'min', min_lr=0.001, factor=0.5,
-            patience=5)
+            patience=config['lr_schedule'][0])
     criterion_ = criterion
 
     # max_acc = 0
@@ -59,7 +59,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
             # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
         accs = []
 
-        for batch_idx, (X, y) in tqdm_v(enumerate(train_loader),
+        for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
                 total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
             # X = X_batch.narrow(2, 0, input_frames)
@@ -82,15 +82,17 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
             train_loader.dataset.input_frames = input_frames
 
         avg_acc = np.mean(accs)
-        curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
         print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
-            loss_sum, curr_lr))
+            loss_sum, prev_lr))
         # tensorboard
         writer.add_scalar('train/loss', loss_sum, epoch_idx)
         writer.add_scalar('train/acc', avg_acc, epoch_idx)
         # change lr accoring to training loss
         scheduler.step(loss_sum)
+        curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
         if prev_lr != curr_lr:
+            print("epoch {}: saving model before the lr changed to {}".format(
+                epoch_idx, curr_lr))
             save_before_lr_change(config, model, curr_lr)
             prev_lr = curr_lr
 
@@ -101,7 +103,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                 accs = []
                 loss_sum = 0
                 dev_loader.dataset.input_frames = 500
-                for (X, y) in tqdm_v(dev_loader,
+                for (X, y) in tqdm_v(dev_loader, ncols=100,
                         total=len(dev_loader)):
                     # X = X_batch.narrow(2, 0, input_frames)
                     if not config["no_cuda"]:
@@ -144,7 +146,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
         model.eval()
         accs = []
         loss_sum = 0
-        for (X, y) in tqdm_v(test_loader,
+        for (X, y) in tqdm_v(test_loader, ncols=100,
                 total=len(test_loader)):
             test_loader.dataset.input_frames = 800
             if not config["no_cuda"]:

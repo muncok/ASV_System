@@ -30,7 +30,7 @@ loaders = init_loaders_from_df(si_config, split_dfs, dataset_class)
 #########################################
 # Model Initialization
 #########################################
-si_model= find_model(si_config, model, n_labels)
+si_model= find_model(si_config, n_labels)
 criterion = find_criterion(si_config, model, n_labels)
 print("Our model: {}".format(model))
 
@@ -54,21 +54,24 @@ else:
                     s_len=si_config["splice_frames"],
                     in_format=si_config["input_format"],
                     suffix=si_config["suffix"])
+
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
     else:
-        print("experiment directory already exist, pleas check the suffix")
-    # suffix: e1, e2 ...
-    done = False
-    e = 0
-    while not done:
-        output_file = "e{version:02d}.pt".format(
-                version=e,)
-        si_config['output_file'] = os.path.join(output_dir, output_file)
-        if not os.path.isfile(si_config['output_file']):
-            done = True
-        else:
-            e += 1
+        print("experiment directory already exist, please check the suffix")
+        # suffix: v1, v2 ...
+        done = False
+        v = 0
+        while not done:
+            output_dir_ = "{output_dir}_v{version:02d}".format(
+                    output_dir=output_dir, version=v)
+            if not os.path.isdir(output_dir_):
+                output_dir = output_dir_
+                os.makedirs(output_dir)
+                done = True
+            else:
+                v += 1
+si_config['output_file'] = os.path.join(output_dir, "model.pt")
 # model initialization
 print("Save to : {}".format(si_config['output_file']))
 
