@@ -59,6 +59,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
         if prev_lr != curr_lr:
             save_before_lr_change(config, model, curr_lr)
+            prev_lr = curr_lr
 
         loss_sum = 0
         input_frames = np.random.randint(300, 800)
