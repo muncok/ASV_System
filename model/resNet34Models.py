@@ -158,6 +158,9 @@ class ResNet34_v1(ResNet34):
         return x
 
 class ResNet34_v3(ResNet34):
+    """
+        change first conv's kernel_size 7 --> 3
+    """
     def __init__(self, config, layers, n_labels=1000):
         super(ResNet, self).__init__()
         self.inplanes = 16
