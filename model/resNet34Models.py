@@ -160,6 +160,9 @@ class ResNet34_v1(ResNet34):
         return x
 
 class ResNet34_v2(ResNet34):
+    """
+        remove fc layer before the output layer
+    """
     def __init__(self, config, layers, n_labels=1000):
         super(ResNet, self).__init__()
         self.inplanes = 16
@@ -212,6 +215,9 @@ class ResNet34_v2(ResNet34):
         return x
 
 class ResNet34_v3(ResNet34):
+    """
+        change first conv's kernel_size 7 --> 3
+    """
     def __init__(self, config, layers, n_labels=1000):
         super(ResNet, self).__init__()
         self.inplanes = 16
@@ -219,12 +225,11 @@ class ResNet34_v3(ResNet34):
                                bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(BasicBlock, 16, layers[0])
         self.layer2 = self._make_layer(BasicBlock, 32, layers[1], stride=2)
         self.layer3 = self._make_layer(BasicBlock, 64, layers[2], stride=2)
         self.layer4 = self._make_layer(BasicBlock, 128, layers[3], stride=2)
-        # self.fc = nn.Linear(128 * BasicBlock.expansion, 128)
+        self.fc = nn.Linear(128 * BasicBlock.expansion, 128)
         loss_type = config["loss"]
         if loss_type == "angular":
             self.output = AngleLinear(128, n_labels)
@@ -244,7 +249,6 @@ class ResNet34_v3(ResNet34):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        # x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -253,7 +257,7 @@ class ResNet34_v3(ResNet34):
 
         x = F.avg_pool2d(x,x.shape[-2:])
         x = x.view(x.size(0), -1)
-        # x = self.fc(x)
+        x = self.fc(x)
 
         return x
 
