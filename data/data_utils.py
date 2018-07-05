@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 
@@ -30,7 +31,7 @@ def find_dataset(config, dataset_name):
         n_labels = 1260
         dset = featDataset
     elif dataset_name == "voxc_fbank_xvector":
-        config['data_folder'] = "dataset/voxceleb/fbank-xvector"
+        config['data_folder'] = "dataset/voxceleb1/fbank-xvector"
         config['input_dim'] = 64
         df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260
@@ -55,9 +56,10 @@ def find_dataset(config, dataset_name):
                 "/home/muncok/DL/projects/sv_experiments/dataset/dataframes/reddots/reddots_vad.pkl")
         n_labels = 70
         dset = SpeechDataset
-    else:
-        print("{} is not exist".format(dataset_name))
+
+    if not os.path.isdir(config['data_folder']):
         raise FileNotFoundError
+
     return df, dset, n_labels
 
 def split_df(df):
