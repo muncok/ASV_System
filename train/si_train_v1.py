@@ -92,6 +92,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
         scheduler.step(loss_sum)
         if prev_lr != curr_lr:
             save_before_lr_change(config, model, curr_lr)
+            prev_lr = curr_lr
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:

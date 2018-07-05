@@ -26,7 +26,6 @@ def find_dataset(config, dataset_name):
         config['data_folder'] = "dataset/voxceleb/fbank"
         config['input_dim'] = 64
         df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
-        print(df)
         n_labels = 1260
         dset = featDataset
     elif dataset_name == "voxc_fbank_xvector":

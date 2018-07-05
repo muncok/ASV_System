@@ -23,7 +23,6 @@ def lda_on_tensor(tensor, lda):
 
 def embeds_utterance(config, val_dataloader, model, lda=None):
     if not config["no_cuda"]:
-        torch.cuda.set_device(config["gpu_no"])
         model.cuda()
     val_iter = iter(val_dataloader)
     model.eval()
