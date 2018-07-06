@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 
-
 import torch
-import torch.nn as nn
 from torch.optim.lr_scheduler import MultiStepLR
 
 from tqdm import tqdm
-from .train_utils import (print_eval, save_before_lr_change, get_dir_path)
+from .train_utils import (print_eval, save_checkpoint, get_dir_path,
+        load_checkpoint)
 
 from sv_system.data.dataset import featDataset
 from sv_system.sv_score.score_utils import embeds_utterance
@@ -21,22 +20,19 @@ from tensorboardX import SummaryWriter
 MultiStep LR scheduler
 """
 
-def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=tqdm):
+def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     log_dir = get_dir_path(config['output_file'])
     writer = SummaryWriter(log_dir)
-
     train_loader, dev_loader, test_loader = loaders
+
+    if config['input_file']:
+        load_checkpoint(config, model, optimizer)
+
     if not config["no_cuda"]:
         model.cuda()
 
-    # optimizer
-    # learnable_params = [param for param in model.parameters() if param.requires_grad == True]
-    optimizer = torch.optim.SGD(model.parameters(), lr=config["lr"][0], nesterov=config["use_nesterov"],
-                                weight_decay=config["weight_decay"], momentum=config["momentum"])
-    milestones_ = np.array(config['lr_schedule']) - config['s_epoch']
-    print(milestones_)
-    scheduler = MultiStepLR(optimizer, milestones=milestones_, gamma=0.1)
-    criterion_ = criterion
+    scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
+            last_epoch=config['s_epoch']-1)
 
     # max_acc = 0
     step_no = 0
@@ -52,18 +48,11 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
     min_eer = 1
 
     # training iteration
-    prev_lr = config["lr"][0]
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
-
         # learning rate change
         scheduler.step()
         curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
-        if prev_lr != curr_lr:
-            print("epoch {}: saving model before the lr changed to {}".format(
-                epoch_idx, curr_lr))
-            save_before_lr_change(config, model, curr_lr)
-            prev_lr = curr_lr
 
         loss_sum = 0
         input_frames = np.random.randint(300, 800)
@@ -71,40 +60,41 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
 
         if len(config['gpu_no']) > 1:
             model = torch.nn.DataParallel(model)
+
         model.train()
-        # for name, param in model.named_parameters():
-            # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
-        accs = []
+        for name, param in model.named_parameters():
+            writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
 
-        for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
-                total=len(train_loader)):
-            # X_batch = (batch, channel, time, bank)
-            # X = X_batch.narrow(2, 0, input_frames)
-            if not config["no_cuda"]:
-                X = X.cuda()
-                y = y.cuda()
-            optimizer.zero_grad()
-            scores = model(X)
-            loss = criterion_(scores, y)
-            loss_sum += loss.item()
-            loss.backward()
-            # learning rate change
-            optimizer.step()
-            step_no += 1
-            if step_no % print_step == print_step -1:
-                # schedule over iteration
-                accs.append(print_eval("train step #{}".format(step_no), scores, y,
-                        loss_sum/(batch_idx+1), verbose=True))
-            input_frames = np.random.randint(300, 800)
-            train_loader.dataset.input_frames = input_frames
+        # accs = []
+        # for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
+                # total=len(train_loader)):
+            # # X_batch = (batch, channel, time, bank)
+            # # X = X_batch.narrow(2, 0, input_frames)
+            # if not config["no_cuda"]:
+                # X = X.cuda()
+                # y = y.cuda()
+            # optimizer.zero_grad()
+            # scores = model(X)
+            # loss = criterion(scores, y)
+            # loss_sum += loss.item()
+            # loss.backward()
+            # # learning rate change
+            # optimizer.step()
+            # step_no += 1
+            # if step_no % print_step == print_step -1:
+                # # schedule over iteration
+                # accs.append(print_eval("train step #{}".format(step_no), scores, y,
+                        # loss_sum/(batch_idx+1), verbose=True))
+            # input_frames = np.random.randint(300, 800)
+            # train_loader.dataset.input_frames = input_frames
 
-        avg_acc = np.mean(accs)
-        # tensorboard
-        writer.add_scalar('train/loss', loss_sum, epoch_idx)
-        writer.add_scalar('train/acc', avg_acc, epoch_idx)
-        # change lr accoring to training loss
-        print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
-            loss_sum, curr_lr))
+        # avg_acc = np.mean(accs)
+        # # tensorboard
+        # writer.add_scalar('train/loss', loss_sum, epoch_idx)
+        # writer.add_scalar('train/acc', avg_acc, epoch_idx)
+        # # change lr accoring to training loss
+        # print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
+            # loss_sum, curr_lr))
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
@@ -120,7 +110,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                         X = X.cuda()
                         y = y.cuda()
                     scores = model(X)
-                    loss = criterion_(scores, y)
+                    loss = criterion(scores, y)
                     loss_sum += loss.item()
                     accs.append(print_eval("dev", scores, y,
                         loss.item()))
@@ -128,32 +118,38 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                 # tensorboard
                 writer.add_scalar('dev/loss', loss_sum, epoch_idx)
                 writer.add_scalar('dev/acc', avg_acc, epoch_idx)
-                print("epoch #{}, dev accuracy: {}".format(epoch_idx, avg_acc))
 
                 if len(config['gpu_no']) > 1:
                     model = model.module
 
-                # if avg_acc > max_acc:
-                    # print("saving best model...")
-                    # max_acc = avg_acc
-                    # model.save(config["output_file"])
-
-
                 # compute eer
                 embeddings, _ = embeds_utterance(config, val_dataloader, model, None)
-                sim_matrix = F.cosine_similarity(embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
+                sim_matrix = F.cosine_similarity(
+                        embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
                 score_vector = sim_matrix[cord].numpy()
                 fpr, tpr, thres = roc_curve(
                         label_vector, score_vector, pos_label=1)
                 eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
                 writer.add_scalar('dev/sv_eer', eer, epoch_idx)
                 writer.add_pr_curve('DET', label_vector, score_vector, epoch_idx)
-                print("epoch #{}, dev eer: {}".format(epoch_idx,
-                    eer))
+
+                print("epoch #{}, dev accuracy: {}".format(epoch_idx, avg_acc))
+                print("epoch #{}, dev eer: {}".format(epoch_idx, eer))
+
                 if eer < min_eer:
-                    print("saving best model...")
                     min_eer = eer
-                    model.save(config["output_file"])
+                    is_best = True
+                else:
+                    is_best = False
+                filename = get_dir_path(config["output_file"]) + \
+                "/model.{:.4}.pt.tar".format(curr_lr)
+                save_checkpoint({
+                    'epoch': epoch_idx,
+                    'arch': config["model"],
+                    'state_dict': model.state_dict(),
+                    'best_metric': eer,
+                    'optimizer' : optimizer.state_dict(),
+                    }, epoch_idx, is_best, filename=filename)
     # test
     with torch.no_grad():
         model.eval()
@@ -166,7 +162,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
                 X = X.cuda()
                 y = y.cuda()
             scores = model(X)
-            loss = criterion_(scores, y)
+            loss = criterion(scores, y)
             loss_sum += loss.item()
             accs.append(print_eval("test", scores, y,
                 loss.item()))

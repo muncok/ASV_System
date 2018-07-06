@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from tqdm import tqdm
-from .train_utils import (print_eval, get_dir_path, save_before_lr_change)
+from .train_utils import (print_eval, get_dir_path)
 
 from sv_system.data.dataset import featDataset
 from sv_system.sv_score.score_utils import embeds_utterance
@@ -93,7 +93,7 @@ def si_train(config, loaders, model, criterion = nn.CrossEntropyLoss(), tqdm_v=t
         if prev_lr != curr_lr:
             print("epoch {}: saving model before the lr changed to {}".format(
                 epoch_idx, curr_lr))
-            save_before_lr_change(config, model, curr_lr)
+            # save_before_lr_change(config, model, curr_lr)
             prev_lr = curr_lr
 
         # evaluation on validation set

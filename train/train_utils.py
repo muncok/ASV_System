@@ -1,4 +1,5 @@
 import os
+import shutil
 import random
 import numpy as np
 from tqdm import tqdm
@@ -8,12 +9,41 @@ import torch.nn as nn
 
 from .angularLoss import AngleLoss
 
+def get_dir_path(file_path):
+    return "/".join(file_path.split("/")[:-1])
+
+def save_checkpoint(state, epoch_idx, is_best, filename='checkpoint.pth.tar'):
+    # https://discuss.pytorch.org/t/saving-and-loading-a-model-in-pytorch/2610/2
+
+    print("=> saving checkpoint")
+    torch.save(state, filename)
+    print("=> saved checkpoint '{} (epoch {})'".format(filename, epoch_idx))
+    if is_best:
+        print("best score!!")
+        shutil.copyfile(filename, os.path.join(get_dir_path(filename),
+            'model_best.pth.tar'))
+
+def load_checkpoint(config, model, optimizer):
+    # https://discuss.pytorch.org/t/saving-and-loading-a-model-in-pytorch/2610/2
+    input_file = config['input_file']
+    if os.path.isfile(input_file):
+        print("=> loading checkpoint '{}'".format(input_file))
+        checkpoint = torch.load(input_file)
+        config['s_epoch'] = checkpoint['epoch']
+        config['best_metric'] = checkpoint['best_metric']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print("=> loaded checkpoint '{}' (epoch {})"
+              .format(input_file, checkpoint['epoch']))
+    else:
+        print("=> no checkpoint found at '{}'".format(input_file))
+
+    return model, optimizer
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
         rel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), rel_path)
     return rel_path
-
 
 def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False):
     if isinstance(scores, tuple):
@@ -45,18 +75,21 @@ def init_seed(opt):
     torch.manual_seed(opt.manual_seed)
     torch.cuda.manual_seed(opt.manual_seed)
 
-def find_criterion(config, model_type, n_labels):
+def find_optimizer(config, model):
     if config["loss"] == "softmax":
         criterion = nn.CrossEntropyLoss()
     elif config["loss"] == "angular":
         criterion = AngleLoss()
     else:
         raise NotImplementedError
-    return criterion
 
-def save_before_lr_change(config, model, new_lr):
-    # save the model before the lr change
-    model.save(config["output_file"].rstrip('.pt')+".{:.4}.pt".format(new_lr))
+    # optimizer
+    # learnable_params = [param for param in model.parameters() \
+    # if param.requires_grad == True]
+    optimizer = torch.optim.SGD(model.parameters(),
+            lr=config["lr"][0], nesterov=config["use_nesterov"],
+            weight_decay=config["weight_decay"],
+            momentum=config["momentum"])
 
-def get_dir_path(file_path):
-    return "/".join(file_path.split("/")[:-1])
+    return criterion, optimizer
+
