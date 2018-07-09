@@ -1,6 +1,5 @@
 # coding: utf-8
 import pandas as pd
-# import numpy as np
 import os
 
 import torch.nn.functional as F
@@ -10,10 +9,10 @@ from scipy.interpolate import interp1d
 
 from data.dataloader import init_default_loader
 from model.model_utils import find_model
-from utils.parser import default_config, score_parser, set_config
+from utils.parser import default_config, score_parser, set_score_config
 from data.data_utils import find_dataset
 from sv_score.score_utils import embeds_utterance
-from train.train_utils import find_criterion
+from train.train_utils import load_checkpoint
 
 def embed_path(model_path, file_name="embed.pkl"):
     dir_path = os.path.join(*model_path.split("/")[:-1])
@@ -24,19 +23,18 @@ def embed_path(model_path, file_name="embed.pkl"):
 #########################################
 parser = score_parser()
 args = parser.parse_args()
-model = args.model
+model = args.arch
 
 si_config = default_config(model)
-si_config = set_config(si_config, args, 'test')
+si_config = set_score_config(si_config, args)
 
 #########################################
 # Model Initialization
 #########################################
 # set data_folder, input_dim, n_labels, and dset
-_, dset, n_labels = find_dataset(si_config, args.dataset)
-si_model = find_model(si_config, model, n_labels)
-criterion = find_criterion(si_config, model, n_labels)
-si_model.load_partial(si_config["input_file"])
+_, dset, n_labels = find_dataset(si_config)
+si_model = find_model(si_config, n_labels)
+load_checkpoint(si_config, si_model, None)
 lda = None
 
 #########################################

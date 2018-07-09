@@ -48,11 +48,11 @@ def default_audio_config():
     config["window_stride"]= 0.010
     return config
 
-def default_config(model):
+def default_config(arch):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     config, _ = parser.parse_known_args()
 
-    global_config = dict(model=model, dev_every=1,
+    global_config = dict(arch=arch, dev_every=1,
             use_nesterov=False,
             gpu_no=[0], cache_size=32768,
             momentum=0.9, weight_decay=0.0001, num_workers=16,
@@ -78,15 +78,38 @@ def set_config(config, args, mode='train'):
     config['input_file'] = args.input_file
     config['loss'] = args.loss
     config['batch_size'] = args.batch_size
-    config['gpu_no'] = args.gpu_no
 
     if mode == 'train':
         config['n_epochs'] = args.n_epochs
         config['s_epoch'] = args.s_epoch
-        config['lr'] = args.lrs
+        config['lrs'] = args.lrs
         config['lr_schedule'] = args.lr_schedule
         config['seed'] = args.seed
         config['suffix'] = args.suffix
+        config['gpu_no'] = args.gpu_no
+    else:
+        config['input_clip'] = args.input_clip
+
+    return config
+
+def set_score_config(config, args):
+    config['mode'] = mode = args.mode
+    if mode == "precise":
+        config['input_clip'] = False
+        config['batch_size'] = 1
+    else:
+        config['input_clip'] = True
+        config['batch_size'] = args.batch_size
+
+    config['input_frames'] = args.input_frames
+    config['input_samples'] = framesToSample(args.input_frames)
+    config['splice_frames'] = args.splice_frames
+    config['stride_frames'] = args.stride_frames
+    config['input_format'] = args.input_format
+    config['dataset'] = args.dataset
+    config['no_cuda'] = not args.cuda
+    config['input_file'] = args.input_file
+    config['loss'] = args.loss
 
     return config
 
@@ -119,7 +142,7 @@ def train_parser():
                         help='dataset',
                         default='')
 
-    parser.add_argument('-model',
+    parser.add_argument('-arch',
                         type=str,
                         help='type of model',
                         )
@@ -210,7 +233,7 @@ def score_parser():
                         help='dataset',
                         default='')
 
-    parser.add_argument('-model',
+    parser.add_argument('-arch',
                         type=str,
                         help='type of model',
                         )
@@ -251,5 +274,13 @@ def score_parser():
     parser.add_argument('-cuda',
                         action = 'store_true',
                         default= False)
+
+    parser.add_argument('-mode',
+                        type=str,
+                        help='precision of scoring',
+                        choices=['precise', 'approx'],
+                        default='approx'
+                        )
+
     return parser
 

@@ -32,7 +32,8 @@ def load_checkpoint(config, model, optimizer):
         config['s_epoch'] = checkpoint['epoch']
         config['best_metric'] = checkpoint['best_metric']
         model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
+        if optimizer:
+            optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (epoch {})"
               .format(input_file, checkpoint['epoch']))
     else:
@@ -87,7 +88,7 @@ def find_optimizer(config, model):
     # learnable_params = [param for param in model.parameters() \
     # if param.requires_grad == True]
     optimizer = torch.optim.SGD(model.parameters(),
-            lr=config["lr"][0], nesterov=config["use_nesterov"],
+            lr=config["lrs"][0], nesterov=config["use_nesterov"],
             weight_decay=config["weight_decay"],
             momentum=config["momentum"])
 

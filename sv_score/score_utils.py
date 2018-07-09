@@ -22,28 +22,50 @@ def lda_on_tensor(tensor, lda):
     return torch.from_numpy(lda.transform(tensor.numpy()).astype(np.float32))
 
 def embeds_utterance(config, val_dataloader, model, lda=None):
-    if not config["no_cuda"]:
-        model.cuda()
+    val_iter = iter(val_dataloader)
+    embeddings = []
+    labels = []
+    model.eval()
+    with torch.no_grad():
+        for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
+            x, y = batch
+            if not config['no_cuda']:
+                x= x.cuda()
+
+            if config['mode'] == "precise":
+                model_output = model.embed(x).cpu().data
+            else:
+                model_outputs = []
+                time_dim = x.size(2)
+                splice_dim = config['splice_frames']
+                split_points = range(0, time_dim-(splice_dim)+1, 1)
+                for point in split_points:
+                    x_in = x.narrow(2, point, splice_dim)
+                    model_outputs.append(model.embed(x_in).cpu().data)
+                model_output = torch.stack(model_outputs, dim=0)
+                model_output = model_output.mean(0)
+
+            if lda is not None:
+                model_output = torch.from_numpy(
+                        lda.transform(model_output.numpy()).astype(np.float32))
+            embeddings.append(model_output)
+            labels.append(y.numpy())
+        embeddings = torch.cat(embeddings)
+        labels = np.hstack(labels)
+    return embeddings, labels
+
+def embeds_utterance1(config, val_dataloader, model, lda=None):
     val_iter = iter(val_dataloader)
     model.eval()
-    splice_dim = config['splice_frames']
     embeddings = []
     labels = []
     with torch.no_grad():
-        for batch in tqdm(val_iter, total=len(val_iter)):
+        for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
             x, y = batch
-            time_dim = x.size(2)
-            split_points = range(0, time_dim-(splice_dim)+1, 1)
-            model_outputs = []
-            for point in split_points:
-                x_in = Variable(x.narrow(2, point, splice_dim))
-                if not config['no_cuda']:
-                    x_in = x_in.cuda()
-                model_outputs.append(model.embed(x_in).cpu().data)
-            model_output = torch.stack(model_outputs, dim=0)
-            model_output = model_output.mean(0)
-            if lda is not None:
-                model_output = torch.from_numpy(lda.transform(model_output.numpy()).astype(np.float32))
+            x_in = x
+            if not config['no_cuda']:
+                x_in = x_in.cuda()
+            model_output = model.embed(x_in).cpu().data
             embeddings.append(model_output)
             labels.append(y.numpy())
         embeddings = torch.cat(embeddings)

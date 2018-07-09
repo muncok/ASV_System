@@ -43,17 +43,17 @@ def init_default_loader(config, dataset, shuffle):
                                                  shuffle=shuffle,)
     return dataloader
 
-def init_loaders_from_df(config, dfs, dataset_class):
+def init_loaders_from_df(config, dfs, dataset_type):
     '''
     loaders from dataframes, train, val, test
     '''
     loaders = []
     for i, df in enumerate(dfs):
         if i == 0:
-            dataset = dataset_class.read_df(config, df, "train")
+            dataset = dataset_type.read_df(config, df, "train")
             loader = init_default_loader(config, dataset, True)
         else:
-            dataset = dataset_class.read_df(config, df, "test")
+            dataset = dataset_type.read_df(config, df, "test")
             loader = init_default_loader(config, dataset, False)
         loaders.append(loader)
     return loaders

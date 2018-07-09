@@ -4,7 +4,8 @@ import pandas as pd
 
 from .dataset import SpeechDataset, featDataset
 
-def find_dataset(config, dataset_name):
+def find_dataset(config):
+    dataset_name = config ['dataset']
     if dataset_name == "voxc":
         config['data_folder'] = "dataset/voxceleb/wav"
         config['input_dim'] = 40
@@ -31,6 +32,13 @@ def find_dataset(config, dataset_name):
         dset = featDataset
     elif dataset_name == "voxc_fbank_xvector":
         config['data_folder'] = "dataset/voxceleb1/fbank-xvector"
+        config['input_dim'] = 64
+        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        n_labels = 1260
+        dset = featDataset
+    elif dataset_name == "voxc_fbank_xvector1":
+        config['data_folder'] = \
+        "dataset/kaldi/voxceleb/feats/data-fbank1/xvector_npy"
         config['input_dim'] = 64
         df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
         n_labels = 1260

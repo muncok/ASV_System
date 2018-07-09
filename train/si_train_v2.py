@@ -9,9 +9,9 @@ from tqdm import tqdm
 from .train_utils import (print_eval, save_checkpoint, get_dir_path,
         load_checkpoint)
 
-from sv_system.data.dataset import featDataset
-from sv_system.sv_score.score_utils import embeds_utterance
-from sv_system.data.dataloader import init_default_loader
+from data.dataset import featDataset
+from sv_score.score_utils import embeds_utterance
+from data.dataloader import init_default_loader
 from sklearn.metrics import roc_curve
 
 from tensorboardX import SummaryWriter
@@ -28,9 +28,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     if config['input_file']:
         load_checkpoint(config, model, optimizer)
 
-    if not config["no_cuda"]:
-        model.cuda()
-
     scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
             last_epoch=config['s_epoch']-1)
 
@@ -45,13 +42,14 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
     cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
     label_vector = np.array(trial.label)
-    min_eer = 1
+    min_eer = config['best_metric'] if 'best_metric' in config else 1.0
 
     # training iteration
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         # learning rate change
         scheduler.step()
         curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
+        print("curr_lr: {}".format(curr_lr))
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
 
         loss_sum = 0
@@ -65,36 +63,36 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         for name, param in model.named_parameters():
             writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
 
-        # accs = []
-        # for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
-                # total=len(train_loader)):
-            # # X_batch = (batch, channel, time, bank)
-            # # X = X_batch.narrow(2, 0, input_frames)
-            # if not config["no_cuda"]:
-                # X = X.cuda()
-                # y = y.cuda()
-            # optimizer.zero_grad()
-            # scores = model(X)
-            # loss = criterion(scores, y)
-            # loss_sum += loss.item()
-            # loss.backward()
-            # # learning rate change
-            # optimizer.step()
-            # step_no += 1
-            # if step_no % print_step == print_step -1:
-                # # schedule over iteration
-                # accs.append(print_eval("train step #{}".format(step_no), scores, y,
-                        # loss_sum/(batch_idx+1), verbose=True))
-            # input_frames = np.random.randint(300, 800)
-            # train_loader.dataset.input_frames = input_frames
+        accs = []
+        for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
+                total=len(train_loader)):
+            # X_batch = (batch, channel, time, bank)
+            # X = X_batch.narrow(2, 0, input_frames)
+            if not config["no_cuda"]:
+                X = X.cuda()
+                y = y.cuda()
+            optimizer.zero_grad()
+            scores = model(X)
+            loss = criterion(scores, y)
+            loss_sum += loss.item()
+            loss.backward()
+            # learning rate change
+            optimizer.step()
+            step_no += 1
+            if step_no % print_step == print_step -1:
+                # schedule over iteration
+                accs.append(print_eval("train step #{}".format(step_no), scores, y,
+                        loss_sum/(batch_idx+1), verbose=True))
+            input_frames = np.random.randint(300, 800)
+            train_loader.dataset.input_frames = input_frames
 
-        # avg_acc = np.mean(accs)
-        # # tensorboard
-        # writer.add_scalar('train/loss', loss_sum, epoch_idx)
-        # writer.add_scalar('train/acc', avg_acc, epoch_idx)
-        # # change lr accoring to training loss
-        # print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
-            # loss_sum, curr_lr))
+        avg_acc = np.mean(accs)
+        # tensorboard
+        writer.add_scalar('train/loss', loss_sum, epoch_idx)
+        writer.add_scalar('train/acc', avg_acc, epoch_idx)
+        # change lr accoring to training loss
+        print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
+            loss_sum, curr_lr))
 
         # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
@@ -119,7 +117,7 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 writer.add_scalar('dev/loss', loss_sum, epoch_idx)
                 writer.add_scalar('dev/acc', avg_acc, epoch_idx)
 
-                if len(config['gpu_no']) > 1:
+                if isinstance(model, torch.nn.DataParallel):
                     model = model.module
 
                 # compute eer
@@ -145,7 +143,7 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 "/model.{:.4}.pt.tar".format(curr_lr)
                 save_checkpoint({
                     'epoch': epoch_idx,
-                    'arch': config["model"],
+                    'arch': config["arch"],
                     'state_dict': model.state_dict(),
                     'best_metric': eer,
                     'optimizer' : optimizer.state_dict(),
