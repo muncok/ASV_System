@@ -29,7 +29,7 @@ def load_checkpoint(config, model, optimizer):
     if os.path.isfile(input_file):
         print("=> loading checkpoint '{}'".format(input_file))
         checkpoint = torch.load(input_file)
-        config['s_epoch'] = checkpoint['epoch']
+        config['s_epoch'] = checkpoint['epoch'] + 1
         config['best_metric'] = checkpoint['best_metric']
         model.load_state_dict(checkpoint['state_dict'])
         if optimizer:

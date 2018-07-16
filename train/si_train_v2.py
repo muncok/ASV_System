@@ -25,8 +25,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     writer = SummaryWriter(log_dir)
     train_loader, dev_loader, test_loader = loaders
 
-    if config['input_file']:
-        load_checkpoint(config, model, optimizer)
 
     scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
             last_epoch=config['s_epoch']-1)
@@ -53,21 +51,20 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
 
         loss_sum = 0
-        input_frames = np.random.randint(300, 800)
-        train_loader.dataset.input_frames = input_frames
 
         if len(config['gpu_no']) > 1:
             model = torch.nn.DataParallel(model)
 
         model.train()
-        for name, param in model.named_parameters():
-            writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
+        # for name, param in model.named_parameters():
+            # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
 
         accs = []
+        input_frames = np.random.randint(300, 800)
+        train_loader.dataset.input_frames = input_frames
         for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
                 total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
-            # X = X_batch.narrow(2, 0, input_frames)
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()
@@ -100,7 +97,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 model.eval()
                 accs = []
                 loss_sum = 0
-                dev_loader.dataset.input_frames = 500
                 for (X, y) in tqdm_v(dev_loader, ncols=100,
                         total=len(dev_loader)):
                     # X = X_batch.narrow(2, 0, input_frames)
@@ -155,7 +151,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         loss_sum = 0
         for (X, y) in tqdm_v(test_loader, ncols=100,
                 total=len(test_loader)):
-            test_loader.dataset.input_frames = 800
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()

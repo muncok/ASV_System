@@ -59,6 +59,7 @@ def default_config(arch):
             print_step=100)
 
     builder = ConfigBuilder(
+
         default_audio_config(),
         global_config)
 
@@ -66,7 +67,7 @@ def default_config(arch):
     config = builder.config_from_argparse(parser)
     return config
 
-def set_config(config, args, mode='train'):
+def set_config(config, args):
     config['input_clip'] = True
     config['input_frames'] = args.input_frames
     config['input_samples'] = framesToSample(args.input_frames)
@@ -79,22 +80,23 @@ def set_config(config, args, mode='train'):
     config['loss'] = args.loss
     config['batch_size'] = args.batch_size
 
-    if mode == 'train':
-        config['n_epochs'] = args.n_epochs
-        config['s_epoch'] = args.s_epoch
-        config['lrs'] = args.lrs
-        config['lr_schedule'] = args.lr_schedule
-        config['seed'] = args.seed
-        config['suffix'] = args.suffix
-        config['gpu_no'] = args.gpu_no
-    else:
-        config['input_clip'] = args.input_clip
+    config['n_epochs'] = args.n_epochs
+    config['s_epoch'] = args.s_epoch
+    config['lrs'] = args.lrs
+    config['lr_schedule'] = args.lr_schedule
+    config['seed'] = args.seed
+    config['suffix'] = args.suffix
+    config['gpu_no'] = args.gpu_no
+
+    # fixed config
+    config['score_mode'] = 'approx'
+
 
     return config
 
 def set_score_config(config, args):
-    config['mode'] = mode = args.mode
-    if mode == "precise":
+    config['score_mode'] = args.score_mode
+    if args.score_mode == "precise":
         config['input_clip'] = False
         config['batch_size'] = 1
     else:
@@ -157,7 +159,7 @@ def train_parser():
     parser.add_argument('-version',
                         type=int,
                         help='version of si_train code',
-                        choices=[0, 1, 2],
+                        choices=[0, 1, 2, 3],
                         default=1
                         )
 
@@ -275,7 +277,7 @@ def score_parser():
                         action = 'store_true',
                         default= False)
 
-    parser.add_argument('-mode',
+    parser.add_argument('-score_mode',
                         type=str,
                         help='precision of scoring',
                         choices=['precise', 'approx'],

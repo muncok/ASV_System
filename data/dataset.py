@@ -58,8 +58,10 @@ class SpeechDataset(data.Dataset):
 
         if set_type == "train":
             self._load_bg_noise(config["bkg_noise_folder"])
+            self.random_clip = True
         else:
             self.bg_noise_audio = None
+            self.random_clip = False
 
     def _timeshift_audio(self, data):
         shift = (16000 * self.timeshift_ms) // 1000
@@ -96,7 +98,10 @@ class SpeechDataset(data.Dataset):
         # input clipping
         if self.input_clip:
             if len(data) > in_len:
-                start_sample = np.random.randint(0, len(data) - in_len)
+                if self.random_clip:
+                    start_sample = np.random.randint(0, len(data) - in_len)
+                else:
+                    start_sample = 0
                 data = data[start_sample:start_sample+in_len]
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
@@ -184,6 +189,11 @@ class featDataset(data.Dataset):
         self.input_clip = config["input_clip"]
         self.input_dim = config["input_dim"]
 
+        if set_type == "train":
+            self.random_clip = True
+        else:
+            self.random_clip = False
+
     def preprocess(self, example):
 
         file_data = self._file_cache.get(example)
@@ -193,22 +203,19 @@ class featDataset(data.Dataset):
             data = np.zeros((1, self.input_dim))
         self._file_cache[example] = data
 
-        # try:
-            # data = np.load(example)
-        # except FileNotFoundError:
-            # data = np.zeros((1, self.input_dim))
-
-        # input clipping
+        # clipping
         in_len = self.input_frames
-        # print("in_len: {}".format(in_len))
         if self.input_clip:
             if len(data) > in_len:
-                start_sample = np.random.randint(0, len(data) - in_len)
+                if self.random_clip:
+                    start_sample = np.random.randint(0, len(data) - in_len)
+                else:
+                    start_sample = 0
                 data = data[start_sample:start_sample+in_len]
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+
         data = data[:,:self.input_dim]
-        # print("data shape: {}".format(data.shape))
         data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 

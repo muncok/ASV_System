@@ -25,9 +25,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     writer = SummaryWriter(log_dir)
     train_loader, dev_loader, test_loader = loaders
 
-    if config['input_file']:
-        load_checkpoint(config, model, optimizer)
-
     scheduler = ReduceLROnPlateau(optimizer, 'min', min_lr=0.001, factor=0.5,
             patience=config['lrs'][0])
 

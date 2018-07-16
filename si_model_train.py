@@ -2,9 +2,9 @@
 import os
 
 from utils.parser import (default_config, train_parser, set_config)
-from train import (si_train_v0, si_train_v1, si_train_v2)
+from train import (si_train_v0, si_train_v1, si_train_v2, si_train_v3)
 from data.dataloader import init_loaders_from_df
-from train.train_utils import set_seed, find_optimizer, get_dir_path
+from train.train_utils import set_seed, find_optimizer, get_dir_path, load_checkpoint
 from model.model_utils import find_model
 from data.data_utils import split_df, find_dataset
 
@@ -13,7 +13,7 @@ def new_exp_dir(old_exp_dir):
     done = False
     v = 0
     while not done:
-        output_dir_ = "{output_dir}_v{version:02d}".format(
+        output_dir_ = "{output_dir}/v{version:02d}".format(
                 output_dir=old_exp_dir, version=v)
         if not os.path.isdir(output_dir_):
             output_dir = output_dir_
@@ -34,7 +34,7 @@ dataset = args.dataset
 train_ver = args.version
 
 config = default_config(arch)
-config = set_config(config, args, 'train')
+config = set_config(config, args)
 
 #########################################
 # Dataset loaders
@@ -53,8 +53,14 @@ criterion, optimizer = find_optimizer(config, model)
 # Model Save Path
 #########################################
 if config['input_file']:
+    load_checkpoint(config, model, optimizer)
     # start new experiment continuing from "input_file"
     config['output_file'] = new_exp_dir(get_dir_path(config['input_file']))
+    if config['loss'] == 'angular':
+        # for lambda annealling
+        criterion.it = config['s_epoch'] * len(split_dfs[0]) // \
+        config['batch_size']
+        print("start iteration {}".format(criterion.it))
 else:
     # start new experiment
     new_output_dir = ("models/compare_train_methods/{dset}/"
@@ -81,6 +87,9 @@ elif train_ver == 1:
             optimizer=optimizer, criterion=criterion)
 elif train_ver == 2:
     si_train_v2.si_train(config, model=model, loaders=loaders,
+            optimizer=optimizer, criterion=criterion)
+elif train_ver == 3:
+    si_train_v3.si_train(config, model=model, loaders=loaders,
             optimizer=optimizer, criterion=criterion)
 
 #########################################

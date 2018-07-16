@@ -37,7 +37,7 @@ class AngleLinear(nn.Module):
         wlen = ww.pow(2).sum(0).pow(0.5) # size=Classnum
 
         cos_theta = x.mm(ww) # size=(B,Classnum)
-        # normalization
+        # normalization by dividing it by ||w||*||x||
         cos_theta = cos_theta / xlen.view(-1,1) / wlen.view(1,-1)
         cos_theta = cos_theta.clamp(-1,1)
 
@@ -52,6 +52,7 @@ class AngleLinear(nn.Module):
             phi_theta = myphi(theta,self.m)
             phi_theta = phi_theta.clamp(-1*self.m,1)
 
+        # ||x||cos(theta), rescale it with ||x||
         cos_theta = cos_theta * xlen.view(-1,1)
         phi_theta = phi_theta * xlen.view(-1,1)
         output = (cos_theta, phi_theta)
@@ -61,10 +62,10 @@ class AngleLinear(nn.Module):
 class AngleLoss(nn.Module):
     def __init__(self, gamma=0):
         super(AngleLoss, self).__init__()
-        self.gamma   = gamma
+        self.gamma = gamma
         self.it = 0
         # parameters for annealing
-        self.LambdaMin = 5.0
+        self.LambdaMin = 10
         self.LambdaMax = 1500.0
         self.lamb = 1500.0
 

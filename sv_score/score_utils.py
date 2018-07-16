@@ -7,7 +7,6 @@ from sklearn.metrics import roc_curve, auc
 from tqdm import tqdm
 
 import torch
-from torch.autograd import Variable
 
 def recToEER(eer_record, thresh_record, verbose=False):
     mean_eer = np.mean(eer_record)
@@ -32,7 +31,7 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
             if not config['no_cuda']:
                 x= x.cuda()
 
-            if config['mode'] == "precise":
+            if config['score_mode'] == "precise":
                 model_output = model.embed(x).cpu().data
             else:
                 model_outputs = []
