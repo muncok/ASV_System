@@ -38,9 +38,10 @@ def init_default_loader(config, dataset, shuffle):
     batch_size = config["batch_size"]
     num_workers = config["num_workers"]
     dataloader = torch.utils.data.DataLoader(dataset,
-                                                 batch_size=batch_size,
-                                                 num_workers=num_workers,
-                                                 shuffle=shuffle,)
+            batch_size=batch_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=True)
     return dataloader
 
 def init_loaders_from_df(config, dfs, dataset_type):

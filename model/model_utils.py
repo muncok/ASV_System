@@ -1,4 +1,4 @@
-# import torch
+import torch
 
 from . import tdnnModel
 from . import auxModels
@@ -35,8 +35,8 @@ def find_model(config, n_labels):
     else:
         raise NotImplementedError
 
-    # if len(config['gpu_no']) > 1:
-        # model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
+    if len(config['gpu_no']) > 1:
+        model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
 
     if not config["no_cuda"]:
         model.cuda()

@@ -6,8 +6,8 @@ import torch
 from torch.optim.lr_scheduler import MultiStepLR
 
 from tqdm import tqdm
-from .train_utils import (print_eval, save_checkpoint, get_dir_path,
-        load_checkpoint)
+from .train_utils import (print_eval, save_checkpoint, get_dir_path)
+
 
 from data.dataset import featDataset
 from sv_score.score_utils import embeds_utterance
@@ -51,20 +51,17 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
 
         loss_sum = 0
-
-        if len(config['gpu_no']) > 1:
-            model = torch.nn.DataParallel(model)
-
         model.train()
         # for name, param in model.named_parameters():
             # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
 
         accs = []
-        input_frames = np.random.randint(300, 800)
-        train_loader.dataset.input_frames = input_frames
         for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
                 total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
+            input_frames = np.random.randint(300, 800)
+            start_frame = np.random.randint(0, 800-input_frames)
+            X = X.narrow(2, start_frame, input_frames)
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()
@@ -80,8 +77,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 # schedule over iteration
                 accs.append(print_eval("train step #{}".format(step_no), scores, y,
                         loss_sum/(batch_idx+1), verbose=True))
-            input_frames = np.random.randint(300, 800)
-            train_loader.dataset.input_frames = input_frames
 
         avg_acc = np.mean(accs)
         # tensorboard
@@ -91,7 +86,7 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
             loss_sum, curr_lr))
 
-        # evaluation on validation set
+        # development iteration
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
             with torch.no_grad():
                 model.eval()
@@ -99,7 +94,6 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 loss_sum = 0
                 for (X, y) in tqdm_v(dev_loader, ncols=100,
                         total=len(dev_loader)):
-                    # X = X_batch.narrow(2, 0, input_frames)
                     if not config["no_cuda"]:
                         X = X.cuda()
                         y = y.cuda()
@@ -109,21 +103,25 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                     accs.append(print_eval("dev", scores, y,
                         loss.item()))
                 avg_acc = np.mean(accs)
-                # tensorboard
-                writer.add_scalar('dev/loss', loss_sum, epoch_idx)
-                writer.add_scalar('dev/acc', avg_acc, epoch_idx)
 
                 if isinstance(model, torch.nn.DataParallel):
-                    model = model.module
+                    model_t = model.module
+                else:
+                    model_t = model
 
                 # compute eer
-                embeddings, _ = embeds_utterance(config, val_dataloader, model, None)
+                embeddings, _ = embeds_utterance(config, val_dataloader,
+                        model_t, None)
                 sim_matrix = F.cosine_similarity(
                         embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
                 score_vector = sim_matrix[cord].numpy()
                 fpr, tpr, thres = roc_curve(
                         label_vector, score_vector, pos_label=1)
                 eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+
+                #tensorboard
+                writer.add_scalar('dev/loss', loss_sum, epoch_idx)
+                writer.add_scalar('dev/acc', avg_acc, epoch_idx)
                 writer.add_scalar('dev/sv_eer', eer, epoch_idx)
                 writer.add_pr_curve('DET', label_vector, score_vector, epoch_idx)
 
@@ -140,11 +138,12 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 save_checkpoint({
                     'epoch': epoch_idx,
                     'arch': config["arch"],
-                    'state_dict': model.state_dict(),
+                    'state_dict': model_t.state_dict(),
                     'best_metric': eer,
                     'optimizer' : optimizer.state_dict(),
                     }, epoch_idx, is_best, filename=filename)
-    # test
+
+    # test iteration
     with torch.no_grad():
         model.eval()
         accs = []

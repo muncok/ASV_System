@@ -1,7 +1,7 @@
 # coding: utf-8
 import os
 
-from utils.parser import (default_config, train_parser, set_config)
+from utils.parser import (train_parser, set_train_config)
 from train import (si_train_v0, si_train_v1, si_train_v2, si_train_v3)
 from data.dataloader import init_loaders_from_df
 from train.train_utils import set_seed, find_optimizer, get_dir_path, load_checkpoint
@@ -33,8 +33,8 @@ arch = args.arch
 dataset = args.dataset
 train_ver = args.version
 
-config = default_config(arch)
-config = set_config(config, args)
+# config = default_config(arch)
+config = set_train_config(args)
 
 #########################################
 # Dataset loaders
@@ -64,7 +64,7 @@ if config['input_file']:
 else:
     # start new experiment
     new_output_dir = ("models/compare_train_methods/{dset}/"
-            "{arch}_{loss}/{in_format}_{in_len}f_{s_len}f_{suffix}").format(
+            "{arch}_{loss}/{suffix}/{in_format}_{in_len}f_{s_len}f").format(
                     dset=dataset, arch=arch, loss=config["loss"],
                     in_len=config["input_frames"],
                     s_len=config["splice_frames"],

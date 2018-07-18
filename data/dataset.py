@@ -200,7 +200,7 @@ class featDataset(data.Dataset):
         try:
             data = np.load(example) if file_data is None else file_data
         except FileNotFoundError:
-            data = np.zeros((1, self.input_dim))
+            raise FileNotFoundError
         self._file_cache[example] = data
 
         # clipping
@@ -215,7 +215,8 @@ class featDataset(data.Dataset):
             else:
                 data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
 
-        data = data[:,:self.input_dim]
+        #TODO why do they have diffrent input dimension?
+        data = data[:,:self.input_dim] # first dimension could be energy term
         data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 

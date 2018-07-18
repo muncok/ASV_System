@@ -48,18 +48,18 @@ def default_audio_config():
     config["window_stride"]= 0.010
     return config
 
-def default_config(arch):
+def default_config():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     config, _ = parser.parse_known_args()
 
-    global_config = dict(arch=arch, dev_every=1,
+    global_config = dict(
+            dev_every=1,
             use_nesterov=False,
             gpu_no=[0], cache_size=32768,
             momentum=0.9, weight_decay=0.0001, num_workers=16,
             print_step=100)
 
     builder = ConfigBuilder(
-
         default_audio_config(),
         global_config)
 
@@ -67,51 +67,31 @@ def default_config(arch):
     config = builder.config_from_argparse(parser)
     return config
 
-def set_config(config, args):
+def set_train_config(args):
+    #TODO test
+    config = default_config()
+    config_from_agrs = vars(args)
+    config.update(config_from_agrs)
+
     config['input_clip'] = True
-    config['input_frames'] = args.input_frames
     config['input_samples'] = framesToSample(args.input_frames)
-    config['splice_frames'] = args.splice_frames
-    config['stride_frames'] = args.stride_frames
-    config['input_format'] = args.input_format
-    config['dataset'] = args.dataset
     config['no_cuda'] = not args.cuda
-    config['input_file'] = args.input_file
-    config['loss'] = args.loss
-    config['batch_size'] = args.batch_size
-
-    config['n_epochs'] = args.n_epochs
-    config['s_epoch'] = args.s_epoch
-    config['lrs'] = args.lrs
-    config['lr_schedule'] = args.lr_schedule
-    config['seed'] = args.seed
-    config['suffix'] = args.suffix
-    config['gpu_no'] = args.gpu_no
-
-    # fixed config
     config['score_mode'] = 'approx'
-
 
     return config
 
-def set_score_config(config, args):
-    config['score_mode'] = args.score_mode
+def set_score_config(args):
+    config = default_config()
+    config_from_agrs = vars(args)
+    config.update(config_from_agrs)
+
     if args.score_mode == "precise":
         config['input_clip'] = False
         config['batch_size'] = 1
     else:
         config['input_clip'] = True
         config['batch_size'] = args.batch_size
-
-    config['input_frames'] = args.input_frames
-    config['input_samples'] = framesToSample(args.input_frames)
-    config['splice_frames'] = args.splice_frames
-    config['stride_frames'] = args.stride_frames
-    config['input_format'] = args.input_format
-    config['dataset'] = args.dataset
     config['no_cuda'] = not args.cuda
-    config['input_file'] = args.input_file
-    config['loss'] = args.loss
 
     return config
 
@@ -157,9 +137,9 @@ def train_parser():
                         )
 
     parser.add_argument('-version',
-                        type=int,
+                        type=float,
                         help='version of si_train code',
-                        choices=[0, 1, 2, 3],
+                        choices=[0, 1, 2, 2.1, 3],
                         default=1
                         )
 
@@ -282,6 +262,19 @@ def score_parser():
                         help='precision of scoring',
                         choices=['precise', 'approx'],
                         default='approx'
+                        )
+
+    parser.add_argument('-output_folder',
+                        type=str,
+                        help='path to be saved',
+                        default=".",
+                        )
+
+    parser.add_argument('-gpu_no',
+                        type=int,
+                        nargs='+',
+                        help='gpu device ids',
+                        default=[0]
                         )
 
     return parser
