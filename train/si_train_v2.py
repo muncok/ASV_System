@@ -42,6 +42,9 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     label_vector = np.array(trial.label)
     min_eer = config['best_metric'] if 'best_metric' in config else 1.0
 
+    if len(config['gpu_no']) > 1:
+        model = torch.nn.DataParallel(model, config['gpu_no'])
+
     # training iteration
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         # learning rate change
@@ -138,6 +141,7 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 save_checkpoint({
                     'epoch': epoch_idx,
                     'arch': config["arch"],
+                    'loss': config["loss"],
                     'state_dict': model_t.state_dict(),
                     'best_metric': eer,
                     'optimizer' : optimizer.state_dict(),

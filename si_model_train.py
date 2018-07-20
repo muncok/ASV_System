@@ -2,7 +2,7 @@
 import os
 
 from utils.parser import (train_parser, set_train_config)
-from train import (si_train_v0, si_train_v1, si_train_v2, si_train_v3)
+from train import (si_train_v0, si_train_v1, si_train_v2,  si_train_v3)
 from data.dataloader import init_loaders_from_df
 from train.train_utils import set_seed, find_optimizer, get_dir_path, load_checkpoint
 from model.model_utils import find_model
@@ -33,20 +33,19 @@ arch = args.arch
 dataset = args.dataset
 train_ver = args.version
 
-# config = default_config(arch)
 config = set_train_config(args)
 
 #########################################
 # Dataset loaders
 #########################################
-df, dataset_type, n_labels = find_dataset(config)
+df, dset_class = find_dataset(config)
 split_dfs = split_df(df)
-loaders = init_loaders_from_df(config, split_dfs, dataset_type)
+loaders = init_loaders_from_df(config, split_dfs, dset_class)
 
 #########################################
 # Model Initialization
 #########################################
-model= find_model(config, n_labels)
+model= find_model(config)
 criterion, optimizer = find_optimizer(config, model)
 
 #########################################

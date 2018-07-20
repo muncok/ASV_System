@@ -67,7 +67,9 @@ def find_dataset(config):
     if not os.path.isdir(config['data_folder']):
         raise FileNotFoundError
 
-    return df, dset, n_labels
+    config['n_labels'] = n_labels
+
+    return df, dset
 
 def split_df(df):
     if 'set' in df.columns:

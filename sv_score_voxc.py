@@ -8,8 +8,7 @@ from scipy.optimize import brentq
 from scipy.interpolate import interp1d
 
 from data.dataloader import init_default_loader
-from model.model_utils import find_model
-from utils.parser import default_config, score_parser, set_score_config
+from utils.parser import score_parser, set_score_config
 from data.data_utils import find_dataset
 from sv_score.score_utils import embeds_utterance
 from train.train_utils import load_checkpoint
@@ -25,25 +24,23 @@ parser = score_parser()
 args = parser.parse_args()
 model = args.arch
 
-si_config = default_config(model)
-si_config = set_score_config(si_config, args)
+config = set_score_config(args)
 
 #########################################
 # Model Initialization
 #########################################
 # set data_folder, input_dim, n_labels, and dset
-_, dset, n_labels = find_dataset(si_config)
-si_model = find_model(si_config, n_labels)
-load_checkpoint(si_config, si_model, None)
+_, dset = find_dataset(config)
+model, _ = load_checkpoint(config)
 lda = None
 
 #########################################
 # Compute Embeddings
 #########################################
 voxc_test_df = pd.read_pickle("dataset/dataframes/voxc/sv_voxc_dataframe.pkl")
-voxc_test_dset = dset.read_df(si_config, voxc_test_df, "test")
-val_dataloader = init_default_loader(si_config, voxc_test_dset, shuffle=False)
-embeddings, _ = embeds_utterance(si_config, val_dataloader, si_model, lda)
+voxc_test_dset = dset.read_df(config, voxc_test_df, "test")
+val_dataloader = init_default_loader(config, voxc_test_dset, shuffle=False)
+embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 
 #########################################
 # Load trial

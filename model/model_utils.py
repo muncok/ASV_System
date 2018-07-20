@@ -6,8 +6,9 @@ from . import resNet34Models
 
 # TODO: more automatic
 
-def find_model(config, n_labels):
+def find_model(config):
     arch = config["arch"]
+    n_labels = config['n_labels']
     if arch == "SimpleCNN":
         model = auxModels.SimpleCNN(config, n_labels)
     elif arch == "TdnnModel":

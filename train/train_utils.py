@@ -7,6 +7,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
+from model.model_utils import find_model
 from .angularLoss import AngleLoss
 
 def get_dir_path(file_path):
@@ -23,7 +24,7 @@ def save_checkpoint(state, epoch_idx, is_best, filename='checkpoint.pth.tar'):
         shutil.copyfile(filename, os.path.join(get_dir_path(filename),
             'model_best.pth.tar'))
 
-def load_checkpoint(config, model, optimizer):
+def load_checkpoint(config, model=None, optimizer=None):
     # https://discuss.pytorch.org/t/saving-and-loading-a-model-in-pytorch/2610/2
     input_file = config['input_file']
     if os.path.isfile(input_file):
@@ -31,7 +32,18 @@ def load_checkpoint(config, model, optimizer):
         checkpoint = torch.load(input_file)
         config['s_epoch'] = checkpoint['epoch'] + 1
         config['best_metric'] = checkpoint['best_metric']
-        model.load_state_dict(checkpoint['state_dict'])
+        config['arch'] = checkpoint['arch']
+        print("arch is {}".format(config['arch']))
+        if 'loss' in checkpoint:
+            config['loss'] = checkpoint['loss']
+
+        if not model:
+            model = find_model(config)
+
+        if isinstance(model, nn.DataParallel):
+            model.module.load_state_dict(checkpoint['state_dict'])
+        else:
+            model.load_state_dict(checkpoint['state_dict'])
         if optimizer:
             optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (epoch {})"
