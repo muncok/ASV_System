@@ -57,7 +57,8 @@ class SpeechDataset(data.Dataset):
         self.data_folder = config["data_folder"]
 
         if set_type == "train":
-            self._load_bg_noise(config["bkg_noise_folder"])
+            # self._load_bg_noise(config["bkg_noise_folder"])
+            self.bg_noise_audio = None
             self.random_clip = True
         else:
             self.bg_noise_audio = None
@@ -200,7 +201,9 @@ class featDataset(data.Dataset):
         try:
             data = np.load(example) if file_data is None else file_data
         except FileNotFoundError:
-            raise FileNotFoundError
+            data = np.zeros((self.input_frames, self.input_dim))
+            # print("{} is not found".format(example))
+            # raise FileNotFoundError
         self._file_cache[example] = data
 
         # clipping
@@ -222,10 +225,7 @@ class featDataset(data.Dataset):
 
     @classmethod
     def read_df(cls, config, df, set_type):
-        if 'file' in df.columns:
-            files = df.file.tolist()
-        else:
-            files = df.feat.tolist()
+        files = df.feat.tolist()
 
         if "label" in df.columns:
             labels = df.label.tolist()

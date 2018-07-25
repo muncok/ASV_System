@@ -38,12 +38,16 @@ def load_checkpoint(config, model=None, optimizer=None):
             config['loss'] = checkpoint['loss']
 
         if not model:
+            # for scoring
+            n_labels = checkpoint['state_dict']['output.weight'].shape[0]
+            config['n_labels'] = n_labels
             model = find_model(config)
 
         if isinstance(model, nn.DataParallel):
             model.module.load_state_dict(checkpoint['state_dict'])
         else:
             model.load_state_dict(checkpoint['state_dict'])
+
         if optimizer:
             optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (epoch {})"

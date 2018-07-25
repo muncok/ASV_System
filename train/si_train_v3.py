@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import torch.nn.functional as F
 
 import torch
 from torch.optim.lr_scheduler import MultiStepLR
@@ -8,23 +6,17 @@ from torch.optim.lr_scheduler import MultiStepLR
 from tqdm import tqdm
 from .train_utils import (print_eval, save_checkpoint, get_dir_path)
 
-
-# from data.dataset import featDataset, SpeechDataset
-from sv_score.score_utils import embeds_utterance
-from data.dataloader import init_default_loader
-from sklearn.metrics import roc_curve
-
 from tensorboardX import SummaryWriter
 
 """
 MultiStep LR scheduler
+no random splice
 """
 
 def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     log_dir = get_dir_path(config['output_file'])
     writer = SummaryWriter(log_dir)
     train_loader, dev_loader, test_loader = loaders
-
 
     scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
             last_epoch=config['s_epoch']-1)
@@ -33,16 +25,9 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     step_no = 0
     print_step = config["print_step"]
 
-    # sv_score
-    voxc_test_df = pd.read_pickle("dataset/dataframes/voxc/sv_voxc_dataframe.pkl")
-    # hack
-    voxc_test_dset = loaders[0].dataset.read_df(config, voxc_test_df, "test")
-    val_dataloader = init_default_loader(config, voxc_test_dset, shuffle=False)
-    trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
-    cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
-    label_vector = np.array(trial.label)
-    min_eer = config['best_metric'] if 'best_metric' in config else 1.0
+    max_acc = config['best_metric'] if 'best_metric' in config else 0.0
 
+    # training iteration
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         # learning rate change
         scheduler.step()
@@ -51,17 +36,17 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         writer.add_scalar("train/lr", curr_lr, epoch_idx)
 
         loss_sum = 0
+
         model.train()
         # for name, param in model.named_parameters():
             # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
 
-        # training iteration
         accs = []
         for batch_idx, (X, y) in tqdm_v(enumerate(train_loader), ncols=100,
                 total=len(train_loader)):
             # X_batch = (batch, channel, time, bank)
-            input_frames = np.random.randint(300, 800)
-            start_frame = np.random.randint(0, 800-input_frames)
+            input_frames = np.random.randint(50, 100)
+            start_frame = np.random.randint(0, 100-input_frames)
             X = X.narrow(2, start_frame, input_frames)
             if not config["no_cuda"]:
                 X = X.cuda()
@@ -87,14 +72,17 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
         print("epoch #{}, train loss: {}, lr: {}".format(epoch_idx,
             loss_sum, curr_lr))
 
-        # development iteration
+        # evaluation on validation set
         if epoch_idx % config["dev_every"] == config["dev_every"] - 1:
             with torch.no_grad():
                 model.eval()
                 accs = []
                 loss_sum = 0
+                # input_frames = np.random.randint(300, 800)
+                # dev_loader.dataset.input_frames = input_frames
                 for (X, y) in tqdm_v(dev_loader, ncols=100,
                         total=len(dev_loader)):
+                    # X = X_batch.narrow(2, 0, input_frames)
                     if not config["no_cuda"]:
                         X = X.cuda()
                         y = y.cuda()
@@ -110,27 +98,15 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 else:
                     model_t = model
 
-                # compute eer
-                embeddings, _ = embeds_utterance(config, val_dataloader,
-                        model_t, None)
-                sim_matrix = F.cosine_similarity(
-                        embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
-                score_vector = sim_matrix[cord].numpy()
-                fpr, tpr, thres = roc_curve(
-                        label_vector, score_vector, pos_label=1)
-                eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
-
                 #tensorboard
                 writer.add_scalar('dev/loss', loss_sum, epoch_idx)
                 writer.add_scalar('dev/acc', avg_acc, epoch_idx)
-                writer.add_scalar('dev/sv_eer', eer, epoch_idx)
-                writer.add_pr_curve('DET', label_vector, score_vector, epoch_idx)
 
-                print("epoch #{}, dev accuracy: {}".format(epoch_idx, avg_acc))
-                print("epoch #{}, dev eer: {}".format(epoch_idx, eer))
+                print("epoch #{}, dev accuracy: {}, loss: {}".format(epoch_idx,
+                    avg_acc, loss_sum))
 
-                if eer < min_eer:
-                    min_eer = eer
+                if avg_acc > max_acc:
+                    max_acc = avg_acc
                     is_best = True
                 else:
                     is_best = False
@@ -139,19 +115,18 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                 save_checkpoint({
                     'epoch': epoch_idx,
                     'arch': config["arch"],
-                    'loss': config["loss"],
                     'state_dict': model_t.state_dict(),
-                    'best_metric': eer,
+                    'best_metric': max_acc,
                     'optimizer' : optimizer.state_dict(),
                     }, epoch_idx, is_best, filename=filename)
-
-    # test iteration
+    # test
     with torch.no_grad():
         model.eval()
         accs = []
         loss_sum = 0
         for (X, y) in tqdm_v(test_loader, ncols=100,
                 total=len(test_loader)):
+            test_loader.dataset.input_frames = 800
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()

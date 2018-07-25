@@ -23,7 +23,6 @@ config = set_score_config(args)
 #########################################
 # Model Initialization
 #########################################
-# set data_folder, input_dim, n_labels, and dset
 _, dset = find_dataset(config)
 model, _ = load_checkpoint(config)
 lda = None
@@ -31,16 +30,21 @@ lda = None
 #########################################
 # Compute Embeddings
 #########################################
-voxc_test_df = pd.read_pickle("dataset/dataframes/voxc/sv_voxc_dataframe.pkl")
-voxc_test_dset = dset.read_df(config, voxc_test_df, "test")
-val_dataloader = init_default_loader(config, voxc_test_dset, shuffle=False)
+test_df = pd.read_pickle(
+        "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_sv.pkl")
+test_dset = dset.read_df(config, test_df, "test")
+val_dataloader = init_default_loader(config, test_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 
 #########################################
 # Load trial
 #########################################
-trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
-sim_matrix = F.cosine_similarity(embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
+trial = pd.read_pickle(
+        "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_trial.pkl")
+sim_matrix = F.cosine_similarity(
+        embeddings.unsqueeze(1),
+        embeddings.unsqueeze(0),
+        dim=2)
 cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
 score_vector = sim_matrix[cord].numpy()
 label_vector = trial.label

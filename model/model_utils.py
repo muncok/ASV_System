@@ -37,9 +37,13 @@ def find_model(config):
         raise NotImplementedError
 
     if len(config['gpu_no']) > 1:
+        print("Using gpus: {}".format(config['gpu_no']))
         model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
 
     if not config["no_cuda"]:
-        model.cuda()
+        if len(config['gpu_no']) > 1:
+            model.cuda()
+        else:
+            model.cuda()
 
     return model
