@@ -3,6 +3,7 @@ import os
 import random
 import numpy as np
 from enum import Enum
+from collections import OrderedDict
 
 import torch
 import torch.utils.data as data
@@ -22,7 +23,6 @@ class SimpleCache(dict):
             self.n_keys += 1
             super().__setitem__(key, value)
         return value
-
 
 
 class DatasetType(Enum):
@@ -149,7 +149,7 @@ class SpeechDataset(data.Dataset):
             labels = df.label.tolist()
         else:
             labels = [-1] * len(df)
-        samples = dict(zip(files, labels))
+        samples = OrderedDict(zip(files, labels))
         dataset = cls(samples, set_type, config)
         return dataset
 
@@ -198,15 +198,14 @@ class featDataset(data.Dataset):
             self.random_clip = False
 
     def preprocess(self, example):
-
         file_data = self._file_cache.get(example)
         try:
             data = np.load(example) if file_data is None else file_data
         except FileNotFoundError:
-            data = np.zeros((self.input_frames, self.input_dim))
-            self.fail_count += 1
+            # data = np.zeros((self.input_frames, self.input_dim))
+            # need to make a empty file for necessary missing files
             print("{} is not found".format(example))
-            # raise FileNotFoundError
+            raise FileNotFoundError
         self._file_cache[example] = data
 
         # clipping
@@ -223,18 +222,18 @@ class featDataset(data.Dataset):
 
         #TODO why do they have diffrent input dimension?
         data = data[:,:self.input_dim] # first dimension could be energy term
+        # expand a singleton dimension standing for a channel dimension
         data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 
     @classmethod
     def read_df(cls, config, df, set_type):
         files = df.feat.tolist()
-
         if "label" in df.columns:
             labels = df.label.tolist()
         else:
             labels = [-1] * len(df)
-        samples = dict(zip(files, labels))
+        samples = OrderedDict(zip(files, labels))
         dataset = cls(samples, set_type, config)
         return dataset
 
