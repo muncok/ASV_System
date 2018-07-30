@@ -9,28 +9,37 @@ def find_dataset(config):
     if dataset_name == "voxc":
         config['data_folder'] = "dataset/voxceleb1/wav"
         config['input_dim'] = 64
-        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/voxceleb1/dataframe/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = SpeechDataset
     elif dataset_name == "voxc_mfcc":
         config['data_folder'] = "dataset/kaldi/voxceleb/feats/data/npy"
         config['input_dim'] = 23
-        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/voxceleb1/dataframe/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = featDataset
     elif dataset_name == "voxc_fbank":
         config['data_folder'] = \
         "dataset/kaldi/voxceleb/feats/data-fbank/fbank_npy"
         config['input_dim'] = 64
-        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/voxceleb1/dataframe/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset = featDataset
     elif dataset_name == "voxc_fbank_xvector":
         config['data_folder'] = \
         "dataset/kaldi/voxceleb/feats/data-fbank/xvector_npy"
         config['input_dim'] = 64
-        df = pd.read_pickle("dataset/dataframes/voxc/si_voxc_dataframe.pkl")
+        df = pd.read_pickle("dataset/voxceleb1/dataframe/si_voxc_dataframe.pkl")
         n_labels = 1260
+        dset = featDataset
+    elif dataset_name == "voxc12_fbank_xvector":
+        config['data_folder'] = \
+        "dataset/kaldi/voxceleb/xvector/data/data-fbank/xvector_npy"
+        config['input_dim'] = 64
+        df = pd.read_pickle("dataset/voxceleb2/dataframe/si_voxc12_dataframe.pkl")
+        n_labels = 7324
+        # df = pd.read_pickle("dataset/voxceleb1/dataframe/si_voxc_dataframe.pkl")
+        # n_labels = 1260
         dset = featDataset
     elif dataset_name == "reddots":
         config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
@@ -44,7 +53,7 @@ def find_dataset(config):
         "dataset/kaldi/gcommand/feats/data-fbank/xvector_npy"
         config['input_dim'] = 64
         df = pd.read_pickle(
-                "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_si.pkl")
+                "dataset/gcommand/dataframe/equal_num_30spk/equal_num_30spk_si.pkl")
         n_labels = 1759
         dset = featDataset
 
@@ -66,7 +75,6 @@ def split_df(df):
             train_df = df[(df.set == 'train')]
             val_df = df[(df.set == 'val')]
             test_df = df[(df.set == 'test')]
-            print(len(val_df))
             if len(test_df) == 0:
                 # in case of no explicit testset
                 test_df = val_df

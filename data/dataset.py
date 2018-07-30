@@ -190,6 +190,8 @@ class featDataset(data.Dataset):
         self.input_clip = config["input_clip"]
         self.input_dim = config["input_dim"]
 
+        self.fail_count = 0
+
         if set_type == "train":
             self.random_clip = True
         else:
@@ -202,7 +204,8 @@ class featDataset(data.Dataset):
             data = np.load(example) if file_data is None else file_data
         except FileNotFoundError:
             data = np.zeros((self.input_frames, self.input_dim))
-            # print("{} is not found".format(example))
+            self.fail_count += 1
+            print("{} is not found".format(example))
             # raise FileNotFoundError
         self._file_cache[example] = data
 

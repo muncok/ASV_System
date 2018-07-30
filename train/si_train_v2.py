@@ -29,19 +29,19 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
     scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
             last_epoch=config['s_epoch']-1)
 
-    # max_acc = 0
     step_no = 0
     print_step = config["print_step"]
+    # max_acc = 0.0
 
     # sv_score
-    voxc_test_df = pd.read_pickle("dataset/dataframes/voxc/sv_voxc_dataframe.pkl")
-    # hack
+    voxc_test_df = pd.read_pickle("dataset/voxceleb2/dataframe/sv_voxc12_dataframe.pkl")
     voxc_test_dset = loaders[0].dataset.read_df(config, voxc_test_df, "test")
     val_dataloader = init_default_loader(config, voxc_test_dset, shuffle=False)
-    trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
+    trial = pd.read_pickle("dataset/voxceleb1/dataframe/voxc_trial.pkl")
     cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
     label_vector = np.array(trial.label)
     min_eer = config['best_metric'] if 'best_metric' in config else 1.0
+
 
     for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         # learning rate change
@@ -134,6 +134,13 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                     is_best = True
                 else:
                     is_best = False
+
+                # if avg_acc > max_acc:
+                    # max_acc = avg_acc
+                    # is_best = True
+                # else:
+                    # is_best = False
+
                 filename = get_dir_path(config["output_file"]) + \
                 "/model.{:.4}.pt.tar".format(curr_lr)
                 save_checkpoint({
@@ -141,7 +148,7 @@ def si_train(config, loaders, model, optimizer, criterion, tqdm_v=tqdm):
                     'arch': config["arch"],
                     'loss': config["loss"],
                     'state_dict': model_t.state_dict(),
-                    'best_metric': eer,
+                    'best_metric': min_eer,
                     'optimizer' : optimizer.state_dict(),
                     }, epoch_idx, is_best, filename=filename)
 

@@ -31,7 +31,7 @@ lda = None
 # Compute Embeddings
 #########################################
 test_df = pd.read_pickle(
-        "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_sv.pkl")
+        "dataset/gcommand/dataframe/equal_num_30spk/equal_num_30spk_sv.pkl")
 test_dset = dset.read_df(config, test_df, "test")
 val_dataloader = init_default_loader(config, test_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
@@ -40,7 +40,7 @@ embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 # Load trial
 #########################################
 trial = pd.read_pickle(
-        "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_trial.pkl")
+        "dataset/gcommand/dataframe/equal_num_30spk/equal_num_30spk_trial.pkl")
 sim_matrix = F.cosine_similarity(
         embeddings.unsqueeze(1),
         embeddings.unsqueeze(0),
