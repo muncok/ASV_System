@@ -4,8 +4,6 @@ from . import tdnnModel
 from . import auxModels
 from . import resNet34Models
 
-# TODO: more automatic
-
 def find_model(config):
     arch = config["arch"]
     n_labels = config['n_labels']

@@ -24,7 +24,7 @@ def save_checkpoint(state, epoch_idx, is_best, filename='checkpoint.pth.tar'):
         shutil.copyfile(filename, os.path.join(get_dir_path(filename),
             'model_best.pth.tar'))
 
-def load_checkpoint(config, model=None, optimizer=None):
+def load_checkpoint(config, model=None, criterion=None, optimizer=None):
     # https://discuss.pytorch.org/t/saving-and-loading-a-model-in-pytorch/2610/2
     input_file = config['input_file']
     if os.path.isfile(input_file):
@@ -33,9 +33,16 @@ def load_checkpoint(config, model=None, optimizer=None):
         config['s_epoch'] = checkpoint['epoch'] + 1
         config['best_metric'] = checkpoint['best_metric']
         config['arch'] = checkpoint['arch']
-        print("arch is {}".format(config['arch']))
+
         if 'loss' in checkpoint:
             config['loss'] = checkpoint['loss']
+
+        if 'step_no' in checkpoint:
+            config['step_no'] = checkpoint['step_no']
+            if config['loss'] == 'angular':
+                # for lambda annealling
+                criterion.it = config['step_no']
+                print("start iteration {}".format(criterion.it))
 
         if not model:
             # for scoring
@@ -62,7 +69,7 @@ def make_abspath(rel_path):
         rel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), rel_path)
     return rel_path
 
-def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False):
+def print_eval(name, scores, labels, loss, end="\n", display=False, binary=False):
     if isinstance(scores, tuple):
         scores = scores[0]
     batch_size = labels.size(0)
@@ -72,7 +79,7 @@ def print_eval(name, scores, labels, loss, end="\n", verbose=False, binary=False
         preds = (scores.data > 0.5)
         targets = (labels.data == 1)
         accuracy = (preds == targets).sum() / batch_size
-    if verbose:
+    if display:
         tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
     return accuracy
 
@@ -110,3 +117,29 @@ def find_optimizer(config, model):
 
     return criterion, optimizer
 
+def new_exp_dir(config, old_exp_dir=None):
+    # suffix: v1, v2 ...
+    if not old_exp_dir:
+        old_exp_dir = ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}_{in_len}f_{s_len}f").format(
+                dset=config['dataset'], arch=config['arch'],
+                loss=config["loss"],
+                in_len=config["input_frames"],
+                s_len=config["splice_frames"],
+                in_format=config["input_format"],
+                suffix=config["suffix"])
+
+    done = False
+    v = 0
+    while not done:
+        output_dir_ = "{output_dir}_v{version:02d}".format(
+                output_dir=old_exp_dir, version=v)
+        # now we check model_best.pth.tar directly
+        if not os.path.isfile(output_dir_+"/model_best.pth.tar"):
+            output_dir = output_dir_
+            if not os.path.isdir(output_dir_):
+                os.makedirs(output_dir)
+            done = True
+        else:
+            v += 1
+
+    return output_dir

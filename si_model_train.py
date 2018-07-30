@@ -1,46 +1,33 @@
 # coding: utf-8
-import os
+import pandas as pd
+import torch
+from torch.optim.lr_scheduler import MultiStepLR
 
+from train.train_utils import (set_seed, find_optimizer, get_dir_path,
+load_checkpoint, save_checkpoint, new_exp_dir)
+from data.dataloader import init_loaders
+from data.data_utils import find_dataset
 from utils.parser import (train_parser, set_train_config)
-from train import (si_train_v0, si_train_v1, si_train_v2,  si_train_v3)
-from data.dataloader import init_loaders_from_df
-from train.train_utils import set_seed, find_optimizer, get_dir_path, load_checkpoint
 from model.model_utils import find_model
-from data.data_utils import split_df, find_dataset
 
-def new_exp_dir(old_exp_dir):
-    # suffix: v1, v2 ...
-    done = False
-    v = 0
-    while not done:
-        output_dir_ = "{output_dir}/v{version:02d}".format(
-                output_dir=old_exp_dir, version=v)
-        if not os.path.isdir(output_dir_):
-            output_dir = output_dir_
-            os.makedirs(output_dir)
-            done = True
-        else:
-            v += 1
-    output_file = os.path.join(output_dir, "model.pt")
-    return output_file
+from tensorboardX import SummaryWriter
+from train.si_train import train, val, sv_test
+
 
 #########################################
 # Parser
 #########################################
 parser = train_parser()
 args = parser.parse_args()
-arch = args.arch
 dataset = args.dataset
 train_ver = args.version
-
 config = set_train_config(args)
 
 #########################################
 # Dataset loaders
 #########################################
-df, dset_class = find_dataset(config)
-split_dfs = split_df(df)
-loaders = init_loaders_from_df(config, split_dfs, dset_class)
+datasets = find_dataset(config)
+loaders = init_loaders(config, datasets)
 
 #########################################
 # Model Initialization
@@ -52,46 +39,80 @@ criterion, optimizer = find_optimizer(config, model)
 # Model Save Path
 #########################################
 if config['input_file']:
-    load_checkpoint(config, model, optimizer)
     # start new experiment continuing from "input_file"
-    config['output_file'] = new_exp_dir(get_dir_path(config['input_file']))
-    if config['loss'] == 'angular':
-        # for lambda annealling
-        criterion.it = config['s_epoch'] * len(split_dfs[0]) // \
-        config['batch_size']
-        print("start iteration {}".format(criterion.it))
+    load_checkpoint(config, model, criterion, optimizer)
+    config['output_dir'] = new_exp_dir(config,
+            get_dir_path(config['input_file']))[:-4]
 else:
     # start new experiment
-    new_output_dir = ("models/compare_train_methods/{dset}/"
-            "{arch}_{loss}/{suffix}/{in_format}_{in_len}f_{s_len}f").format(
-                    dset=dataset, arch=arch, loss=config["loss"],
-                    in_len=config["input_frames"],
-                    s_len=config["splice_frames"],
-                    in_format=config["input_format"],
-                    suffix=config["suffix"])
-    config['output_file'] = new_exp_dir(new_output_dir)
+    config['output_dir'] = new_exp_dir(config)
 
-print("Model will be saved to : {}".format(config['output_file']))
+print("Model will be saved to : {}".format(config['output_dir']))
 
 #########################################
 # Model Training
 #########################################
 config['print_step'] = 100
-config["seed"] = args.seed
 set_seed(config)
-if train_ver == 0:
-    si_train_v0.si_train(config, model=model, loaders=loaders)
-elif train_ver == 1:
-    si_train_v1.si_train(config, model=model, loaders=loaders,
-            optimizer=optimizer, criterion=criterion)
-elif train_ver == 2:
-    si_train_v2.si_train(config, model=model, loaders=loaders,
-            optimizer=optimizer, criterion=criterion)
-elif train_ver == 3:
-    si_train_v3.si_train(config, model=model, loaders=loaders,
-            optimizer=optimizer, criterion=criterion)
+
+# log configuration
+log_dir = config['output_dir']
+writer = SummaryWriter(log_dir)
+
+# dataloader and scheduler
+train_loader, val_loader, test_loader, sv_loader = loaders
+trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
+scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
+        last_epoch=config['s_epoch']-1)
+
+min_eer = config['best_metric'] if 'best_metric' in config else 1.0
+
+for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
+    scheduler.step()
+    curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
+    print("curr_lr: {}".format(curr_lr))
+    train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
+    val_loss, val_acc = val(config, val_loader, model, criterion)
+    eer, label, score = sv_test(config, sv_loader, model, trial)
+
+    writer.add_scalar("train/lr", curr_lr, epoch_idx)
+    writer.add_scalar('train/loss', train_loss, epoch_idx)
+    writer.add_scalar('train/acc', train_acc, epoch_idx)
+    writer.add_scalar('val/loss', val_loss, epoch_idx)
+    writer.add_scalar('val/acc', val_acc, epoch_idx)
+    writer.add_scalar('sv_eer', eer, epoch_idx)
+    writer.add_pr_curve('DET', label, score, epoch_idx)
+    # for name, param in model.named_parameters():
+        # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
+
+    print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
+    print("epoch #{}, sv eer: {}".format(epoch_idx, eer))
+
+    if eer < min_eer:
+        min_eer = eer
+        is_best = True
+    else:
+        is_best = False
+
+    filename = config["output_dir"] + \
+            "/model.{:.4}.pt.tar".format(curr_lr)
+
+    if isinstance(model, torch.nn.DataParallel):
+        model_state_dict = model.module.state_dict()
+    else:
+        model_state_dict = model.state_dict()
+
+    save_checkpoint({
+        'epoch': epoch_idx,
+        'step_no': (epoch_idx+1) * len(train_loader),
+        'arch': config["arch"],
+        'loss': config["loss"],
+        'state_dict': model_state_dict,
+        'best_metric': eer,
+        'optimizer' : optimizer.state_dict(),
+        }, epoch_idx, is_best, filename=filename)
 
 #########################################
 # Model Evaluation
 #########################################
-# si_train.evaluate(config, model, loaders[-1])
+test_loss, test_acc = val(test_loader, model, criterion)
