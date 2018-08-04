@@ -23,8 +23,8 @@ def find_model(config):
         model = resNet34Models.ResNet34_v2(config, [3,4,6,3], n_labels)
     elif arch == "ResNet34_v3":
         model = resNet34Models.ResNet34_v3(config, [3,4,6,3], n_labels)
-    elif arch == "ResNet34_v3_1":
-        model = resNet34Models.ResNet34_v3_1(config, [3,4,6,3], n_labels)
+    elif arch == "ResNet34_v3_w":
+        model = resNet34Models.ResNet34_v3_w(config, [3,4,6,3], n_labels)
     elif arch == "ResNet34_v4":
         model = resNet34Models.ResNet34_v4(config, [3,4,6,3], n_labels)
     elif arch == "ScaleResNet34":
@@ -38,7 +38,8 @@ def find_model(config):
 
     if len(config['gpu_no']) > 1:
         print("Using gpus: {}".format(config['gpu_no']))
-        model = torch.nn.DataParallel(model, device_ids=config['gpu_no'])
+        model = torch.nn.DataParallel(model, device_ids=config['gpu_no'],
+                output_device=config['gpu_no'][0])
 
     if not config["no_cuda"]:
         if len(config['gpu_no']) > 1:

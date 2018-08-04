@@ -13,13 +13,22 @@ def train(config, train_loader, model, optimizer, criterion):
     loss_sum = 0
     accs = []
 
-    print_steps = np.array([0.25, 0.5, 0.75, 0.99]) * len(train_loader)
+    print_steps = (np.array([0.25, 0.5, 0.75, 1.0]) \
+                    * len(train_loader)).astype(np.int64)
+
+    splice_frames = config['splice_frames']
+    if len(splice_frames) > 1:
+        splice_frames_ = np.random.randint(splice_frames[0], splice_frames[1])
+    else:
+        splice_frames_ = splice_frames
+    print(splice_frames_)
+
     for batch_idx, (X, y) in tqdm(enumerate(train_loader), ncols=100,
             total=len(train_loader)):
-        # X_batch = (batch, channel, time, bank)
-        input_frames = np.random.randint(300, 800)
-        start_frame = np.random.randint(0, 800-input_frames)
-        X = X.narrow(2, start_frame, input_frames)
+        # X.shape is (batch, channel, time, bank)
+        # index = torch.arange(0, splice_frames, dtype=torch.int64)
+        # X = X[:,:,index,:]
+        X = X.narrow(2, 0, splice_frames_)
         if not config["no_cuda"]:
             X = X.cuda()
             y = y.cuda()
@@ -33,8 +42,10 @@ def train(config, train_loader, model, optimizer, criterion):
         # schedule over iteration
         accs.append(print_eval("train step #{}".format('0'), scores, y,
             loss_sum/(batch_idx+1), display=False))
+        del scores
+        del loss
         if batch_idx in print_steps:
-            print("train acc: {}/{}".format(batch_idx, len(train_loader)))
+            print("train loss, acc: {}, {} ".format(np.mean(accs), loss_sum))
 
     avg_acc = np.mean(accs)
 

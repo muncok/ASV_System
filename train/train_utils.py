@@ -46,6 +46,10 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
 
         if not model:
             # for scoring
+            # if checkpoint['loss'] == 'softmax':
+                # n_labels = checkpoint['state_dict']['output.weight'].shape[0]
+            # else:
+                # n_labels = checkpoint['state_dict']['output.weight'].shape[1]
             n_labels = checkpoint['state_dict']['output.weight'].shape[0]
             config['n_labels'] = n_labels
             model = find_model(config)
@@ -56,7 +60,9 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
             model.load_state_dict(checkpoint['state_dict'])
 
         if optimizer:
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            opt_state_dict = checkpoint['optimizer']
+            opt_state_dict['param_groups'][0]['lr'] = config['lrs'][0]
+            optimizer.load_state_dict(opt_state_dict)
         print("=> loaded checkpoint '{}' (epoch {})"
               .format(input_file, checkpoint['epoch']))
     else:
@@ -99,6 +105,16 @@ def init_seed(opt):
     torch.manual_seed(opt.manual_seed)
     torch.cuda.manual_seed(opt.manual_seed)
 
+def find_criterion(config, model):
+    if config["loss"] == "softmax":
+        criterion = nn.CrossEntropyLoss()
+    elif config["loss"] == "angular":
+        criterion = AngleLoss()
+    else:
+        raise NotImplementedError
+
+    return criterion
+
 def find_optimizer(config, model):
     if config["loss"] == "softmax":
         criterion = nn.CrossEntropyLoss()
@@ -110,8 +126,9 @@ def find_optimizer(config, model):
     # optimizer
     # learnable_params = [param for param in model.parameters() \
     # if param.requires_grad == True]
+    init_lr = config["lrs"][0]
     optimizer = torch.optim.SGD(model.parameters(),
-            lr=config["lrs"][0], nesterov=config["use_nesterov"],
+            lr=init_lr, nesterov=config["use_nesterov"],
             weight_decay=config["weight_decay"],
             momentum=config["momentum"])
 
@@ -124,7 +141,7 @@ def new_exp_dir(config, old_exp_dir=None):
                 dset=config['dataset'], arch=config['arch'],
                 loss=config["loss"],
                 in_len=config["input_frames"],
-                s_len=config["splice_frames"],
+                s_len=config["splice_frames"][-1],
                 in_format=config["input_format"],
                 suffix=config["suffix"])
 

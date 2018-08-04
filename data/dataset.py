@@ -10,6 +10,9 @@ import torch.utils.data as data
 
 from .manage_audio import preprocess_audio
 
+def get_dir_path(file_path):
+    return "/".join(file_path.split("/")[:-1])
+
 class SimpleCache(dict):
     def __init__(self, limit):
         super().__init__()
@@ -198,15 +201,21 @@ class featDataset(data.Dataset):
             self.random_clip = False
 
     def preprocess(self, example):
-        file_data = self._file_cache.get(example)
+        # file_data = self._file_cache.get(example)
         try:
-            data = np.load(example) if file_data is None else file_data
+            # data = np.load(example) if file_data is None else file_data
+            data = np.load(example)
         except FileNotFoundError:
-            # data = np.zeros((self.input_frames, self.input_dim))
-            # need to make a empty file for necessary missing files
-            print("{} is not found".format(example))
-            raise FileNotFoundError
-        self._file_cache[example] = data
+            if os.path.isdir(get_dir_path(example)):
+                # need to make a empty file for necessary missing files
+                # only if directory is exist correctly
+                data = np.zeros((self.input_frames, self.input_dim))
+                np.save(example, data)
+                print("{} is generated".format(example))
+            else:
+                print("{} is not found".format(example))
+                raise FileNotFoundError
+        # self._file_cache[example] = data
 
         # clipping
         in_len = self.input_frames

@@ -23,17 +23,15 @@ config = set_score_config(args)
 #########################################
 # Model Initialization
 #########################################
-_, dset = find_dataset(config)
+dfs, datasets = find_dataset(config, split=False)
 model, _ = load_checkpoint(config)
 lda = None
 
 #########################################
 # Compute Embeddings
 #########################################
-test_df = pd.read_pickle(
-        "dataset/gcommand/dataframe/equal_num_30spk/equal_num_30spk_sv.pkl")
-test_dset = dset.read_df(config, test_df, "test")
-val_dataloader = init_default_loader(config, test_dset, shuffle=False)
+sv_dset = datasets[1]
+val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 
 #########################################

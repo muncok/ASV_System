@@ -110,10 +110,9 @@ def train_parser():
     parser.add_argument('-lrs', '--lrs',
                         type=float,
                         nargs='+',
-                        help='learning lates',
-                        default=[0.01, 0.001])
+                        help='learning lates')
 
-    parser.add_argument('-sch', '--lr_schedule',
+    parser.add_argument('-sche', '--lr_schedule',
                         type=int,
                         nargs='+',
                         help='check points of changing learning lates',
@@ -136,12 +135,12 @@ def train_parser():
                         default='softmax'
                         )
 
-    parser.add_argument('-version',
-                        type=float,
-                        help='version of si_train code',
-                        choices=[0, 1, 2, 2.1, 3],
-                        default=1
-                        )
+    # parser.add_argument('-version',
+                        # type=float,
+                        # help='version of si_train code',
+                        # choices=[0, 1, 2, 2.1, 3],
+                        # default=1
+                        # )
 
     parser.add_argument('-input_file',
                         type=str,
@@ -177,8 +176,9 @@ def train_parser():
 
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,
+                        nargs='+',
                         help='number of spliced frames, frames',
-                        default=21)
+                        default=[21])
 
     parser.add_argument('-stFr', '--stride_frames',
                         type=int,
@@ -267,7 +267,7 @@ def score_parser():
     parser.add_argument('-output_folder',
                         type=str,
                         help='path to be saved',
-                        default=".",
+                        default=None
                         )
 
     parser.add_argument('-gpu_no',

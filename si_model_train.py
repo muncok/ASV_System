@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 from train.train_utils import (set_seed, find_optimizer, get_dir_path,
 load_checkpoint, save_checkpoint, new_exp_dir)
 from data.dataloader import init_loaders
-from data.data_utils import find_dataset
+from data.data_utils import find_dataset, find_trial
 from utils.parser import (train_parser, set_train_config)
 from model.model_utils import find_model
 
@@ -20,13 +20,12 @@ from train.si_train import train, val, sv_test
 parser = train_parser()
 args = parser.parse_args()
 dataset = args.dataset
-train_ver = args.version
 config = set_train_config(args)
 
 #########################################
 # Dataset loaders
 #########################################
-datasets = find_dataset(config)
+_, datasets = find_dataset(config)
 loaders = init_loaders(config, datasets)
 
 #########################################
@@ -61,16 +60,18 @@ writer = SummaryWriter(log_dir)
 
 # dataloader and scheduler
 train_loader, val_loader, test_loader, sv_loader = loaders
-trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
-scheduler = MultiStepLR(optimizer, milestones=config['lr_schedule'], gamma=0.1,
-        last_epoch=config['s_epoch']-1)
+# trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
+trial = find_trial(config)
 
 min_eer = config['best_metric'] if 'best_metric' in config else 1.0
 
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
-    scheduler.step()
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
     print("curr_lr: {}".format(curr_lr))
+    if epoch_idx in config['lr_schedule']:
+        new_lr = config['lrs'][config['lr_schedule'].index(epoch_idx)]
+        optimizer.state_dict()['param_groups'][0]['lr'] = new_lr
+
     train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
     val_loss, val_acc = val(config, val_loader, model, criterion)
     eer, label, score = sv_test(config, sv_loader, model, trial)

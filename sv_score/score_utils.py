@@ -29,14 +29,14 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
         for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
             x, y = batch
             if not config['no_cuda']:
-                x= x.cuda()
+                x = x.cuda()
 
             if config['score_mode'] == "precise":
                 model_output = model.embed(x).cpu().data
             else:
                 model_outputs = []
                 time_dim = x.size(2)
-                splice_dim = config['splice_frames']
+                splice_dim = config['splice_frames'][-1]
                 split_points = range(0, time_dim-(splice_dim)+1, 1)
                 for point in split_points:
                     x_in = x.narrow(2, point, splice_dim)
