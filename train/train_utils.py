@@ -137,11 +137,12 @@ def find_optimizer(config, model):
 def new_exp_dir(config, old_exp_dir=None):
     # suffix: v1, v2 ...
     if not old_exp_dir:
-        old_exp_dir = ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}_{in_len}f_{s_len}f").format(
+        old_exp_dir = \
+        ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}_{s_len1}f_{s_len2}f").format(
                 dset=config['dataset'], arch=config['arch'],
                 loss=config["loss"],
-                in_len=config["input_frames"],
-                s_len=config["splice_frames"][-1],
+                s_len1=config["splice_frames"][0],
+                s_len2=config["splice_frames"][1],
                 in_format=config["input_format"],
                 suffix=config["suffix"])
 

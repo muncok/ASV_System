@@ -29,7 +29,7 @@ def split_df(df):
 def find_trial(config):
     dataset_name = config ['dataset']
     if "voxc1" in dataset_name:
-        trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
+        trial = pd.read_pickle("dataset/dataframes/voxc1/voxc_trial.pkl")
     elif "gcommand" in dataset_name:
         trial = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_trial.pkl")
