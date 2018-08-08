@@ -63,8 +63,9 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
             opt_state_dict = checkpoint['optimizer']
             opt_state_dict['param_groups'][0]['lr'] = config['lrs'][0]
             optimizer.load_state_dict(opt_state_dict)
-        print("=> loaded checkpoint '{}' (epoch {})"
-              .format(input_file, checkpoint['epoch']))
+        print("=> loaded checkpoint '{}' (epoch {}), score: {:.5f}"
+              .format(input_file, checkpoint['epoch'],
+                  checkpoint['best_metric']))
     else:
         print("=> no checkpoint found at '{}'".format(input_file))
 

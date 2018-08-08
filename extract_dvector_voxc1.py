@@ -52,7 +52,11 @@ pickle.dump(dvec_dict, open(os.path.join(output_folder,
 val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 
+if os.path.isdir(output_folder):
+    os.makedirs(output_folder)
+
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))
+
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
     "voxc_test_dvectors.pkl"), "wb"))

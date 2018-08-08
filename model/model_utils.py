@@ -2,7 +2,7 @@ import torch
 
 from . import tdnnModel
 from . import auxModels
-from . import resNet34Models
+from . import resNet34Models, resNet34Models1
 
 def find_model(config):
     arch = config["arch"]
@@ -16,9 +16,9 @@ def find_model(config):
     elif arch == "Conv4":
         model = auxModels.Conv4(config, n_labels)
     elif arch == "ResNet34":
-        model = resNet34Models.ResNet34(config, [3,4,6,3], n_labels)
+        model = resNet34Models1.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
-        model = resNet34Models.ResNet34_v1(config, [3,4,6,3], n_labels)
+        model = resNet34Models1.ResNet34_v1(config, 16, n_labels)
     elif arch == "ResNet34_v2":
         model = resNet34Models.ResNet34_v2(config, [3,4,6,3], n_labels)
     elif arch == "ResNet34_v3":

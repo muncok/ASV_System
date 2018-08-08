@@ -50,5 +50,9 @@ embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))
+
+if os.path.isdir(output_folder):
+    os.makedirs(output_folder)
+
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
     "voxc_test_dvectors.pkl"), "wb"))

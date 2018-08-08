@@ -1,7 +1,5 @@
 # coding: utf-8
-import pandas as pd
 import torch
-from torch.optim.lr_scheduler import MultiStepLR
 
 from train.train_utils import (set_seed, find_optimizer, get_dir_path,
 load_checkpoint, save_checkpoint, new_exp_dir)
@@ -41,7 +39,7 @@ if config['input_file']:
     # start new experiment continuing from "input_file"
     load_checkpoint(config, model, criterion, optimizer)
     config['output_dir'] = new_exp_dir(config,
-            get_dir_path(config['input_file']))[:-4]
+            get_dir_path(config['input_file'])[:-4])
 else:
     # start new experiment
     config['output_dir'] = new_exp_dir(config)
@@ -66,11 +64,16 @@ trial = find_trial(config)
 min_eer = config['best_metric'] if 'best_metric' in config else 1.0
 
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
+
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
+    idx = 0
+    while(epoch_idx >= config['lr_schedule'][idx] and
+            idx < len(config['lr_schedule'])):
+        # use new lr from schedule epoch not a next epoch
+        idx += 1
+    curr_lr = config['lrs'][idx]
+    optimizer.state_dict()['param_groups'][0]['lr'] = curr_lr
     print("curr_lr: {}".format(curr_lr))
-    if epoch_idx in config['lr_schedule']:
-        new_lr = config['lrs'][config['lr_schedule'].index(epoch_idx)]
-        optimizer.state_dict()['param_groups'][0]['lr'] = new_lr
 
     train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
     val_loss, val_acc = val(config, val_loader, model, criterion)
@@ -96,7 +99,7 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         is_best = False
 
     filename = config["output_dir"] + \
-            "/model.{:.4}.pt.tar".format(curr_lr)
+            "/model.{:.4}.pth.tar".format(curr_lr)
 
     if isinstance(model, torch.nn.DataParallel):
         model_state_dict = model.module.state_dict()
@@ -116,4 +119,4 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
 #########################################
 # Model Evaluation
 #########################################
-test_loss, test_acc = val(test_loader, model, criterion)
+test_loss, test_acc = val(config, test_loader, model, criterion)

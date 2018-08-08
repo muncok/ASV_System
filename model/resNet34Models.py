@@ -341,8 +341,8 @@ class ResNet34_v4(ResNet34_v3):
 
         x = F.avg_pool2d(x,x.shape[-2:])
         x = x.view(x.size(0), -1)
-        # x = self.fc(x)
-        # x = F.relu(x)
+        x = self.fc(x)
+        x = F.relu(x)
 
         return x
 

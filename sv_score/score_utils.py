@@ -25,6 +25,10 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
     embeddings = []
     labels = []
     model.eval()
+    if isinstance(config['splice_frames'], list):
+        splice_dim = config['splice_frames'][-1]
+    else:
+        splice_dim = config['splice_frames']
     with torch.no_grad():
         for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
             x, y = batch
@@ -36,7 +40,6 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
             else:
                 model_outputs = []
                 time_dim = x.size(2)
-                splice_dim = config['splice_frames'][-1]
                 split_points = range(0, time_dim-(splice_dim)+1, 1)
                 for point in split_points:
                     x_in = x.narrow(2, point, splice_dim)

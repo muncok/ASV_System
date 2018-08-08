@@ -28,7 +28,7 @@ def split_df(df):
 
 def find_trial(config):
     dataset_name = config ['dataset']
-    if "voxc1" in dataset_name:
+    if "voxc" in dataset_name:
         trial = pd.read_pickle("dataset/dataframes/voxc1/voxc_trial.pkl")
     elif "gcommand" in dataset_name:
         trial = pd.read_pickle(
@@ -59,8 +59,8 @@ def find_dataset(config, split=True):
         config['data_folder'] = \
         "dataset/kaldi/voxceleb/xvector/data/data-fbank/xvector_npy"
         config['input_dim'] = 64
-        si_df = pd.read_pickle("dataset/voxc2/si_voxc12_dataframe.pkl")
-        sv_df = pd.read_pickle("dataset/voxc2//sv_voxc12_dataframe.pkl")
+        si_df = pd.read_pickle("dataset/dataframes/voxc2/si_voxc12_dataframe.pkl")
+        sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
         n_labels = 7324
         dset_class = featDataset
     elif dataset_name == "reddots":
@@ -81,6 +81,7 @@ def find_dataset(config, split=True):
         n_labels = 1759
         dset_class = featDataset
     elif dataset_name == "gcommand_fbank1":
+        # no vad and cmvn
         config['data_folder'] = \
         "dataset/kaldi/gcommand/feats/data-fbank/fbank_npy"
         config['input_dim'] = 64
@@ -90,6 +91,16 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
         n_labels = 1759
         dset_class = featDataset
+    elif dataset_name == "gcommand_wav":
+        config['data_folder'] = \
+        "dataset/gcommand/gcommand_wav"
+        config['input_dim'] = 40
+        si_df = pd.read_pickle(
+                "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
+        sv_df = pd.read_pickle(
+                "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
+        n_labels = 1759
+        dset_class = SpeechDataset
 
     if not os.path.isdir(config['data_folder']):
         print("there is no {} directory".format(config['data_folder']))
