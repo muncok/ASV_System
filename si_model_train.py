@@ -64,13 +64,13 @@ trial = find_trial(config)
 min_eer = config['best_metric'] if 'best_metric' in config else 1.0
 
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
-
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
     idx = 0
-    while(epoch_idx >= config['lr_schedule'][idx] and
-            idx < len(config['lr_schedule'])):
-        # use new lr from schedule epoch not a next epoch
+    while(epoch_idx >= config['lr_schedule'][idx]):
+    # use new lr from schedule epoch not a next epoch
         idx += 1
+        if idx == len(config['lr_schedule']):
+            break
     curr_lr = config['lrs'][idx]
     optimizer.state_dict()['param_groups'][0]['lr'] = curr_lr
     print("curr_lr: {}".format(curr_lr))

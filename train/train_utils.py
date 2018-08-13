@@ -45,12 +45,14 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
                 print("start iteration {}".format(criterion.it))
 
         if not model:
-            # for scoring
-            # if checkpoint['loss'] == 'softmax':
-                # n_labels = checkpoint['state_dict']['output.weight'].shape[0]
-            # else:
-                # n_labels = checkpoint['state_dict']['output.weight'].shape[1]
-            n_labels = checkpoint['state_dict']['output.weight'].shape[0]
+            # model was not loaded yet.
+            try:
+                if checkpoint['loss'] == 'softmax':
+                    n_labels = checkpoint['state_dict']['output.weight'].shape[0]
+                else:
+                    n_labels = checkpoint['state_dict']['output.weight'].shape[1]
+            except:
+                n_labels = config['n_labels']
             config['n_labels'] = n_labels
             model = find_model(config)
 
