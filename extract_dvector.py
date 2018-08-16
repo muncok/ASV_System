@@ -1,6 +1,5 @@
 # coding: utf-8
 import os
-import pandas as pd
 import pickle
 
 from data.dataloader import init_default_loader
@@ -33,26 +32,22 @@ lda = None
 #########################################
 # Compute Train Embeddings
 #########################################
-# val_dataloader = init_default_loader(config, si_dset, shuffle=False)
-# embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
+if not os.path.isdir(output_folder):
+    os.makedirs(output_folder)
 
-# dvec_dict = dict(zip(si_df.index.tolist(),
-    # embeddings.numpy()))
-
-# pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    # "voxc_train_dvectors.pkl"), "wb"))
+val_dataloader = init_default_loader(config, si_dset, shuffle=False)
+embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
+dvec_dict = dict(zip(si_df.index.tolist(),
+    embeddings.numpy()))
+pickle.dump(dvec_dict, open(os.path.join(output_folder,
+    "voxc_train_dvectors.pkl"), "wb"))
 
 #########################################
 # Compute Test Embeddings
 #########################################
 val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
-
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))
-
-if os.path.isdir(output_folder):
-    os.makedirs(output_folder)
-
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
     "voxc_test_dvectors.pkl"), "wb"))
