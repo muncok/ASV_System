@@ -40,7 +40,6 @@ def default_audio_config():
     config = {}
     config["noise_prob"] = 0.0
     config["n_dct_filters"] = 40
-    config["input_samples"] = 16000
     config["n_mels"] = 40
     config["timeshift_ms"] = 100
     config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
@@ -68,7 +67,6 @@ def default_config():
     return config
 
 def set_train_config(args):
-    #TODO test
     config = default_config()
     config_from_agrs = vars(args)
     config.update(config_from_agrs)
@@ -107,27 +105,32 @@ def train_parser():
 
     parser.add_argument('-batch', '--batch_size',
                         type=int,
+                        required=True,
                         help='batch size',
                         default=64)
 
     parser.add_argument('-lrs', '--lrs',
                         type=float,
                         nargs='+',
+                        required=True,
                         help='learning lates')
 
     parser.add_argument('-sche', '--lr_schedule',
                         type=int,
                         nargs='+',
+                        required=True,
                         help='check points of changing learning lates',
                         default=[])
 
     parser.add_argument('-dataset',
                         type=str,
+                        required=True,
                         help='dataset',
                         default='')
 
     parser.add_argument('-arch',
                         type=str,
+                        required=True,
                         help='type of model',
                         )
 
@@ -137,13 +140,6 @@ def train_parser():
                         choices=['softmax', 'angular'],
                         default='softmax'
                         )
-
-    # parser.add_argument('-version',
-                        # type=float,
-                        # help='version of si_train code',
-                        # choices=[0, 1, 2, 2.1, 3],
-                        # default=1
-                        # )
 
     parser.add_argument('-input_file',
                         type=str,
@@ -174,19 +170,18 @@ def train_parser():
 
     parser.add_argument('-inFr', '--input_frames',
                         type=int,
-                        help='number of input frames, frames',
-                        default=201)
+                        required=True,
+                        help='number of input frames, frames')
 
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,
                         nargs='+',
-                        help='number of spliced frames, frames',
-                        default=[21])
+                        required=True,
+                        help='number of spliced frames, frames')
 
     parser.add_argument('-stFr', '--stride_frames',
                         type=int,
-                        help='moving stride interval, frames',
-                        default=1)
+                        help='moving stride interval, frames')
 
     parser.add_argument('-seed',
                         type=int,
@@ -202,8 +197,11 @@ def train_parser():
                         )
 
     parser.add_argument('-cuda',
-                        action = 'store_true',
-                        default= False)
+                        action='store_true')
+
+    parser.add_argument('-check_eer',
+                        action='store_true')
+
     return parser
 
 def score_parser():
@@ -215,46 +213,44 @@ def score_parser():
 
     parser.add_argument('-dataset',
                         type=str,
-                        help='dataset',
-                        default='')
+                        required=True,
+                        help='dataset')
 
     parser.add_argument('-arch',
                         type=str,
-                        help='type of model',
-                        )
+                        required=True,
+                        help='type of model')
 
     parser.add_argument('-loss',
                         type=str,
                         help='type of loss',
                         choices=['softmax', 'angular'],
-                        default='softmax'
-                        )
+                        default='softmax')
 
     parser.add_argument('-input_file',
                         type=str,
-                        help='model path to be loaded',
-                        default=None,
-                        )
+                        required=True,
+                        help='model path to be loaded')
 
     parser.add_argument('-inFm', '--input_format',
                         type=str,
                         help='input feature, mfcc, fbank',
-                        default="fbank")
+                        choices=['fbank', 'mfcc'])
+
 
     parser.add_argument('-inFr', '--input_frames',
                         type=int,
-                        help='number of input frames, frames',
-                        default=201)
+                        required=True,
+                        help='number of input frames, frames')
 
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,
-                        help='number of spliced frames, frames',
-                        default=21)
+                        required=True,
+                        help='number of spliced frames, frames')
 
     parser.add_argument('-stFr', '--stride_frames',
                         type=int,
-                        help='moving stride interval, frames',
-                        default=1)
+                        help='moving stride interval, frames')
 
     parser.add_argument('-cuda',
                         action = 'store_true',
@@ -269,6 +265,7 @@ def score_parser():
 
     parser.add_argument('-output_folder',
                         type=str,
+                        required=True,
                         help='path to be saved',
                         )
 
