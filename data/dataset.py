@@ -238,9 +238,8 @@ class featDataset(data.Dataset):
     @classmethod
     def read_df(cls, config, df, set_type):
         files = df.feat.tolist()
-        if config['dataset'] == "voxc12_mfcc":
-            files = files.replace('-', '_')
-            print(files)
+        if config['dataset'] == 'voxc12_mfcc':
+            files = [f.replace('-', '_') for f in files]
         if "label" in df.columns:
             labels = df.label.tolist()
         else:

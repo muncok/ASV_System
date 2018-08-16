@@ -19,6 +19,8 @@ if config['output_folder'] is None:
 else:
     output_folder = config["output_folder"]
 
+if not os.path.isdir(output_folder):
+    os.makedirs(output_folder)
 #########################################
 # Model Initialization
 #########################################
@@ -38,8 +40,6 @@ embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 dvec_dict = dict(zip(si_df.index.tolist(),
     embeddings.numpy()))
 
-if not os.path.isdir(output_folder):
-    os.makedirs(output_folder)
 
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
     "voxc_train_dvectors.pkl"), "wb"))
@@ -51,9 +51,6 @@ pickle.dump(dvec_dict, open(os.path.join(output_folder,
 # voxc_test_dset = dset.read_df(config, voxc_test_df, "test")
 val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
-
-if os.path.isdir(output_folder):
-    os.makedirs(output_folder)
 
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))

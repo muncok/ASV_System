@@ -58,10 +58,9 @@ writer = SummaryWriter(log_dir)
 
 # dataloader and scheduler
 train_loader, val_loader, test_loader, sv_loader = loaders
-# trial = pd.read_pickle("dataset/dataframes/voxc/voxc_trial.pkl")
 trial = find_trial(config)
 
-min_eer = config['best_metric'] if 'best_metric' in config else 1.0
+best_metric = config['best_metric']
 
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
@@ -75,28 +74,40 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     optimizer.state_dict()['param_groups'][0]['lr'] = curr_lr
     print("curr_lr: {}".format(curr_lr))
 
+    # train code
     train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
-    val_loss, val_acc = val(config, val_loader, model, criterion)
-    eer, label, score = sv_test(config, sv_loader, model, trial)
-
     writer.add_scalar("train/lr", curr_lr, epoch_idx)
     writer.add_scalar('train/loss', train_loss, epoch_idx)
     writer.add_scalar('train/acc', train_acc, epoch_idx)
+
+    # validation code
+    val_loss, val_acc = val(config, val_loader, model, criterion)
     writer.add_scalar('val/loss', val_loss, epoch_idx)
     writer.add_scalar('val/acc', val_acc, epoch_idx)
-    writer.add_scalar('sv_eer', eer, epoch_idx)
-    writer.add_pr_curve('DET', label, score, epoch_idx)
+    print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
+
+    # evaluate best_metric
+    if config['check_eer']:
+        # eer validation code
+        eer, label, score = sv_test(config, sv_loader, model, trial)
+        writer.add_scalar('sv_eer', eer, epoch_idx)
+        writer.add_pr_curve('DET', label, score, epoch_idx)
+        print("epoch #{}, sv eer: {}".format(epoch_idx, eer))
+        if eer < best_metric:
+            best_metric = eer
+            is_best = True
+        else:
+            is_best = False
+    else:
+        if val_acc > best_metric:
+            best_metric = val_acc
+            is_best = True
+        else:
+            is_best = False
+
+
     # for name, param in model.named_parameters():
         # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)
-
-    print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
-    print("epoch #{}, sv eer: {}".format(epoch_idx, eer))
-
-    if eer < min_eer:
-        min_eer = eer
-        is_best = True
-    else:
-        is_best = False
 
     filename = config["output_dir"] + \
             "/model.{:.4}.pth.tar".format(curr_lr)

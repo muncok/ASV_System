@@ -63,6 +63,14 @@ def find_dataset(config, split=True):
         sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
         n_labels = 7324
         dset_class = featDataset
+    elif dataset_name == "voxc12_mfcc":
+        config['data_folder'] = \
+        "dataset/kaldi/voxceleb/xvector/data/train_combined_no_sil/xvector_npy"
+        config['input_dim'] = 30
+        si_df = pd.read_pickle("dataset/dataframes/voxc2/si_voxc12_dataframe.pkl")
+        sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
+        n_labels = 7324
+        dset_class = featDataset
     elif dataset_name == "reddots":
         config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
         config['input_dim'] = 40
@@ -99,6 +107,16 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
         sv_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
+        n_labels = 1759
+        dset_class = SpeechDataset
+    elif dataset_name == "gcommand_equal102":
+        config['data_folder'] = \
+        "dataset/gcommand/gcommand_wav"
+        config['input_dim'] = 40
+        si_df = pd.read_pickle(
+                "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_iden.pkl")
+        sv_df = pd.read_pickle(
+                "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_veri.pkl")
         n_labels = 1759
         dset_class = SpeechDataset
 
