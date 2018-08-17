@@ -86,6 +86,7 @@ def set_score_config(args):
     config_from_agrs = vars(args)
     config.update(config_from_agrs)
 
+    config['input_samples'] = framesToSample(args.input_frames)
     if args.score_mode == "precise":
         config['input_clip'] = False
         config['batch_size'] = 1
@@ -218,7 +219,6 @@ def score_parser():
 
     parser.add_argument('-arch',
                         type=str,
-                        required=True,
                         help='type of model')
 
     parser.add_argument('-loss',
@@ -235,7 +235,8 @@ def score_parser():
     parser.add_argument('-inFm', '--input_format',
                         type=str,
                         help='input feature, mfcc, fbank',
-                        choices=['fbank', 'mfcc'])
+                        choices=['fbank', 'mfcc'],
+                        default='fbank')
 
 
     parser.add_argument('-inFr', '--input_frames',
@@ -265,7 +266,6 @@ def score_parser():
 
     parser.add_argument('-output_folder',
                         type=str,
-                        required=True,
                         help='path to be saved',
                         )
 
