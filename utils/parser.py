@@ -199,7 +199,7 @@ def train_parser():
     parser.add_argument('-cuda',
                         action='store_true')
 
-    parser.add_argument('-check_eer',
+    parser.add_argument('-no_eer',
                         action='store_true')
 
     return parser

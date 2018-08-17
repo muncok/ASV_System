@@ -277,6 +277,7 @@ class gTDNN(nn.Module):
             nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
             nn.ReLU(True),
             nn.MaxPool1d(3, stride=3),
+            st_pool_layer(),
         )
         self.classifier = nn.Sequential(
             nn.Linear(900, 512),
@@ -293,7 +294,6 @@ class gTDNN(nn.Module):
         x = x.squeeze()
         x = x.permute(0,2,1)
         x = self.tdnn(x)
-        x = statistic_pool(x)
 
         return x
 

@@ -99,7 +99,7 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
         n_labels = 1759
         dset_class = featDataset
-    elif dataset_name == "gcommand_wav":
+    elif dataset_name == "gcommand_equal30_wav":
         config['data_folder'] = \
         "dataset/gcommand/gcommand_wav"
         config['input_dim'] = 40
@@ -109,14 +109,13 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
         n_labels = 1759
         dset_class = SpeechDataset
-    elif dataset_name == "gcommand_equal102":
+    elif dataset_name == "gcommand_wav":
         config['data_folder'] = \
         "dataset/gcommand/gcommand_wav"
         config['input_dim'] = 40
         si_df = pd.read_pickle(
-                "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_iden.pkl")
-        sv_df = pd.read_pickle(
-                "dataset/dataframes/gcommand/equal_num_102spk/equal_num_102spk_veri.pkl")
+                "dataset/dataframes/gcommand/gcommand_dataframe.pkl")
+        sv_df = si_df
         n_labels = 1759
         dset_class = SpeechDataset
 

@@ -145,7 +145,7 @@ def new_exp_dir(config, old_exp_dir=None):
                 dset=config['dataset'], arch=config['arch'],
                 loss=config["loss"],
                 s_len1=config["splice_frames"][0],
-                s_len2=config["splice_frames"][1],
+                s_len2=config["splice_frames"][-1],
                 in_format=config["input_format"],
                 suffix=config["suffix"])
 

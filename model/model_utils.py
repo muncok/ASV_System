@@ -3,13 +3,15 @@ import torch
 from . import tdnnModel
 from . import auxModels
 from . import speechModel
-from . import resNet34Models1
+from . import ResNet34
 
 def find_model(config):
     arch = config["arch"]
     n_labels = config['n_labels']
     if arch == "SimpleCNN":
         model = auxModels.SimpleCNN(config, n_labels)
+    elif arch == "gtdnn":
+        model = tdnnModel.gTDNN(config, n_labels)
     elif arch == "tdnn_xvector":
         model = tdnnModel.tdnn_xvector(config, n_labels)
     elif arch == "CTdnnModel":
@@ -17,9 +19,9 @@ def find_model(config):
     elif arch == "Conv4":
         model = auxModels.Conv4(config, n_labels)
     elif arch == "ResNet34":
-        model = resNet34Models1.ResNet34(config, 16, n_labels)
+        model = ResNet34.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
-        model = resNet34Models1.ResNet34_v1(config, 16, n_labels)
+        model = ResNet34.ResNet34_v1(config, 16, n_labels)
     elif arch == "sphere20a":
         model = auxModels.sphere20a(config, n_labels)
     elif arch == "speech_res15":

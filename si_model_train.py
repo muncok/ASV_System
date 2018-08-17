@@ -60,7 +60,12 @@ writer = SummaryWriter(log_dir)
 train_loader, val_loader, test_loader, sv_loader = loaders
 trial = find_trial(config)
 
-best_metric = config['best_metric']
+if not config['no_eer']:
+    best_metric = config['best_metric'] if 'best_metric' in config \
+            else 1.0
+else:
+    best_metric = config['best_metric'] if 'best_metric' in config \
+            else 0.0
 
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
@@ -87,7 +92,7 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
 
     # evaluate best_metric
-    if config['check_eer']:
+    if not config['no_eer']:
         # eer validation code
         eer, label, score = sv_test(config, sv_loader, model, trial)
         writer.add_scalar('sv_eer', eer, epoch_idx)
@@ -123,7 +128,7 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         'arch': config["arch"],
         'loss': config["loss"],
         'state_dict': model_state_dict,
-        'best_metric': eer,
+        'best_metric': best_metric,
         'optimizer' : optimizer.state_dict(),
         }, epoch_idx, is_best, filename=filename)
 
