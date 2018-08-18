@@ -346,9 +346,9 @@ class tdnn_xvector(gTDNN):
             st_pool_layer(),
             nn.Linear(3000, 512),
             nn.BatchNorm1d(512),
-            nn.ReLU(True),
         )
         self.classifier = nn.Sequential(
+            nn.ReLU(True),
             nn.Linear(512, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(True),

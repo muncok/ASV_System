@@ -57,7 +57,7 @@ def find_dataset(config, split=True):
         dset_class = featDataset
     elif dataset_name == "voxc12_fbank":
         config['data_folder'] = \
-        "dataset/kaldi/voxceleb/xvector/data/data-fbank/xvector_npy"
+        "dataset/voxceleb2/feats/xvector_npy"
         config['input_dim'] = 64
         si_df = pd.read_pickle("dataset/dataframes/voxc2/si_voxc12_dataframe.pkl")
         sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
