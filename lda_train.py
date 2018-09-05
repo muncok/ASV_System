@@ -7,7 +7,7 @@ from data.dataloader import init_default_loader
 from data.data_utils import find_dataset
 from utils.parser import score_parser, set_score_config
 from sv_score.score_utils import embeds_utterance
-from train.train_utils import load_checkpoint, get_dir_path
+from train.train_utils import load_checkpoint
 
 #########################################
 # Parser
@@ -47,7 +47,11 @@ lda_model.fit(train_X, train_y)
 score = lda_model.score(test_X, test_y)
 print(score) # test_score
 
+<<<<<<< HEAD
 pickle.dump(lda_model, open(get_dir_path(config['input_file']) + "/lda_model.pkl", "wb"))
+=======
+pickle.dump(lda_model, open("lda_model.pkl", "wb"))
+>>>>>>> origin/dev
 
 class LDAModel():
     def __init__(self):

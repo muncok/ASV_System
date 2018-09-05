@@ -20,9 +20,7 @@ def train(config, train_loader, model, optimizer, criterion):
     if len(splice_frames) > 1:
         splice_frames_ = np.random.randint(splice_frames[0], splice_frames[1])
     else:
-        splice_frames_ = splice_frames[0]
-
-    # stride_frames = config['stride_frames']
+        splice_frames_ = splice_frames[-1]
 
     for batch_idx, (X, y) in tqdm(enumerate(train_loader), ncols=100,
             total=len(train_loader)):
