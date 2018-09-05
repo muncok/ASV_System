@@ -141,13 +141,14 @@ def new_exp_dir(config, old_exp_dir=None):
     # suffix: v1, v2 ...
     if not old_exp_dir:
         old_exp_dir = \
-        ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}_{s_len1}f_{s_len2}f").format(
+        ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}{in_dim}_{s_len1}f_{s_len2}f").format(
                 dset=config['dataset'], arch=config['arch'],
                 loss=config["loss"],
                 s_len1=config["splice_frames"][0],
                 s_len2=config["splice_frames"][-1],
                 in_format=config["input_format"],
-                suffix=config["suffix"])
+                suffix=config["suffix"],
+                in_dim=config["input_dim"])
 
     done = False
     v = 0

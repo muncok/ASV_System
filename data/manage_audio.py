@@ -2,6 +2,7 @@ import librosa
 import numpy as np
 import scipy
 import torch
+from pydub import AudioSegment
 
 windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman': scipy.signal.blackman,
            'bartlett': scipy.signal.bartlett}
@@ -52,3 +53,25 @@ def fft_audio(data, window_size, window_stride):
     spect.div_(std)
     return spect
 
+def norm_strip_audio(wav_path):
+    data = AudioSegment.from_wav(wav_path)
+    data = data.normalize()
+    data = data.strip_silence(silence_len=600, silence_thresh=-16, padding=600)
+    data = (np.array(data.get_array_of_samples())
+            / 32768.0).astype(np.float32)
+
+    return data
+
+def strip_audio(x, frame_length=1024, hop_length=256, rms_ths=0.2):
+    # compute energy
+    rmse = librosa.feature.rmse(x, frame_length=frame_length, hop_length=hop_length)[0]
+    rms_ratio = rmse/rmse.max()
+
+    active_frames = np.nonzero(rms_ratio > rms_ths)[0]
+    assert len(active_frames) > 0, "there is no voice part in the wav"
+
+    # strip continous active part
+    s_sample = librosa.frames_to_samples(active_frames[0], hop_length=hop_length)[0]
+    e_sample = librosa.frames_to_samples(active_frames[-1], hop_length=hop_length)[0]
+
+    return x[s_sample:e_sample]

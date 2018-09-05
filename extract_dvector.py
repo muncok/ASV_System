@@ -40,7 +40,7 @@ embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 dvec_dict = dict(zip(si_df.index.tolist(),
     embeddings.numpy()))
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "voxc_train_dvectors.pkl"), "wb"))
+    "train_dvectors.pkl"), "wb"))
 
 #########################################
 # Compute Test Embeddings
@@ -50,4 +50,4 @@ embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))
 pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "voxc_test_dvectors.pkl"), "wb"))
+    "test_dvectors.pkl"), "wb"))

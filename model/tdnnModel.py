@@ -357,7 +357,55 @@ class tdnn_xvector(gTDNN):
         self._initialize_weights()
 
     def embed(self, x):
-        x = x.squeeze()
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        x = self.tdnn(x)
+
+        return x
+
+    def forward(self, x):
+        x = self.embed(x)
+        x = self.classifier(x)
+
+        return x
+
+class tdnn_xvector_v1(gTDNN):
+    """xvector architecture"""
+    def __init__(self, config, n_labels=31):
+        super(tdnn_xvector_v1, self).__init__(config, n_labels)
+        inDim = config['input_dim']
+        self.tdnn = nn.Sequential(
+            nn.Conv1d(inDim, 512, stride=1, dilation=1, kernel_size=5),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            nn.Conv1d(512, 512, stride=1, dilation=3, kernel_size=3),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            nn.Conv1d(512, 512, stride=1, dilation=4, kernel_size=3),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            nn.Conv1d(512, 512, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            nn.Conv1d(512, 1500, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(1500),
+            nn.ReLU(True),
+            st_pool_layer(),
+            nn.Linear(3000, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            nn.Linear(512, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(512, n_labels),
+        )
+        self._initialize_weights()
+
+    def embed(self, x):
+        x = x.squeeze(1)
         # (batch, time, freq) -> (batch, freq, time)
         x = x.permute(0,2,1)
         x = self.tdnn(x)

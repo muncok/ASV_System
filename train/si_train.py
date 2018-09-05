@@ -22,7 +22,7 @@ def train(config, train_loader, model, optimizer, criterion):
     else:
         splice_frames_ = splice_frames[0]
 
-    stride_frames = config['stride_frames']
+    # stride_frames = config['stride_frames']
 
     for batch_idx, (X, y) in tqdm(enumerate(train_loader), ncols=100,
             total=len(train_loader)):
@@ -30,25 +30,21 @@ def train(config, train_loader, model, optimizer, criterion):
         # index = torch.arange(0, splice_frames, dtype=torch.int64)
         # X = X[:,:,index,:]
 
-        # X = X.narrow(2, 0, splice_frames_)
+        X = X.narrow(2, 0, splice_frames_)
 
         # X = torch.split(X, splice_frames_, dim=2)
         # y = y.unsqueeze(1).expand((y.size(0), len(X))).contiguous().view(-1)
         # X = torch.cat(X, dim=0)
 
-        split_points = range(0, X.size(2)-(splice_frames_)+1,
-                stride_frames)
-        for point in split_points:
-            X_ = X.narrow(2, point, splice_frames_)
-            if not config["no_cuda"]:
-                X_ = X_.cuda()
-                y = y.cuda()
-            optimizer.zero_grad()
-            scores = model(X_)
-            loss = criterion(scores, y)
-            loss_sum += loss.item()
-            loss.backward()
-            optimizer.step()
+        if not config["no_cuda"]:
+            X_ = X.cuda()
+            y = y.cuda()
+        optimizer.zero_grad()
+        scores = model(X_)
+        loss = criterion(scores, y)
+        loss_sum += loss.item()
+        loss.backward()
+        optimizer.step()
         # schedule over iteration
         accs.append(print_eval("train step #{}".format('0'), scores, y,
             loss_sum/(batch_idx+1), display=False))

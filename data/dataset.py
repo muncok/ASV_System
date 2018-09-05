@@ -1,4 +1,5 @@
 import librosa
+from pydub import AudioSegment
 import os
 import random
 import numpy as np
@@ -9,6 +10,7 @@ import torch
 import torch.utils.data as data
 
 from .manage_audio import preprocess_audio
+from .manage_audio import strip_audio
 
 def get_dir_path(file_path):
     return "/".join(file_path.split("/")[:-1])
@@ -62,7 +64,7 @@ class SpeechDataset(data.Dataset):
         if set_type == "train":
             # self._load_bg_noise(config["bkg_noise_folder"])
             self.bg_noise_audio = None
-            self.random_clip = True
+            self.random_clip = False
         else:
             self.bg_noise_audio = None
             self.random_clip = False
@@ -96,7 +98,16 @@ class SpeechDataset(data.Dataset):
             bg_noise = np.zeros(in_len)
 
         file_data = self._file_cache.get(example)
+
         data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
+
+        # data = AudioSegment.from_wav(example) if file_data is None else file_data
+        # data = data.normalize()
+        # data = data.strip_silence(silence_len=10, silence_thresh=-16, padding=5)
+        # data = (np.array(data.get_array_of_samples())
+                # / 32768.0).astype(np.float32)
+        # data = strip_audio(data, rms_ths=0.10)
+
         self._file_cache[example] = data
 
         # input clipping
@@ -196,7 +207,7 @@ class featDataset(data.Dataset):
         self.fail_count = 0
 
         if set_type == "train":
-            self.random_clip = True
+            self.random_clip = False
         else:
             self.random_clip = False
 
