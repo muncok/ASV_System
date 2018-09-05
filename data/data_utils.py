@@ -91,7 +91,7 @@ def find_dataset(config, split=True):
     elif dataset_name == "gcommand_fbank1":
         # no vad and cmvn
         config['data_folder'] = \
-        "dataset/kaldi/gcommand/feats/data-fbank/fbank_npy"
+        "dataset/gcommand/feats/data-fbank/fbank_npy"
         config['input_dim'] = 64
         si_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
@@ -102,7 +102,9 @@ def find_dataset(config, split=True):
     elif dataset_name == "gcommand_equal30_wav":
         config['data_folder'] = \
         "dataset/gcommand/gcommand_wav"
-        config['input_dim'] = 40
+        config['input_dim'] = 64
+        config["n_dct_filters"] = 64
+        config["n_mels"] = 64
         si_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
         sv_df = pd.read_pickle(

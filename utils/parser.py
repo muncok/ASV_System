@@ -76,6 +76,7 @@ def set_train_config(args):
     config['no_cuda'] = not args.cuda
     config['score_mode'] = 'approx'
 
+
     assert len(config['lrs']) == len(config['lr_schedule'])+1,\
             "invalid lr scheduling"
 
@@ -182,6 +183,7 @@ def train_parser():
 
     parser.add_argument('-stFr', '--stride_frames',
                         type=int,
+                        default=1,
                         help='moving stride interval, frames')
 
     parser.add_argument('-seed',
@@ -251,6 +253,7 @@ def score_parser():
 
     parser.add_argument('-stFr', '--stride_frames',
                         type=int,
+                        default=1,
                         help='moving stride interval, frames')
 
     parser.add_argument('-cuda',
