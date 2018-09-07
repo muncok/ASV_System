@@ -41,32 +41,22 @@ def find_trial(config):
 
 def find_dataset(config, split=True):
     dataset_name = config ['dataset']
-    if dataset_name == "voxc":
-        config['data_folder'] = "dataset/voxceleb1/wav"
+    if dataset_name == "voxc1_wav":
+        config['data_folder'] = "dataset/voxceleb1/voxceleb1_wav"
         config['input_dim'] = 64
         si_df = pd.read_pickle("dataset/dataframes/voxc1/si_voxc_dataframe.pkl")
         n_labels = 1260
         dset_class = SpeechDataset
-    elif dataset_name == "voxc1_fbank":
-        config['data_folder'] = \
-        "dataset/kaldi/voxceleb/feats/data-fbank/xvector_npy"
+    elif dataset_name == "voxc1_fbank_xvector":
+        config['data_folder'] = "dataset/voxceleb1/feats/xvector_npy"
         config['input_dim'] = 64
         si_df = pd.read_pickle("dataset/dataframes/voxc1/si_voxc_dataframe.pkl")
         sv_df = pd.read_pickle("dataset/dataframes/voxc1/sv_voxc_dataframe.pkl")
         n_labels = 1260
         dset_class = featDataset
-    elif dataset_name == "voxc12_fbank":
-        config['data_folder'] = \
-        "dataset/voxceleb2/feats/xvector_npy"
+    elif dataset_name == "voxc12_fbank_xvector":
+        config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
         config['input_dim'] = 64
-        si_df = pd.read_pickle("dataset/dataframes/voxc2/si_voxc12_dataframe.pkl")
-        sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
-        n_labels = 7324
-        dset_class = featDataset
-    elif dataset_name == "voxc12_mfcc":
-        config['data_folder'] = \
-        "dataset/kaldi/voxceleb/xvector/data/train_combined_no_sil/xvector_npy"
-        config['input_dim'] = 30
         si_df = pd.read_pickle("dataset/dataframes/voxc2/si_voxc12_dataframe.pkl")
         sv_df = pd.read_pickle("dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl")
         n_labels = 7324
@@ -78,9 +68,8 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/reddots/Reddots_Dataframe.pkl")
         n_labels = 70
         dset_class = SpeechDataset
-    elif dataset_name == "gcommand_fbank":
-        config['data_folder'] = \
-        "dataset/kaldi/gcommand/feats/data-fbank/xvector_npy"
+    elif dataset_name == "gcommand_fbank_xvector":
+        config['data_folder'] = "dataset/gcommand/feats/xvector_npy"
         config['input_dim'] = 64
         si_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
@@ -88,10 +77,9 @@ def find_dataset(config, split=True):
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl")
         n_labels = 1759
         dset_class = featDataset
-    elif dataset_name == "gcommand_fbank1":
+    elif dataset_name == "gcommand_fbank":
         # no vad and cmvn
-        config['data_folder'] = \
-        "dataset/gcommand/feats/data-fbank/fbank_npy"
+        config['data_folder'] = "dataset/gcommand/feats/fbank_npy"
         config['input_dim'] = 64
         si_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl")
@@ -100,8 +88,7 @@ def find_dataset(config, split=True):
         n_labels = 1759
         dset_class = featDataset
     elif dataset_name == "gcommand_equal30_wav":
-        config['data_folder'] = \
-        "dataset/gcommand/gcommand_wav"
+        config['data_folder'] = "dataset/gcommand/gcommand_wav"
         config['input_dim'] = 64
         config["n_dct_filters"] = 64
         config["n_mels"] = 64
@@ -112,8 +99,7 @@ def find_dataset(config, split=True):
         n_labels = 1759
         dset_class = SpeechDataset
     elif dataset_name == "gcommand_wav":
-        config['data_folder'] = \
-        "dataset/gcommand/gcommand_wav"
+        config['data_folder'] = "dataset/gcommand/gcommand_wav"
         config['input_dim'] = 40
         si_df = pd.read_pickle(
                 "dataset/dataframes/gcommand/gcommand_dataframe.pkl")
@@ -121,6 +107,7 @@ def find_dataset(config, split=True):
         n_labels = 1759
         dset_class = SpeechDataset
 
+    print(config['data_folder'])
     if not os.path.isdir(config['data_folder']):
         print("there is no {} directory".format(config['data_folder']))
         raise FileNotFoundError

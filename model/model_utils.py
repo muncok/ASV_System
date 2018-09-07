@@ -4,6 +4,7 @@ from . import tdnnModel
 from . import auxModels
 from . import speechModel
 from . import ResNet34
+from . import resNet34Models
 
 def find_model(config):
     arch = config["arch"]
@@ -22,12 +23,20 @@ def find_model(config):
         model = ResNet34.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
         model = ResNet34.ResNet34_v1(config, 16, n_labels)
+    elif arch == "ResNet34_v4":
+        model = resNet34Models.ResNet34_v4(config, [3,4,6,3], n_labels)
     elif arch == "sphere20a":
         model = auxModels.sphere20a(config, n_labels)
     elif arch == "speech_res15":
         model = speechModel.SpeechResModel("res15", n_labels)
     else:
         raise NotImplementedError
+
+    model = place_model(config, model)
+
+    return model
+
+def place_model(config, model):
 
     if len(config['gpu_no']) > 1:
         print("Using gpus: {}".format(config['gpu_no']))
