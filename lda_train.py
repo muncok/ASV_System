@@ -1,13 +1,14 @@
+import os
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
-import torch
+# import torch
 import pickle
 from data.dataloader import init_default_loader
 from data.data_utils import find_dataset
 from utils.parser import score_parser, set_score_config
 from sv_score.score_utils import embeds_utterance
-from train.train_utils import load_checkpoint
+from train.train_utils import load_checkpoint, get_dir_path
 
 #########################################
 # Parser
@@ -15,6 +16,10 @@ from train.train_utils import load_checkpoint
 parser = score_parser()
 args = parser.parse_args()
 config = set_score_config(args)
+if config['output_folder'] is None:
+    output_folder = get_dir_path(config['input_file'])
+else:
+    output_folder = config["output_folder"]
 
 #########################################
 # Model Initialization
@@ -47,23 +52,23 @@ lda_model.fit(train_X, train_y)
 score = lda_model.score(test_X, test_y)
 print(score) # test_score
 
-pickle.dump(lda_model, open("lda_model.pkl", "wb"))
+pickle.dump(lda_model, open(os.path.join(output_folder,"lda_model.pkl"), "wb"))
 
-class LDAModel():
-    def __init__(self):
-        self.lda = LDA()
+# class LDAModel():
+    # def __init__(self):
+        # self.lda = LDA()
 
-    def fit(self, embeddings, labels):
-        n_samples = embeddings.shape[0]
-        n_test = 500 # for test samples
-        random_idx = np.random.permutation(np.arange(0,n_samples))
-        train_X, train_y = embeddings[random_idx[:n_samples-n_test]], \
-            labels[random_idx[:n_samples-n_test]]
-        test_X, test_y = embeddings[random_idx[-n_test:]], \
-            labels[random_idx[-n_test:]]
-        self.lda.fit(train_X, train_y)
-        score = self.lda.score(test_X, test_y)
-        print(score) # test_score
+    # def fit(self, embeddings, labels):
+        # n_samples = embeddings.shape[0]
+        # n_test = 500 # for test samples
+        # random_idx = np.random.permutation(np.arange(0,n_samples))
+        # train_X, train_y = embeddings[random_idx[:n_samples-n_test]], \
+            # labels[random_idx[:n_samples-n_test]]
+        # test_X, test_y = embeddings[random_idx[-n_test:]], \
+            # labels[random_idx[-n_test:]]
+        # self.lda.fit(train_X, train_y)
+        # score = self.lda.score(test_X, test_y)
+        # print(score) # test_score
 
 
 # LDA

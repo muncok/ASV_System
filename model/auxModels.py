@@ -140,16 +140,16 @@ class Conv4(SerializableModule):
     def __init__(self, config, n_labels):
         super().__init__()
         loss_type = config["loss"]
-        input_frames = config["input_frames"]
+        input_frames = config["splice_frames"][-1]
         hid_dim = 64
         in_dim = config["input_dim"]
         self.convb_1 = conv_block(1, hid_dim)
-        # self.convb_2 = conv_block(hid_dim, hid_dim, 2)
-        # self.convb_3 = conv_block(hid_dim, hid_dim)
-        # self.convb_4 = conv_block(hid_dim, hid_dim, 2)
-        self.convb_2 = conv_block(hid_dim, hid_dim*2, 2)
-        self.convb_3 = conv_block(hid_dim*2, hid_dim*3)
-        self.convb_4 = conv_block(hid_dim*3, hid_dim*3, 2)
+        self.convb_2 = conv_block(hid_dim, hid_dim, 2)
+        self.convb_3 = conv_block(hid_dim, hid_dim)
+        self.convb_4 = conv_block(hid_dim, hid_dim, 2)
+        # self.convb_2 = conv_block(hid_dim, hid_dim*2, 2)
+        # self.convb_3 = conv_block(hid_dim*2, hid_dim*3)
+        # self.convb_4 = conv_block(hid_dim*3, hid_dim*3, 2)
 
         with torch.no_grad():
             test_in = torch.zeros(
@@ -160,11 +160,11 @@ class Conv4(SerializableModule):
             x = self.convb_4(x)
             test_out = x.view(-1, num_flat_features(x))
             self.feat_dim = test_out.size(1)
-            self.fc = nn.Linear(self.feat_dim,512)
+            self.fc = nn.Linear(self.feat_dim, 2)
             if loss_type == "angular":
-                self.output = AngleLinear(512, n_labels, m=4)
+                self.output = AngleLinear(2, n_labels, m=4)
             else:
-                self.output = nn.Linear(512, n_labels)
+                self.output = nn.Linear(2, n_labels)
 
     def embed(self, x):
         if x.dim() == 3:

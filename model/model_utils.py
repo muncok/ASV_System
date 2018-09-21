@@ -22,7 +22,7 @@ def find_model(config):
     elif arch == "ResNet34":
         model = ResNet34.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
-        model = ResNet34.ResNet34_v1(config, 16, n_labels)
+        model = ResNet34.ResNet34_v1(config, 16, n_labels, fc_dims=None)
     elif arch == "ResNet34_v4":
         model = resNet34Models.ResNet34_v4(config, [3,4,6,3], n_labels)
     elif arch == "sphere20a":

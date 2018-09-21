@@ -234,6 +234,11 @@ def score_parser():
                         required=True,
                         help='model path to be loaded')
 
+    parser.add_argument('-lda_file',
+                        type=str,
+                        default=None,
+                        help='lda model path to be loaded')
+
     parser.add_argument('-inFm', '--input_format',
                         type=str,
                         help='input feature, mfcc, fbank',
@@ -248,6 +253,7 @@ def score_parser():
 
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,
+                        nargs='+',
                         required=True,
                         help='number of spliced frames, frames')
 
@@ -278,6 +284,9 @@ def score_parser():
                         help='gpu device ids',
                         default=[0]
                         )
+
+    parser.add_argument('-no_eer',
+                        action='store_true')
 
     return parser
 

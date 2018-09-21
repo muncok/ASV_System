@@ -253,3 +253,86 @@ class featDataset(data.Dataset):
 
     def __len__(self):
         return len(self.labels)
+    
+import torch.utils.data as data
+from collections import OrderedDict
+
+class mtlDataset(data.Dataset):
+    def __init__(self, data, set_type, config):
+        super().__init__()
+        self.set_type = set_type
+        # data
+        self.files = list(data.keys())
+        self.spk_labels, self.sent_labels = list(zip(data.values()))
+        self.data_folder = config["data_folder"]
+        # input audio config
+        self.input_frames = config["input_frames"]
+        self.input_clip = config["input_clip"]
+        self.input_dim = config["input_dim"]
+
+        self.fail_count = 0
+
+        if set_type == "train":
+            self.random_clip = True
+        else:
+            self.random_clip = False
+
+    def preprocess(self, example):
+        # file_data = self._file_cache.get(example)
+        try:
+            # data = np.load(example) if file_data is None else file_data
+            data = np.load(example)
+        except FileNotFoundError:
+            if os.path.isdir(get_dir_path(example)):
+                # need to make a empty file for necessary missing files
+                # only if directory is exist correctly
+                data = np.zeros((self.input_frames, self.input_dim))
+                np.save(example, data)
+                print("{} is generated".format(example))
+            else:
+                print("{} is not found".format(example))
+                raise FileNotFoundError
+        # self._file_cache[example] = data
+
+        # clipping
+        in_len = self.input_frames
+        if self.input_clip:
+            if len(data) > in_len:
+                if self.random_clip:
+                    start_sample = np.random.randint(0, len(data) - in_len)
+                else:
+                    start_sample = 0
+                data = data[start_sample:start_sample+in_len]
+            else:
+                data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+
+        #TODO why do they have diffrent input dimension?
+        data = data[:,:self.input_dim] # first dimension could be energy term
+        # expand a singleton dimension standing for a channel dimension
+        data = torch.from_numpy(data).unsqueeze(0).float()
+        return data
+
+    @classmethod
+    def read_df(cls, config, df, set_type):
+        files = df.feat.tolist()
+        if config['dataset'] == 'voxc12_mfcc':
+            files = [f.replace('-', '_') for f in files]
+            
+        if "label" in df.columns:
+            labels = df.label.tolist()
+        else:
+            labels = [-1] * len(df)
+            
+        sent_labels = df.sent_label.tolist()
+        
+        samples = OrderedDict(zip(files, (labels, sent_labels)))
+        dataset = cls(samples, set_type, config)
+        
+        return dataset
+
+    def __getitem__(self, index):
+        return self.preprocess(os.path.join(self.data_folder, self.files[index])), \
+                    self.spk_labels[index], self.sent_labels
+
+    def __len__(self):
+        return len(self.spk_labels)

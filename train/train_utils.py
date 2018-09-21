@@ -1,4 +1,6 @@
+import sys
 import os
+import errno
 import shutil
 import random
 import numpy as np
@@ -9,6 +11,52 @@ import torch.nn as nn
 
 from model.model_utils import find_model
 from .angularLoss import AngleLoss
+
+def mkdir_if_missing(directory):
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+class Logger(object):
+    """
+    Write console output to external text file.
+
+    Code imported from https://github.com/Cysu/open-reid/blob/master/reid/utils/logging.py.
+    """
+    def __init__(self, fpath=None):
+        self.console = sys.stdout
+        self.file = None
+        if fpath is not None:
+            mkdir_if_missing(os.path.dirname(fpath))
+            self.file = open(fpath, 'w')
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
+        self.close()
+
+    def write(self, msg):
+        self.console.write(msg)
+        if self.file is not None:
+            self.file.write(msg)
+
+    def flush(self):
+        self.console.flush()
+        if self.file is not None:
+            self.file.flush()
+            os.fsync(self.file.fileno())
+
+    def close(self):
+        self.console.close()
+        if self.file is not None:
+            self.file.close()
 
 def get_dir_path(file_path):
     return "/".join(file_path.split("/")[:-1])
@@ -39,7 +87,7 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
 
         if 'step_no' in checkpoint:
             config['step_no'] = checkpoint['step_no']
-            if config['loss'] == 'angular':
+            if config['loss'] == 'angular' and criterion is not None:
                 # for lambda annealling
                 criterion.it = config['step_no']
                 print("start iteration {}".format(criterion.it))
@@ -47,7 +95,7 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
         if not model:
             # model was not loaded yet.
             try:
-                if checkpoint['loss'] == 'softmax':
+                if 'softmax' in input_file or checkpoint['loss'] == 'softmax':
                     n_labels = checkpoint['state_dict']['output.weight'].shape[0]
                 else:
                     n_labels = checkpoint['state_dict']['output.weight'].shape[1]
@@ -89,7 +137,7 @@ def print_eval(name, scores, labels, loss, end="\n", display=False, binary=False
         targets = (labels.data == 1)
         accuracy = (preds == targets).sum() / batch_size
     if display:
-        tqdm.write("{} accuracy: {:>3}, loss: {:<7}".format(name, accuracy, loss), end=end)
+        tqdm.write("{} accuracy: {:.3f}, loss: {:.7f}".format(name, accuracy, loss), end=end)
     return accuracy
 
 def set_seed(config):

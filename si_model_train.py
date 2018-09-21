@@ -1,11 +1,18 @@
 # coding: utf-8
+import sys
+import os
+import uuid
+
 import torch
 
+from utils.parser import train_parser, set_train_config
 from train.train_utils import (set_seed, find_optimizer, get_dir_path,
-load_checkpoint, save_checkpoint, new_exp_dir)
+        load_checkpoint, save_checkpoint, new_exp_dir)
+from train.train_utils import Logger
+
 from data.dataloader import init_loaders
 from data.data_utils import find_dataset, find_trial
-from utils.parser import (train_parser, set_train_config)
+
 from model.model_utils import find_model
 
 from tensorboardX import SummaryWriter
@@ -19,6 +26,8 @@ parser = train_parser()
 args = parser.parse_args()
 dataset = args.dataset
 config = set_train_config(args)
+
+
 
 #########################################
 # Dataset loaders
@@ -47,19 +56,28 @@ else:
 print("Model will be saved to : {}".format(config['output_dir']))
 
 #########################################
-# Model Training
+# Logger
 #########################################
-config['print_step'] = 100
-set_seed(config)
+sys.stdout = Logger(os.path.join(config['output_dir'],
+    'log_{}'.format(str(uuid.uuid4())[:5]) + '.txt'))
 
-# log configuration
+# tensorboard
 log_dir = config['output_dir']
 writer = SummaryWriter(log_dir)
 
+#########################################
 # dataloader and scheduler
-train_loader, val_loader, test_loader, sv_loader = loaders
-trial = find_trial(config)
+#########################################
+if not config['no_eer']:
+    train_loader, val_loader, test_loader, sv_loader = loaders
+else:
+    train_loader, val_loader, test_loader = loaders
 
+
+#########################################
+# trial
+#########################################
+trial = find_trial(config)
 if not config['no_eer']:
     best_metric = config['best_metric'] if 'best_metric' in config \
             else 1.0
@@ -67,6 +85,11 @@ else:
     best_metric = config['best_metric'] if 'best_metric' in config \
             else 0.0
 
+#########################################
+# Model Training
+#########################################
+
+set_seed(config)
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
     idx = 0

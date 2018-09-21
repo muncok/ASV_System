@@ -27,7 +27,11 @@ dfs, datasets = find_dataset(config, split=False)
 si_df, sv_df = dfs
 si_dset, sv_dset = datasets
 model, _ = load_checkpoint(config)
-lda = None
+
+if not config['lda_file']:
+    lda = None
+else:
+    lda = pickle.load(open(config['lda_file'], "rb"))
 
 #########################################
 # Compute Train Embeddings
@@ -39,8 +43,13 @@ val_dataloader = init_default_loader(config, si_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 dvec_dict = dict(zip(si_df.index.tolist(),
     embeddings.numpy()))
-pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "voxc_train_dvectors.pkl"), "wb"))
+
+if not config['lda_file']:
+    pickle.dump(dvec_dict, open(os.path.join(output_folder,
+        "train_dvectors.pkl"), "wb"))
+else:
+    pickle.dump(dvec_dict, open(os.path.join(output_folder,
+        "train_dvectors_lda.pkl"), "wb"))
 
 #########################################
 # Compute Test Embeddings
@@ -49,5 +58,10 @@ val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
 dvec_dict = dict(zip(sv_df.index.tolist(),
     embeddings.numpy()))
-pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "voxc_test_dvectors.pkl"), "wb"))
+
+if not config['lda_file']:
+    pickle.dump(dvec_dict, open(os.path.join(output_folder,
+        "test_dvectors.pkl"), "wb"))
+else:
+    pickle.dump(dvec_dict, open(os.path.join(output_folder,
+        "test_dvectors_lda.pkl"), "wb"))

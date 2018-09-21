@@ -352,6 +352,13 @@ class ResNet34_v4(ResNet34_v3):
 
         return x
 
+    def feat_output(self, x):
+        feats = self.embed(x)
+        outs = self.output(feats)
+
+        return feats, outs
+
+
 
 class ScaleResNet34_v4(ResNet34_v4):
     def __init__(self, config, layers, n_labels=1000, alpha=12.0):

@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats as st
 from sklearn.metrics import roc_curve, auc
-from tqdm import tqdm
 
 import torch
 
@@ -32,7 +31,7 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
 
     stride_frames = config['stride_frames']
     with torch.no_grad():
-        for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
+        for batch in val_iter:
             x, y = batch
             if not config['no_cuda']:
                 x = x.cuda()
@@ -65,7 +64,7 @@ def embeds_utterance1(config, val_dataloader, model, lda=None):
     embeddings = []
     labels = []
     with torch.no_grad():
-        for batch in tqdm(val_iter, total=len(val_iter), ncols=100):
+        for batch in val_iter:
             x, y = batch
             x_in = x
             if not config['no_cuda']:
@@ -82,7 +81,7 @@ def compute_cordination(trn, ndx):
     y_cord = []
     ndx_file =pd.DataFrame(ndx.file.unique().tolist(), columns=['file'])
     all_trials = trn.id.unique().tolist()
-    for trial_id in tqdm(all_trials):
+    for trial_id in all_trials:
         trial_ndx = ndx[(ndx.id == trial_id)].reset_index()
         trial_embed_idx = np.nonzero(ndx_file.file.isin(trial_ndx.file))[0].tolist()
         x_cord += [all_trials.index(trial_id)] * len(trial_embed_idx)

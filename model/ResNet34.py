@@ -11,7 +11,7 @@ class ResNet34(nn.Module):
         layers = [3,4,6,3]
         self.inplanes = inplanes
         self.extractor = nn.Sequential(
-            nn.Conv2d(1, inplanes, kernel_size=3, stride=2, padding=3,
+            nn.Conv2d(1, inplanes, kernel_size=3, stride=1, padding=3,
                                    bias=False),
             nn.BatchNorm2d(inplanes),
             nn.ReLU(inplace=True),
@@ -94,19 +94,22 @@ class ResNet34_v1(ResNet34):
     """
         additional fc layer before output layer
     """
-    def __init__(self, config, inplanes=16, n_labels=1000):
+    def __init__(self, config, inplanes=16, n_labels=1000, fc_dims=None):
         super().__init__(config, inplanes, n_labels)
 
         extractor_output_dim = 8*inplanes
+        if not fc_dims:
+            fc_dims = extractor_output_dim
+
         classifier = [nn.Linear(extractor_output_dim,
-            extractor_output_dim),
+            fc_dims),
             nn.ReLU(inplace=True)]
 
         loss_type = config["loss"]
         if loss_type == "angular":
-            classifier.append(AngleLinear(extractor_output_dim, n_labels))
+            classifier.append(AngleLinear(fc_dims, n_labels))
         elif loss_type == "softmax":
-            classifier.append(nn.Linear(extractor_output_dim, n_labels))
+            classifier.append(nn.Linear(fc_dims, n_labels))
         else:
             print("not implemented loss")
             raise NotImplementedError
