@@ -55,7 +55,7 @@ def default_config():
             dev_every=1,
             use_nesterov=False,
             gpu_no=[0], cache_size=32768,
-            momentum=0.9, weight_decay=0.0001, num_workers=16,
+            momentum=0.9, weight_decay=0.0001, num_workers=8,
             print_step=100)
 
     builder = ConfigBuilder(
@@ -91,6 +91,7 @@ def set_score_config(args):
     if args.score_mode == "precise":
         config['input_clip'] = False
         config['batch_size'] = 1
+        config['num_workers'] = 0
     else:
         config['input_clip'] = True
         config['batch_size'] = args.batch_size

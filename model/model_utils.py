@@ -19,6 +19,8 @@ def find_model(config):
         model = tdnnModel.tdnn_2dim(config, n_labels)
     elif arch == "tdnn_conv":
         model = tdnnModel.tdnn_conv(config, n_labels)
+    elif arch == "tdnn_xvector_v1":
+        model = tdnnModel.tdnn_xvector_v1(config, n_labels)
     elif arch == "CTdnnModel":
         model = tdnnModel.CTdnnModel(config, n_labels)
     elif arch == "Conv4_2dim":

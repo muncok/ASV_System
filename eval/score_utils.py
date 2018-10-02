@@ -28,6 +28,7 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
         splice_frames = config['splice_frames'][-1]
     else:
         splice_frames = config['splice_frames']
+    # splice_frames = config['input_frames']
 
     stride_frames = config['stride_frames']
     with torch.no_grad():
@@ -35,7 +36,6 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
             x, y = batch
             if not config['no_cuda']:
                 x = x.cuda()
-
             if config['score_mode'] == "precise":
                 model_output = model.embed(x).cpu().data
             else:

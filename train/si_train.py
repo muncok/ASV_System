@@ -23,13 +23,12 @@ def train(config, train_loader, model, optimizer, criterion):
 
     for batch_idx, (X, y) in enumerate(train_loader):
         X = X.narrow(2, 0, splice_frames_)
+
         if not config["no_cuda"]:
             X = X.cuda()
             y = y.cuda()
 
         scores = model(X)
-
-        optimizer.zero_grad()
         loss = criterion(scores, y)
         loss_sum += loss.item()
         loss.backward()

@@ -101,15 +101,22 @@ def find_dataset(config, basedir='./', split=True):
         sv_df = "exp_embedding/sv_voxc1_11spks.pkl"
         n_labels = 11
         dset_class = featDataset
+    elif dataset_name == "kor_voices":
+        config['data_folder'] = "dataset/kor_commands/wav"
+        config['input_dim'] = 64
+        si_df = pd.read_pickle("dataset/kor_commands/kor_dataset.pkl")
+        sv_df = si_df
+        n_labels = 1759
+        dset_class = SpeechDataset
+
+    if not 'dataset' in config or not os.path.isdir(config['data_folder']):
+        raise FileNotFoundError
+        print("there is no {} directory".format(config['data_folder']))
 
     # prefix the basedir
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     si_df = pd.read_pickle(os.path.join(basedir, si_df))
     sv_df = pd.read_pickle(os.path.join(basedir, sv_df))
-
-    if not 'dataset' in config or not os.path.isdir(config['data_folder']):
-        print("there is no {} directory".format(config['data_folder']))
-        raise FileNotFoundError
 
     config['n_labels'] = n_labels
 
