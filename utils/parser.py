@@ -117,7 +117,7 @@ def train_parser():
                         required=True,
                         help='learning lates')
 
-    parser.add_argument('-sche', '--lr_schedule',
+    parser.add_argument('-sched', '--lr_schedule',
                         type=int,
                         nargs='+',
                         required=True,

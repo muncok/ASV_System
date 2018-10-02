@@ -47,14 +47,14 @@ def find_dataset(config, basedir='./', split=True):
         config['input_dim'] = 64
         si_df = "dataset/dataframes/voxc1/si_voxc_dataframe.pkl"
         sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
-        n_labels = 1260
+        n_labels = 1211
         dset_class = SpeechDataset
     elif dataset_name == "voxc1_fbank_xvector":
         config['data_folder'] = "dataset/voxceleb1/feats/xvector_npy"
         config['input_dim'] = 64
         si_df = "dataset/dataframes/voxc1/si_voxc_dataframe.pkl"
         sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
-        n_labels = 1260
+        n_labels = 1211
         dset_class = featDataset
     elif dataset_name == "voxc12_fbank_xvector":
         config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
@@ -70,7 +70,7 @@ def find_dataset(config, basedir='./', split=True):
         n_labels = 70
         dset_class = SpeechDataset
     elif dataset_name == "gcommand_fbank_xvector":
-        config['data_folder'] = "dataset/gcommand/feats/xvector_npy"
+        config['data_folder'] = "dataset/gcommand/feats/data-fbank/xvector_npy"
         config['input_dim'] = 64
         si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
         sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
@@ -78,7 +78,7 @@ def find_dataset(config, basedir='./', split=True):
         dset_class = featDataset
     elif dataset_name == "gcommand_fbank":
         # no vad and cmvn
-        config['data_folder'] = "dataset/gcommand/feats/fbank_npy"
+        config['data_folder'] = "dataset/gcommand/feats/data-fbank/fbank_npy"
         config['input_dim'] = 64
         si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
         sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"

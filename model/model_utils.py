@@ -15,14 +15,20 @@ def find_model(config):
         model = tdnnModel.gTDNN(config, n_labels)
     elif arch == "tdnn_xvector":
         model = tdnnModel.tdnn_xvector(config, n_labels)
+    elif arch == "tdnn_2dim":
+        model = tdnnModel.tdnn_2dim(config, n_labels)
+    elif arch == "tdnn_conv":
+        model = tdnnModel.tdnn_conv(config, n_labels)
     elif arch == "CTdnnModel":
         model = tdnnModel.CTdnnModel(config, n_labels)
-    elif arch == "Conv4":
-        model = auxModels.Conv4(config, n_labels)
+    elif arch == "Conv4_2dim":
+        model = auxModels.Conv4_2dim(config, n_labels)
     elif arch == "ResNet34":
         model = ResNet34.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
         model = ResNet34.ResNet34_v1(config, 16, n_labels, fc_dims=None)
+    elif arch == "ResNet34_v3":
+        model = resNet34Models.ResNet34_v3(config, [3,4,6,3], n_labels)
     elif arch == "ResNet34_v4":
         model = resNet34Models.ResNet34_v4(config, [3,4,6,3], n_labels)
     elif arch == "sphere20a":

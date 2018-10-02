@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
-from model.model_utils import find_model
+from ..model.model_utils import find_model
 from .angularLoss import AngleLoss
 
 def mkdir_if_missing(directory):

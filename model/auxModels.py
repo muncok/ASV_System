@@ -69,10 +69,10 @@ def conv_block(in_channels, out_channels, pool_size=2):
 class SimpleCNN(SerializableModule):
     def __init__(self, config, n_labels):
         super().__init__()
-        input_frames = config["input_frames"]
+        input_frames = config["splice_frames"]
         hid_dim = 64
         in_dim = config["input_dim"]
-        self.feat_size = 64
+        self.feat_size = hid_dim
         self.convb_1 = conv_block(1, hid_dim)
         self.convb_2 = conv_block(hid_dim, hid_dim)
         self.convb_3 = conv_block(hid_dim, hid_dim)
@@ -136,7 +136,7 @@ class LongCNN(SerializableModule):
         x = self.output(x)
         return x
 
-class Conv4(SerializableModule):
+class Conv4_2dim(SerializableModule):
     def __init__(self, config, n_labels):
         super().__init__()
         loss_type = config["loss"]
@@ -175,6 +175,7 @@ class Conv4(SerializableModule):
         x = self.convb_4(x)
         x = x.view(-1, num_flat_features(x))
         x = self.fc(x)
+
         return x
 
     def forward(self, x):

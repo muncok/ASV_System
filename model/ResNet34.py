@@ -95,6 +95,9 @@ class ResNet34_v1(ResNet34):
         additional fc layer before output layer
     """
     def __init__(self, config, inplanes=16, n_labels=1000, fc_dims=None):
+        if 'inplanes' in config:
+            inplanes = config['inplanes']
+
         super().__init__(config, inplanes, n_labels)
 
         extractor_output_dim = 8*inplanes

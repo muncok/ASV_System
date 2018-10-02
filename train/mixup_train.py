@@ -1,4 +1,6 @@
+from tqdm import tqdm
 import numpy as np
+
 import torch
 import torch.nn.functional as F
 
@@ -6,13 +8,33 @@ from .train_utils import print_eval
 from ..eval.score_utils import embeds_utterance
 from sklearn.metrics import roc_curve
 
+def mixup_data(x, y, alpha=1.0, use_cuda=True):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
 def train(config, train_loader, model, optimizer, criterion):
     model.train()
     loss_sum = 0
-    total = 0
     accs = []
 
-    print_steps = (np.arange(1,11) * 0.1
+    print_steps = (np.array([0.25, 0.5, 0.75, 1.0]) \
                     * len(train_loader)).astype(np.int64)
 
     splice_frames = config['splice_frames']
@@ -21,28 +43,29 @@ def train(config, train_loader, model, optimizer, criterion):
     else:
         splice_frames_ = splice_frames[-1]
 
-    for batch_idx, (X, y) in enumerate(train_loader):
+    for batch_idx, (X, y) in tqdm(enumerate(train_loader), ncols=100,
+            total=len(train_loader)):
+        # X.shape is (batch, channel, time, bank)
+        # index = torch.arange(0, splice_frames, dtype=torch.int64)
+        # X = X[:,:,index,:]
         X = X.narrow(2, 0, splice_frames_)
         if not config["no_cuda"]:
             X = X.cuda()
             y = y.cuda()
-
-        scores = model(X)
-
         optimizer.zero_grad()
+        scores = model(X)
         loss = criterion(scores, y)
         loss_sum += loss.item()
         loss.backward()
+        # learning rate change
         optimizer.step()
         # schedule over iteration
         accs.append(print_eval("train step #{}".format('0'), scores, y,
             loss_sum/(batch_idx+1), display=False))
-        total += y.size(0)
-
         del scores
         del loss
         if batch_idx in print_steps:
-            print("train, loss: {:.4f}, acc: {:.5f} ".format(loss_sum/total, np.mean(accs)))
+            print("train loss, acc: {:.4f}, {:.5f} ".format(np.mean(accs), loss_sum))
 
     avg_acc = np.mean(accs)
 
@@ -53,7 +76,8 @@ def val(config, val_loader, model, criterion):
         model.eval()
         accs = []
         loss_sum = 0
-        for (X, y) in val_loader:
+        for (X, y) in tqdm(val_loader, ncols=100,
+                total=len(val_loader)):
             if not config["no_cuda"]:
                 X = X.cuda()
                 y = y.cuda()
@@ -72,30 +96,10 @@ def sv_test(config, sv_loader, model, trial):
         else:
             model_t = model
 
-        embeddings, _ = embeds_utterance(config, sv_loader, model_t, None)
+        embeddings, _ = embeds_utterance(config, sv_loader,
+                model_t, None)
         sim_matrix = F.cosine_similarity(
                 embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
-        cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
-        score_vector = sim_matrix[cord].numpy()
-        label_vector = np.array(trial.label)
-        fpr, tpr, thres = roc_curve(
-                label_vector, score_vector, pos_label=1)
-        eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
-
-        return eer, label_vector, score_vector
-
-def sv_euc_test(config, sv_loader, model, trial):
-        if isinstance(model, torch.nn.DataParallel):
-            model_t = model.module
-        else:
-            model_t = model
-
-        embeddings, _ = embeds_utterance(config, sv_loader, model_t, None)
-        embeddings /= embeddings.norm(dim=1,keepdim=True)
-        a = embeddings.unsqueeze(1)
-        b = embeddings.unsqueeze(0)
-        dist = a - b
-        sim_matrix = -dist.norm(dim=2)
         cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
         score_vector = sim_matrix[cord].numpy()
         label_vector = np.array(trial.label)

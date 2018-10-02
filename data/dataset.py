@@ -253,9 +253,7 @@ class featDataset(data.Dataset):
 
     def __len__(self):
         return len(self.labels)
-    
-import torch.utils.data as data
-from collections import OrderedDict
+
 
 class mtlDataset(data.Dataset):
     def __init__(self, data, set_type, config):
@@ -317,22 +315,90 @@ class mtlDataset(data.Dataset):
         files = df.feat.tolist()
         if config['dataset'] == 'voxc12_mfcc':
             files = [f.replace('-', '_') for f in files]
-            
+
         if "label" in df.columns:
             labels = df.label.tolist()
         else:
             labels = [-1] * len(df)
-            
+
         sent_labels = df.sent_label.tolist()
-        
+
         samples = OrderedDict(zip(files, (labels, sent_labels)))
         dataset = cls(samples, set_type, config)
-        
+
         return dataset
 
     def __getitem__(self, index):
         return self.preprocess(os.path.join(self.data_folder, self.files[index])), \
                     self.spk_labels[index], self.sent_labels
+
+    def __len__(self):
+        return len(self.spk_labels)
+
+
+class mtlSpeechDataset(data.Dataset):
+    def __init__(self, config, data, set_type):
+        super().__init__()
+        self.set_type = set_type
+        # data
+        self.audio_files = list(data.keys())
+        self.spk_labels = list(zip(*data.values()))[0]
+        self.sent_labels = list(zip(*data.values()))[1]
+
+        # input audio config
+        self.input_samples = config["input_samples"]
+        self.input_format = config["input_format"]
+        self.input_clip = config["input_clip"]
+
+        # input feature config
+        self.n_dct = config["n_dct_filters"]
+        self.n_mels = config["n_mels"]
+        self.filters = librosa.filters.dct(config["n_dct_filters"], config["n_mels"])
+        self.window_size = config["window_size"]
+        self.window_stride =  config["window_stride"]
+        self.data_folder = config["data_folder"]
+
+        if set_type == "train":
+            self.random_clip = True
+        else:
+            self.random_clip = False
+
+    def preprocess(self, example):
+        in_len = self.input_samples
+        data = librosa.core.load(example, sr=16000)[0]
+        # input clipping
+        if self.input_clip:
+            if len(data) > in_len:
+                if self.random_clip:
+                    start_sample = np.random.randint(0, len(data) - in_len)
+                else:
+                    start_sample = 0
+                data = data[start_sample:start_sample+in_len]
+            else:
+                data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+
+        # audio to input feature
+        # mfcc hyper-parameters are hard coded.
+        input_feature = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
+        return input_feature.unsqueeze(0)
+
+    @classmethod
+    def read_df(cls, config, df, set_type):
+        files = df.file.tolist()
+        if config['dataset'] == 'voxc12_mfcc':
+            files = [f.replace('-', '_') for f in files]
+
+        spk_labels = df.label.tolist()
+        sent_labels = df.sent_label.tolist()
+
+        samples = OrderedDict(zip(files, zip(spk_labels, sent_labels)))
+        dataset = cls(config, samples, set_type,)
+
+        return dataset
+
+    def __getitem__(self, index):
+        return self.preprocess(os.path.join(self.data_folder, self.audio_files[index])), \
+                    self.spk_labels[index], self.sent_labels[index]
 
     def __len__(self):
         return len(self.spk_labels)
