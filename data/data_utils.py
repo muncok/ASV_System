@@ -109,12 +109,12 @@ def find_dataset(config, basedir='./', split=True):
         n_labels = 1759
         dset_class = SpeechDataset
 
+    config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):
-        raise FileNotFoundError
         print("there is no {} directory".format(config['data_folder']))
+        raise FileNotFoundError
 
     # prefix the basedir
-    config['data_folder'] = os.path.join(basedir, config['data_folder'])
     si_df = pd.read_pickle(os.path.join(basedir, si_df))
     sv_df = pd.read_pickle(os.path.join(basedir, sv_df))
 

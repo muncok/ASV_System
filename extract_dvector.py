@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import pickle
+import numpy as np
 
 from data.dataloader import init_default_loader
 from utils.parser import score_parser, set_score_config
@@ -37,17 +38,19 @@ if not os.path.isdir(output_folder):
 
 val_dataloader = init_default_loader(config, si_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
-dvec_dict = dict(zip(si_df.index.tolist(),
-    embeddings.numpy()))
-pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "train_dvectors.pkl"), "wb"))
+si_keys = si_df.index.tolist()
+si_embeds = embeddings.numpy()
+
+pickle.dump(si_keys, open(os.path.join(output_folder, "si_keys.pkl"), "wb"))
+np.save(si_embeds, open(os.path.join(output_folder, "si_embeds.npy"), "wb"))
 
 #########################################
 # Compute Test Embeddings
 #########################################
 val_dataloader = init_default_loader(config, sv_dset, shuffle=False)
 embeddings, _ = embeds_utterance(config, val_dataloader, model, lda)
-dvec_dict = dict(zip(sv_df.index.tolist(),
-    embeddings.numpy()))
-pickle.dump(dvec_dict, open(os.path.join(output_folder,
-    "test_dvectors.pkl"), "wb"))
+sv_keys = sv_df.index.tolist()
+sv_embeds = embeddings.numpy()
+
+pickle.dump(sv_keys, open(os.path.join(output_folder, "sv_keys.pkl"), "wb"))
+np.save(sv_embeds, open(os.path.join(output_folder, "sv_embeds.npy"), "wb"))

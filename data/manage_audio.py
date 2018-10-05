@@ -2,7 +2,7 @@ import librosa
 import numpy as np
 import scipy
 import torch
-from pydub import AudioSegment
+# from pydub import AudioSegment
 
 windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman': scipy.signal.blackman,
            'bartlett': scipy.signal.bartlett}

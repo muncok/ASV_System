@@ -1,5 +1,5 @@
 import librosa
-from pydub import AudioSegment
+# from pydub import AudioSegment
 import os
 import random
 import numpy as np
@@ -10,7 +10,7 @@ import torch
 import torch.utils.data as data
 
 from .manage_audio import preprocess_audio
-from .manage_audio import strip_audio
+# from .manage_audio import strip_audio
 
 def get_dir_path(file_path):
     return "/".join(file_path.split("/")[:-1])
