@@ -61,8 +61,8 @@ def find_dataset(config, basedir='./', split=True):
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 1211
         dset_class = featDataset
-    elif dataset_name == "gcommand_fbank_xvector":
-        config['data_folder'] = "dataset/gcommand/feats/data-fbank/xvector_npy"
+    elif dataset_name == "gcommand_fbank64_vad":
+        config['data_folder'] = "dataset/gcommand/feats/fbank64_vad"
         config['input_dim'] = 64
         si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
         sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
