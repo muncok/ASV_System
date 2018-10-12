@@ -40,7 +40,9 @@ def train(config, train_loader, model, optimizer, criterion):
         del scores
         del loss
         if batch_idx in print_steps:
-            print("train, loss: {:.4f}, acc: {:.5f} ".format(loss_sum/(batch_idx+1), np.mean(accs)))
+            print("[{}/{}] train, loss: {:.4f}, acc: {:.5f} ".format(
+                batch_idx, len(train_loader),
+                loss_sum/(batch_idx+1), np.mean(accs)))
 
     avg_acc = np.mean(accs)
 

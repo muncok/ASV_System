@@ -222,7 +222,7 @@ class featDataset(data.Dataset):
                 # only if directory is exist correctly
                 data = np.zeros((self.input_frames, self.input_dim))
                 np.save(example, data)
-                print("{} is generated".format(example))
+                print("{} is generated (zero array for silence audio)".format(example))
             else:
                 print("{} is not found".format(example))
                 raise FileNotFoundError

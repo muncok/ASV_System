@@ -35,7 +35,7 @@
 		│   ├── manage_audio.py
 		│   ├── prototypical_batch_sampler.py
 		│   └── verification_batch_sampler.py
-		├── eval									# speaker verification scoring (Equal Error Rate)  # speaker verification scoring (Equal Error Rate)  
+		├── eval									# speaker verification scoring (Equal Error Rate)  
 		│   ├── score_utils.py
 		│   └── sv_test.py
 		├── model
@@ -49,9 +49,9 @@
 		│   ├── resNet34Models.py
 		│   ├── speechModel.py
 		│   └── tdnnModel.py
-		├── si_model_eval.py
-		├── si_model_train.py						# script for si_model training  
-		├── sv_model_test.py
+		├── si_model_eval.py                        # script for si(speaker identification) model evaludation
+		├── si_model_train.py						# script for si(speaker identification) model training  
+		├── sv_model_test.py                        # script for sv(speaker verification) test on si_model
 		├── sv_system_tree.txt
 		├── train									# speaker identification model training (d-vector)   
 		│   ├── __init__.py
@@ -70,11 +70,23 @@
 * Demos
 
     ----------
+    * conda environment
+
+           source activate {env_name} (for montreal it is "pytorch") 
+
     
     * si_model_train
     
-            python si_model_train.py -batch 128  -dataset voxc12_mfcc30 -model tdnn_xvector -loss softmax -inFr 800 -spFr 200 800 -lrs 0.1 -nep 100 -cuda
-        
+           CUDA_VISIBLE_DEVICES=0  python si_model_train.py -batch 128  -dataset voxc12_mfcc30 -model tdnn_xvector -loss softmax -inFr 800 -spFr 200 800 -lrs 0.1 -nep 100 -cuda
+            
+        CUDA_VISIBLE_DEVICES define the used gpu's number (0~3)
+
+            Montreal's GPU ordering is like below.
+            cuda:0 -> P100 (appears as #2 on nvidia-smi)
+            cuda:1 -> TITAN X (Pascal) (#0 on nvidia-smi)
+            cuda:2 -> TITAN X (Pascal) (#1 on nvidia-smi)
+            cuda:3 -> TITAN Xp              (#3 on nvidia-smi)
+
         for more details for arguments Type:
         
             python si_model_train.py -h  

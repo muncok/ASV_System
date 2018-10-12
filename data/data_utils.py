@@ -31,12 +31,9 @@ def find_trial(config, basedir='./'):
     if "voxc12" in dataset_name:
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
-    elif "voxc" in dataset_name:
-        trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/dataframes/voxc1/voxc_trial.pkl"))
     elif "gcommand" in dataset_name:
         trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_trial.pkl"))
+            "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_trial.pkl"))
     else:
         print("No trial file")
         raise FileNotFoundError
@@ -64,18 +61,11 @@ def find_dataset(config, basedir='./', split=True):
     elif dataset_name == "gcommand_fbank64_vad":
         config['data_folder'] = "dataset/gcommand/feats/fbank64_vad"
         config['input_dim'] = 64
-        si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
+        config['input_format'] = 'fbank'
+        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
+        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv1.pkl"
         n_labels = 1759
         dset_class = featDataset
-    elif dataset_name == "kor_voices":
-        config['data_folder'] = "dataset/kor_commands/wav"
-        config['input_dim'] = 64
-        si_df = pd.read_pickle("dataset/kor_commands/kor_dataset.pkl")
-        sv_df = si_df
-        n_labels = 1759
-        dset_class = SpeechDataset
-
 
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):

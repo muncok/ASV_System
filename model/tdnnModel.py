@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import math
 
 # from .model import AngleLinear
@@ -36,7 +35,7 @@ class st_pool_layer(nn.Module):
 class tdnn_xvector(nn.Module):
     """xvector architecture"""
     def __init__(self, config, n_labels=31):
-        super(tdnn_xvector, self).__init__(config, n_labels)
+        super(tdnn_xvector, self).__init__()
         inDim = config['input_dim']
         self.tdnn = nn.Sequential(
             nn.Conv1d(inDim, 512, stride=1, dilation=1, kernel_size=5),

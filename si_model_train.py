@@ -111,16 +111,16 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     print("curr_lr: {}".format(curr_lr))
 
     # train code
-    # train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
-    # writer.add_scalar("train/lr", curr_lr, epoch_idx)
-    # writer.add_scalar('train/loss', train_loss, epoch_idx)
-    # writer.add_scalar('train/acc', train_acc, epoch_idx)
+    train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
+    writer.add_scalar("train/lr", curr_lr, epoch_idx)
+    writer.add_scalar('train/loss', train_loss, epoch_idx)
+    writer.add_scalar('train/acc', train_acc, epoch_idx)
 
     # validation code
-    # val_loss, val_acc = val(config, val_loader, model, criterion)
-    # writer.add_scalar('val/loss', val_loss, epoch_idx)
-    # writer.add_scalar('val/acc', val_acc, epoch_idx)
-    # print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
+    val_loss, val_acc = val(config, val_loader, model, criterion)
+    writer.add_scalar('val/loss', val_loss, epoch_idx)
+    writer.add_scalar('val/acc', val_acc, epoch_idx)
+    print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
 
     # plateau_scheduler.step(train_loss)
 
