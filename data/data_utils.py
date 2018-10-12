@@ -45,14 +45,7 @@ def find_trial(config, basedir='./'):
 
 def find_dataset(config, basedir='./', split=True):
     dataset_name = config ['dataset']
-    if dataset_name == "voxc1_wav":
-        config['data_folder'] = "dataset/voxceleb1/voxceleb1_wav"
-        config['input_dim'] = 40
-        si_df = "dataset/dataframes/voxc1/si_voxc_dataframe.pkl"
-        sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
-        n_labels = 1211
-        dset_class = SpeechDataset
-    elif dataset_name == "voxc12_mfcc30":
+    if dataset_name == "voxc12_mfcc30":
         config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
         config['input_dim'] = 30
         config['input_format'] = 'mfcc'
@@ -68,64 +61,12 @@ def find_dataset(config, basedir='./', split=True):
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 1211
         dset_class = featDataset
-    elif dataset_name == "voxc1_fbank_xvector":
-        config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
-        config['input_dim'] = 64
-        si_df = "dataset/dataframes/voxc1/si_voxc_dataframe1.pkl"
-        sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
-        n_labels = 1211
-        dset_class = featDataset
-    elif dataset_name == "voxc12_fbank_xvector":
-        config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
-        config['input_dim'] = 64
-        si_df = "dataset/dataframes/voxc12/si_voxc12_dataframe.pkl"
-        sv_df = "dataset/dataframes/voxc12/sv_voxc12_dataframe.pkl"
-        n_labels = 7324
-        dset_class = featDataset
-    elif dataset_name == "voxc12_fbank":
-        config['data_folder'] = "dataset/voxceleb2/feats/fbank_npy"
-        config['input_dim'] = 64
-        si_df = "dataset/dataframes/voxc12/si_orig_voxc12_dataframe.pkl"
-        sv_df = "dataset/dataframes/voxc12/sv_voxc12_dataframe.pkl"
-        n_labels = 7324
-        dset_class = featDataset
-    elif dataset_name == "reddots":
-        config['data_folder'] = "dataset/reddots_r2015q4_v1/wav"
-        config['input_dim'] = 40
-        si_df = "dataset/dataframes/reddots/Reddots_Dataframe.pkl"
-        n_labels = 70
-        dset_class = SpeechDataset
     elif dataset_name == "gcommand_fbank_xvector":
         config['data_folder'] = "dataset/gcommand/feats/data-fbank/xvector_npy"
         config['input_dim'] = 64
         si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
         sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
         n_labels = 1759
-        dset_class = featDataset
-    elif dataset_name == "gcommand_fbank":
-        # no vad and cmvn
-        config['data_folder'] = "dataset/gcommand/feats/data-fbank/fbank_npy"
-        config['input_dim'] = 64
-        si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
-        n_labels = 1759
-        dset_class = featDataset
-    elif dataset_name == "gcommand_equal30_wav":
-        config['data_folder'] = "dataset/gcommand/gcommand_wav"
-        config['input_dim'] = 64
-        config["n_dct_filters"] = 64
-        config["n_mels"] = 64
-        si_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/dataframes/gcommand/equal_num_30spk/equal_num_30spk_sv1.pkl"
-        n_labels = 1759
-        dset_class = SpeechDataset
-    elif dataset_name == "voxc_11spks":
-        config['data_folder'] = "dataset/voxceleb1/feats/xvector_npy"
-        config['input_dim'] = 64
-        config['fc_dims'] = 2
-        si_df = "exp_embedding/si_voxc1_11spks.pkl"
-        sv_df = "exp_embedding/sv_voxc1_11spks.pkl"
-        n_labels = 11
         dset_class = featDataset
     elif dataset_name == "kor_voices":
         config['data_folder'] = "dataset/kor_commands/wav"
