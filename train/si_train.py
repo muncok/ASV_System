@@ -9,10 +9,9 @@ from sklearn.metrics import roc_curve
 def train(config, train_loader, model, optimizer, criterion):
     model.train()
     loss_sum = 0
-    total = 0
     accs = []
 
-    print_steps = (np.arange(1,11) * 0.1
+    print_steps = (np.arange(1,21) * 0.1
                     * len(train_loader)).astype(np.int64)
 
     splice_frames = config['splice_frames']
@@ -28,7 +27,10 @@ def train(config, train_loader, model, optimizer, criterion):
             X = X.cuda()
             y = y.cuda()
 
+        optimizer.zero_grad()
+
         scores = model(X)
+
         loss = criterion(scores, y)
         loss_sum += loss.item()
         loss.backward()
@@ -36,12 +38,11 @@ def train(config, train_loader, model, optimizer, criterion):
         # schedule over iteration
         accs.append(print_eval("train step #{}".format('0'), scores, y,
             loss_sum/(batch_idx+1), display=False))
-        total += y.size(0)
 
         del scores
         del loss
         if batch_idx in print_steps:
-            print("train, loss: {:.4f}, acc: {:.5f} ".format(loss_sum/total, np.mean(accs)))
+            print("train, loss: {:.4f}, acc: {:.5f} ".format(loss_sum/(batch_idx+1), np.mean(accs)))
 
     avg_acc = np.mean(accs)
 

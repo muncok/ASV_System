@@ -15,12 +15,8 @@ def find_model(config):
         model = tdnnModel.gTDNN(config, n_labels)
     elif arch == "tdnn_xvector":
         model = tdnnModel.tdnn_xvector(config, n_labels)
-    elif arch == "tdnn_2dim":
-        model = tdnnModel.tdnn_2dim(config, n_labels)
-    elif arch == "tdnn_conv":
-        model = tdnnModel.tdnn_conv(config, n_labels)
-    elif arch == "tdnn_xvector_v1":
-        model = tdnnModel.tdnn_xvector_v1(config, n_labels)
+    elif arch == "tdnn_xvector_dr":
+        model = tdnnModel.tdnn_xvector_dr(config, n_labels)
     elif arch == "CTdnnModel":
         model = tdnnModel.CTdnnModel(config, n_labels)
     elif arch == "Conv4_2dim":

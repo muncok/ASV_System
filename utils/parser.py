@@ -121,7 +121,6 @@ def train_parser():
     parser.add_argument('-sched', '--lr_schedule',
                         type=int,
                         nargs='+',
-                        required=True,
                         help='check points of changing learning lates',
                         default=[])
 
@@ -150,10 +149,10 @@ def train_parser():
                         default=None,
                         )
 
-    parser.add_argument('-output_file',
+    parser.add_argument('-output_dir',
                         type=str,
-                        help='model path to be saved',
-                        default="test.pt",
+                        help='model folder to be saved',
+                        default=None
                         )
 
     parser.add_argument('-s_epoch',

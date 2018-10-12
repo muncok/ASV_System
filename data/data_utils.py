@@ -28,7 +28,10 @@ def split_df(df):
 
 def find_trial(config, basedir='./'):
     dataset_name = config ['dataset']
-    if "voxc" in dataset_name:
+    if "voxc12" in dataset_name:
+        trial = pd.read_pickle(os.path.join(basedir,
+            "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
+    elif "voxc" in dataset_name:
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/dataframes/voxc1/voxc_trial.pkl"))
     elif "gcommand" in dataset_name:
@@ -44,23 +47,46 @@ def find_dataset(config, basedir='./', split=True):
     dataset_name = config ['dataset']
     if dataset_name == "voxc1_wav":
         config['data_folder'] = "dataset/voxceleb1/voxceleb1_wav"
-        config['input_dim'] = 64
+        config['input_dim'] = 40
         si_df = "dataset/dataframes/voxc1/si_voxc_dataframe.pkl"
         sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
         n_labels = 1211
         dset_class = SpeechDataset
+    elif dataset_name == "voxc12_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 7325
+        dset_class = featDataset
+    elif dataset_name == "voxc1_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 1211
+        dset_class = featDataset
     elif dataset_name == "voxc1_fbank_xvector":
-        config['data_folder'] = "dataset/voxceleb1/feats/xvector_npy"
+        config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
         config['input_dim'] = 64
-        si_df = "dataset/dataframes/voxc1/si_voxc_dataframe.pkl"
+        si_df = "dataset/dataframes/voxc1/si_voxc_dataframe1.pkl"
         sv_df = "dataset/dataframes/voxc1/sv_voxc_dataframe.pkl"
         n_labels = 1211
         dset_class = featDataset
     elif dataset_name == "voxc12_fbank_xvector":
         config['data_folder'] = "dataset/voxceleb2/feats/xvector_npy"
         config['input_dim'] = 64
-        si_df = "dataset/dataframes/voxc2/si_voxc12_dataframe.pkl"
-        sv_df = "dataset/dataframes/voxc2/sv_voxc12_dataframe.pkl"
+        si_df = "dataset/dataframes/voxc12/si_voxc12_dataframe.pkl"
+        sv_df = "dataset/dataframes/voxc12/sv_voxc12_dataframe.pkl"
+        n_labels = 7324
+        dset_class = featDataset
+    elif dataset_name == "voxc12_fbank":
+        config['data_folder'] = "dataset/voxceleb2/feats/fbank_npy"
+        config['input_dim'] = 64
+        si_df = "dataset/dataframes/voxc12/si_orig_voxc12_dataframe.pkl"
+        sv_df = "dataset/dataframes/voxc12/sv_voxc12_dataframe.pkl"
         n_labels = 7324
         dset_class = featDataset
     elif dataset_name == "reddots":
@@ -109,16 +135,17 @@ def find_dataset(config, basedir='./', split=True):
         n_labels = 1759
         dset_class = SpeechDataset
 
+
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):
         print("there is no {} directory".format(config['data_folder']))
         raise FileNotFoundError
 
+    config['n_labels'] = n_labels
+
     # prefix the basedir
     si_df = pd.read_pickle(os.path.join(basedir, si_df))
     sv_df = pd.read_pickle(os.path.join(basedir, sv_df))
-
-    config['n_labels'] = n_labels
 
     if split:
         si_dfs = split_df(si_df)
