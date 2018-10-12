@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
-from ..model.model_utils import find_model
+# from ..model.model_utils import find_model
 from .angularLoss import AngleLoss
 
 def mkdir_if_missing(directory):
@@ -92,17 +92,17 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
                 criterion.it = config['step_no']
                 print("start iteration {}".format(criterion.it))
 
-        if not model:
-            # model was not loaded yet.
-            try:
-                if 'softmax' in input_file or checkpoint['loss'] == 'softmax':
-                    n_labels = checkpoint['state_dict']['output.weight'].shape[0]
-                else:
-                    n_labels = checkpoint['state_dict']['output.weight'].shape[1]
-            except:
-                n_labels = config['n_labels']
-            config['n_labels'] = n_labels
-            model = find_model(config)
+        # if not model:
+            # # model was not loaded yet.
+            # try:
+                # if 'softmax' in input_file or checkpoint['loss'] == 'softmax':
+                    # n_labels = checkpoint['state_dict']['output.weight'].shape[0]
+                # else:
+                    # n_labels = checkpoint['state_dict']['output.weight'].shape[1]
+            # except:
+                # n_labels = config['n_labels']
+            # config['n_labels'] = n_labels
+            # model = find_model(config)
 
         if isinstance(model, nn.DataParallel):
             model.module.load_state_dict(checkpoint['state_dict'])

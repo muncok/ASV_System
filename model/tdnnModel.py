@@ -33,73 +33,7 @@ class st_pool_layer(nn.Module):
 
         return stat
 
-class gTDNN(nn.Module):
-    def __init__(self, config, n_labels=31):
-        super(gTDNN, self).__init__()
-        inDim = config['input_dim']
-        self.tdnn = nn.Sequential(
-            nn.Conv1d(inDim, 450, stride=1, dilation=1, kernel_size=3),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=1, kernel_size=4),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
-            nn.ReLU(True),
-            nn.Conv1d(450, 450, stride=1, dilation=3, kernel_size=3),
-            nn.ReLU(True),
-            nn.MaxPool1d(3, stride=3),
-            st_pool_layer(),
-        )
-        self.classifier = nn.Sequential(
-            nn.Linear(900, 512),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(512, n_labels),
-        )
-        self._initialize_weights()
-
-    def embed(self, x):
-        x = x.squeeze()
-        x = x.permute(0,2,1)
-        x = self.tdnn(x)
-
-        return x
-
-    def forward(self, x):
-        x = self.embed(x)
-        x = self.classifier(x)
-
-        return x
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm1d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
-
-
-class tdnn_xvector(gTDNN):
+class tdnn_xvector(nn.Module):
     """xvector architecture"""
     def __init__(self, config, n_labels=31):
         super(tdnn_xvector, self).__init__(config, n_labels)
@@ -149,7 +83,27 @@ class tdnn_xvector(gTDNN):
 
         return x
 
-class tdnn_xvector_dr(gTDNN):
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.Conv1d):
+                n = m.kernel_size[0] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm1d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
+
+
+class tdnn_xvector_dr(tdnn_xvector):
     """
         xvector architecture
         apply dropout
