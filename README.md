@@ -3,6 +3,7 @@
     ----------
     
     * Dependencies:
+		* Python 3.6
         * pytorch-0.4.0  http://pytorch.org/  
             `pip install torch`
         * librosa  
@@ -24,16 +25,47 @@
 * Directory Structure
 
     ----------
-    
-        sv_system  
-        ├── train                           # speaker identification model training (d-vector)   
-        ├── sv_score                        # speaker verification scoring (Equal Error Rate)  
-        ├── data                            # handling the datasets  
-        ├── utils                           # including an util for parser  
-        ├── si_model_train.py               # script for si_model training  
-        ├── sv_score_reddots.py             # script for sv_score on reddots dataset  
-        ├── sv_score_voxc.py                # script for sv_score on voxceleb dataset   
-        └── README.md                       # this file  
+		├── README.md
+		├── __init__.py
+		├── data									# handling the datasets  
+		│   ├── __init__.py
+		│   ├── data_utils.py
+		│   ├── dataloader.py
+		│   ├── dataset.py
+		│   ├── manage_audio.py
+		│   ├── prototypical_batch_sampler.py
+		│   └── verification_batch_sampler.py
+		├── eval									# speaker verification scoring (Equal Error Rate)  # speaker verification scoring (Equal Error Rate)  
+		│   ├── score_utils.py
+		│   └── sv_test.py
+		├── model
+		│   ├── ResNet34.py
+		│   ├── __init__.py
+		│   ├── auxModels.py
+		│   ├── gcnnModel.py
+		│   ├── lstmModel.py
+		│   ├── model.py
+		│   ├── model_utils.py
+		│   ├── resNet34Models.py
+		│   ├── speechModel.py
+		│   └── tdnnModel.py
+		├── si_model_eval.py
+		├── si_model_train.py						# script for si_model training  
+		├── sv_model_test.py
+		├── sv_system_tree.txt
+		├── train									# speaker identification model training (d-vector)   
+		│   ├── __init__.py
+		│   ├── angularLoss.py
+		│   ├── mixup_train.py
+		│   ├── prototypical_loss.py
+		│   ├── prototypical_train.py
+		│   ├── si_train.py
+		│   ├── train_utils.py
+		│   └── verification_loss.py
+		└── utils									# including an util for parser  
+			├── __init__.py
+			└── parser.py    
+
     
 * Demos
 
@@ -41,12 +73,16 @@
     
     * si_model_train
     
-            python si_model_train.py -batch 128  -dataset voxc -model CTdnnModel -loss softmax -inFr 100 -spFr 10 -stFr 3  -lrs 0.1 -nep 300 -version 1 -cuda
+            python si_model_train.py -batch 128  -dataset voxc12_mfcc30 -model tdnn_xvector -loss softmax -inFr 800 -spFr 200 800 -lrs 0.1 -nep 100 -cuda
         
         for more details for arguments Type:
         
             python si_model_train.py -h  
+
+    * si_model_eval (for confirming si validation accuracy)
+    
+            python si_model_eval.py -batch 128 -dataset voxc12_mfcc30 -model tdnn_xvector -loss softmax -inFr 800 -spFr 800 -cuda
             
-    * sv_score  
+    * sv_model_test.py  
        
-            python sv_score_voxc.py -model ResNet34 -dataset voxc -input_file models/si_voxc_ResNet34.pt -inFr 400 -spFr 400 -cuda
+            python sv_model_test.py -batch 128  -dataset voxc12_mfcc30 -model tdnn_xvector -loss softmax -inFr 800 -spFr 800 -cuda
