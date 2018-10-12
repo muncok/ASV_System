@@ -1,6 +1,7 @@
 # coding=utf-8
 from collections import ChainMap
 import argparse
+import torch
 
 def secToSample(sec):
     return int(16000 * sec)
@@ -79,6 +80,9 @@ def set_train_config(args):
 
     assert len(config['lrs']) == len(config['lr_schedule'])+1,\
             "invalid lr scheduling"
+
+    if config['no_cuda'] and torch.cuda.is_available():
+        print("Warning: your are not using expensive gpus")
 
     return config
 
@@ -221,6 +225,7 @@ def score_parser():
 
     parser.add_argument('-arch',
                         type=str,
+                        required=True,
                         help='type of model')
 
     parser.add_argument('-loss',

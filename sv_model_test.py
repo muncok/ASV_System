@@ -15,11 +15,11 @@ args = parser.parse_args()
 config = set_score_config(args)
 
 #########################################
-# Model Initialization
+# Dataset & Model Initialization
 #########################################
 _, datasets = find_dataset(config)
 model = find_model(config)
-model, _ = load_checkpoint(config, model)
+load_checkpoint(config, model)
 criterion = find_criterion(config, model)
 
 #########################################

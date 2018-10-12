@@ -19,25 +19,6 @@ def recToEER(eer_record, thresh_record, verbose=False):
 def lda_on_tensor(tensor, lda):
     return torch.from_numpy(lda.transform(tensor.numpy()).astype(np.float32))
 
-
-def embeds_utterance1(config, val_dataloader, model, lda=None):
-    val_iter = iter(val_dataloader)
-    model.eval()
-    embeddings = []
-    labels = []
-    with torch.no_grad():
-        for batch in val_iter:
-            x, y = batch
-            x_in = x
-            if not config['no_cuda']:
-                x_in = x_in.cuda()
-            model_output = model.embed(x_in).cpu().data
-            embeddings.append(model_output)
-            labels.append(y.numpy())
-        embeddings = torch.cat(embeddings)
-        labels = np.hstack(labels)
-    return embeddings, labels
-
 def compute_cordination(trn, ndx):
     x_cord = []
     y_cord = []

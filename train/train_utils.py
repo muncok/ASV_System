@@ -118,6 +118,7 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
                   checkpoint['best_metric']))
     else:
         print("=> no checkpoint found at '{}'".format(input_file))
+        raise FileNotFoundError
 
     return model, optimizer
 

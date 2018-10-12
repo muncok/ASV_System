@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from .dataset import SpeechDataset, featDataset
+from .dataset import featDataset
 
 def split_df(df):
     if 'set' in df.columns:
@@ -28,15 +28,19 @@ def split_df(df):
 
 def find_trial(config, basedir='./'):
     dataset_name = config ['dataset']
-    if "voxc12" in dataset_name:
+    if "voxc" in dataset_name:
+        trial_name = "voxc12_test_trial"
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
     elif "gcommand" in dataset_name:
+        trial_name = "gcommand_equal_num_30spk_trial"
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_trial.pkl"))
     else:
-        print("No trial file")
+        print("ERROR: No trial file")
         raise FileNotFoundError
+
+    print("=> loaded trial: {}".format(trial_name))
 
     return trial
 
