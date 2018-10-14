@@ -62,10 +62,34 @@ def find_dataset(config, basedir='./', split=True):
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 1211
         dset_class = featDataset
+    elif dataset_name == "voxc12_fbank64_vad":
+        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
+        config['input_dim'] = 64
+        config['input_format'] = 'fbank'
+        si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 7325
+        dset_class = featDataset
+    elif dataset_name == "voxc1_fbank64_vad":
+        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
+        config['input_dim'] = 64
+        config['input_format'] = 'fbank'
+        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 1211
+        dset_class = featDataset
     elif dataset_name == "gcommand_fbank64_vad":
         config['data_folder'] = "dataset/gcommand/feats/fbank64_vad"
         config['input_dim'] = 64
         config['input_format'] = 'fbank'
+        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
+        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv1.pkl"
+        n_labels = 1759
+        dset_class = featDataset
+    elif dataset_name == "gcommand_mfcc30":
+        config['data_folder'] = "dataset/gcommand/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
         si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
         sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv1.pkl"
         n_labels = 1759
@@ -76,7 +100,8 @@ def find_dataset(config, basedir='./', split=True):
         print("there is no {} directory".format(config['data_folder']))
         raise FileNotFoundError
 
-    config['n_labels'] = n_labels
+    if 'n_labels' not in config:
+        config['n_labels'] = n_labels
 
     # prefix the basedir
     si_df = pd.read_pickle(os.path.join(basedir, si_df))

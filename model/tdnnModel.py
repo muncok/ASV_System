@@ -68,6 +68,11 @@ class tdnn_xvector(nn.Module):
 
         self._initialize_weights()
 
+    def load_extractor(self, state_dict):
+        state_dict.pop("classifier.4.weight")
+        state_dict.pop("classifier.4.bias")
+        self.load_state_dict(state_dict)
+
     def embed(self, x):
         x = x.squeeze(1)
         # (batch, time, freq) -> (batch, freq, time)

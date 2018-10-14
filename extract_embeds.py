@@ -17,14 +17,14 @@ parser = score_parser()
 args = parser.parse_args()
 config = set_score_config(args)
 
-if not config['output_folder']:
-    output_folder = get_dir_path(config['input_file'])
-    output_folder = os.path.join(output_folder, 'embeds')
+if not config['output_dir']:
+    output_dir = get_dir_path(config['input_file'])
+    output_dir = os.path.join(output_dir, 'embeds')
 else:
-    output_folder = config["output_folder"]
+    output_dir = config["output_dir"]
 
-if not os.path.isdir(output_folder):
-    os.makedirs(output_folder)
+if not os.path.isdir(output_dir):
+    os.makedirs(output_dir)
 
 #########################################
 # Dataset & Model Initialization
@@ -35,7 +35,7 @@ si_df, sv_df = dfs
 si_dset, sv_dset = datasets
 
 model = find_model(config)
-load_checkpoint(config, model)
+load_checkpoint(config, model=model)
 
 if not config['lda_file']:
     lda = None
@@ -50,8 +50,8 @@ else:
 si_dataloader = init_default_loader(config, si_dset, shuffle=False)
 si_embeddings, _ = embeds_utterance(config, si_dataloader, model, lda)
 si_keys = si_df.index.tolist()
-pickle.dump(si_keys, open(os.path.join(output_folder, "si_keys.pkl"), "wb"))
-np.save(os.path.join(output_folder, "si_embeds.npy"), si_embeddings)
+pickle.dump(si_keys, open(os.path.join(output_dir, "si_keys.pkl"), "wb"))
+np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
 
 #########################################
 # Compute Test Embeddings
@@ -61,5 +61,5 @@ sv_embeddings, _ = embeds_utterance(config, sv_dataloader, model, lda)
 
 sv_keys = sv_df.index.tolist()
 sv_embeds = sv_embeddings
-pickle.dump(sv_keys, open(os.path.join(output_folder, "sv_keys.pkl"), "wb"))
-np.save(os.path.join(output_folder, "sv_embeds.npy"), sv_embeddings)
+pickle.dump(sv_keys, open(os.path.join(output_dir, "sv_keys.pkl"), "wb"))
+np.save(os.path.join(output_dir, "sv_embeds.npy"), sv_embeddings)

@@ -1,7 +1,7 @@
 # coding: utf-8
 import os
 import sys
-import uuid
+# import uuid
 
 import torch
 from tensorboardX import SummaryWriter
@@ -13,12 +13,13 @@ from data.data_utils import find_dataset, find_trial
 
 from model.model_utils import find_model
 
-from train.train_utils import (set_seed, find_optimizer, get_dir_path,
+from train.train_utils import (set_seed, find_optimizer,
         load_checkpoint, save_checkpoint, new_exp_dir)
 from train.train_utils import Logger
 from train.si_train import train, val
 from eval.sv_test import sv_test
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+# from torch.optim.lr_scheduler import MultiStepLR
 
 
 print(' '.join(sys.argv))
@@ -58,6 +59,9 @@ else:
     # start new experiment
     config['output_dir'] = new_exp_dir(config)
 
+if not os.path.isdir(config['output_dir']):
+    os.makedirs(config['output_dir'])
+
 print("Model will be saved to : {}".format(config['output_dir']))
 
 #########################################
@@ -70,7 +74,9 @@ if not os.path.isdir(log_dir):
 
 writer = SummaryWriter(log_dir)
 sys.stdout = Logger(os.path.join(config['output_dir'],
-    'logs/log_{}'.format(str(uuid.uuid4())[:5]) + '.txt'))
+    'logs/{}'.format('train_log.txt')))
+# sys.stdout = Logger(os.path.join(config['output_dir'],
+    # 'logs/log_{}'.format(str(uuid.uuid4())[:5]) + '.txt'))
 
 
 #########################################
@@ -159,6 +165,7 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
         'epoch': epoch_idx,
         'step_no': (epoch_idx+1) * len(train_loader),
         'arch': config["arch"],
+        'n_labels': config["n_labels"],
         'dataset': config["dataset"],
         'loss': config["loss"],
         'state_dict': model_state_dict,

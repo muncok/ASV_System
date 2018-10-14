@@ -9,22 +9,12 @@ from . import resNet34Models
 def find_model(config):
     arch = config["arch"]
     n_labels = config['n_labels']
-    if arch == "SimpleCNN":
-        model = auxModels.SimpleCNN(config, n_labels)
-    elif arch == "gtdnn":
-        model = tdnnModel.gTDNN(config, n_labels)
-    elif arch == "tdnn_xvector":
+    if arch == "tdnn_xvector":
         model = tdnnModel.tdnn_xvector(config, n_labels)
-    elif arch == "tdnn_xvector_dr":
-        model = tdnnModel.tdnn_xvector_dr(config, n_labels)
-    elif arch == "CTdnnModel":
-        model = tdnnModel.CTdnnModel(config, n_labels)
-    elif arch == "Conv4_2dim":
-        model = auxModels.Conv4_2dim(config, n_labels)
     elif arch == "ResNet34":
         model = ResNet34.ResNet34(config, 16, n_labels)
     elif arch == "ResNet34_v1":
-        model = ResNet34.ResNet34_v1(config, 16, n_labels, fc_dims=None)
+        model = ResNet34.ResNet34_v1(config, 16, n_labels, fc_dims=512)
     elif arch == "ResNet34_v3":
         model = resNet34Models.ResNet34_v3(config, [3,4,6,3], n_labels)
     elif arch == "ResNet34_v4":

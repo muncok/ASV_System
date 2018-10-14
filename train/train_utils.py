@@ -31,7 +31,8 @@ class Logger(object):
         self.file = None
         if fpath is not None:
             mkdir_if_missing(os.path.dirname(fpath))
-            self.file = open(fpath, 'w')
+            # append log
+            self.file = open(fpath, 'w+')
 
     def __del__(self):
         self.close()
@@ -92,18 +93,6 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
                 criterion.it = config['step_no']
                 print("start iteration {}".format(criterion.it))
 
-        # if not model:
-            # # model was not loaded yet.
-            # try:
-                # if 'softmax' in input_file or checkpoint['loss'] == 'softmax':
-                    # n_labels = checkpoint['state_dict']['output.weight'].shape[0]
-                # else:
-                    # n_labels = checkpoint['state_dict']['output.weight'].shape[1]
-            # except:
-                # n_labels = config['n_labels']
-            # config['n_labels'] = n_labels
-            # model = find_model(config)
-
         if isinstance(model, nn.DataParallel):
             model.module.load_state_dict(checkpoint['state_dict'])
         else:
@@ -120,7 +109,6 @@ def load_checkpoint(config, model=None, criterion=None, optimizer=None):
         print("=> no checkpoint found at '{}'".format(input_file))
         raise FileNotFoundError
 
-    return model, optimizer
 
 def make_abspath(rel_path):
     if not os.path.isabs(rel_path):
@@ -190,12 +178,13 @@ def new_exp_dir(config, old_exp_dir=None):
     # suffix: v1, v2 ...
     if not old_exp_dir:
         old_exp_dir = \
-        ("models/{dset}/{suffix}/{arch}_{loss}/{in_dim}_{s_len1}f_{s_len2}f").format(
+        ("models/{dset}/{suffix}/{arch}_{loss}/{in_format}{in_dim}_{s_len1}f_{s_len2}f").format(
                 dset=config['dataset'], arch=config['arch'],
                 loss=config["loss"],
                 s_len1=config["splice_frames"][0],
                 s_len2=config["splice_frames"][-1],
                 suffix=config["suffix"],
+                in_format=config['input_format'],
                 in_dim=config["input_dim"])
 
     done = False

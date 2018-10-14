@@ -56,7 +56,7 @@ def default_config():
             dev_every=1,
             use_nesterov=False,
             gpu_no=[0], cache_size=32768,
-            momentum=0.9, weight_decay=0.0001, num_workers=8,
+            momentum=0.9, weight_decay=0.0001,
             print_step=100)
 
     builder = ConfigBuilder(
@@ -76,7 +76,6 @@ def set_train_config(args):
     config['input_samples'] = framesToSample(args.input_frames)
     config['no_cuda'] = not args.cuda
     config['score_mode'] = 'approx'
-
 
     assert len(config['lrs']) == len(config['lr_schedule'])+1,\
             "invalid lr scheduling"
@@ -115,6 +114,11 @@ def train_parser():
                         required=True,
                         help='batch size',
                         default=64)
+
+    parser.add_argument('-n_workers', '--num_workers',
+                        type=int,
+                        help='number of workers of dataloader',
+                        default=0)
 
     parser.add_argument('-lrs', '--lrs',
                         type=float,
@@ -218,6 +222,11 @@ def score_parser():
                         help='batch size',
                         default=64)
 
+    parser.add_argument('-n_workers', '--num_workers',
+                        type=int,
+                        help='number of workers of dataloader',
+                        default=0)
+
     parser.add_argument('-dataset',
                         type=str,
                         required=True,
@@ -278,7 +287,7 @@ def score_parser():
                         default='approx'
                         )
 
-    parser.add_argument('-output_folder',
+    parser.add_argument('-output_dir',
                         type=str,
                         help='path to be saved',
                         )
@@ -289,6 +298,12 @@ def score_parser():
                         help='gpu device ids',
                         default=[0]
                         )
+
+    parser.add_argument('-n_labels',
+                        type=int,
+                        help='n_labels of input_model',
+                        )
+
 
     parser.add_argument('-no_eer',
                         action='store_true')

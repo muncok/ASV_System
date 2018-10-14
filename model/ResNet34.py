@@ -101,9 +101,9 @@ class ResNet34_v1(ResNet34):
         super().__init__(config, inplanes, n_labels)
 
         extractor_output_dim = 8*inplanes
+
         if not fc_dims:
             fc_dims = extractor_output_dim
-
         classifier = [nn.Linear(extractor_output_dim,
             fc_dims),
             nn.ReLU(inplace=True)]
