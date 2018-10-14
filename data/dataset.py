@@ -238,7 +238,16 @@ class featDataset(data.Dataset):
                     start_sample = 0
                 data = data[start_sample:start_sample+in_len]
             else:
-                data = np.pad(data, (0, max(0, in_len - len(data))), "constant")
+                gap = max(0, in_len - len(data))
+
+                # # zero-padding
+                # data = np.pad(data, (0, gap), "constant")
+
+                # repeat, it shows better result
+                repeat = int(np.floor(gap / len(data)))
+                residual = gap % len(data)
+                # print(f"in_len: {in_len}, data: {len(data)}, repeat: {repeat}, residual: {residual}")
+                data = np.concatenate([np.tile(data, (repeat+1, 1)), data[:residual]], axis=0)
 
         #TODO why do they have diffrent input dimension?
         data = data[:,:self.input_dim] # first dimension could be energy term
