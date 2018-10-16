@@ -1,7 +1,7 @@
-import librosa
-# from pydub import AudioSegment
 import os
 import random
+import librosa
+# from pydub import AudioSegment
 import numpy as np
 from enum import Enum
 from collections import OrderedDict
@@ -99,14 +99,15 @@ class SpeechDataset(data.Dataset):
 
         file_data = self._file_cache.get(example)
 
+        # ======= librosa ======
         data = librosa.core.load(example, sr=16000)[0] if file_data is None else file_data
-
+        # ====== pydub ======
         # data = AudioSegment.from_wav(example) if file_data is None else file_data
         # data = data.normalize()
         # data = data.strip_silence(silence_len=10, silence_thresh=-16, padding=5)
+        # data = strip_audio(data, rms_ths=0.10)
         # data = (np.array(data.get_array_of_samples())
                 # / 32768.0).astype(np.float32)
-        # data = strip_audio(data, rms_ths=0.10)
 
         self._file_cache[example] = data
 

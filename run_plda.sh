@@ -20,8 +20,10 @@ mkdir -p $train_dir
 mkdir -p $test_dir
 
 if [ "$dataset" == "voxc" ]; then
-    cp dataset/voxceleb12/trials/spk2utt $train_dir
-    cp dataset/voxceleb12/trials/utt2spk $train_dir
+    cp dataset/voxceleb12/trials/train/spk2utt $train_dir
+    cp dataset/voxceleb12/trials/train/utt2spk $train_dir
+    #cp dataset/voxceleb12/trials/test/spk2utt $test_dir
+    #cp dataset/voxceleb12/trials/test/utt2spk $test_dir
     trials=dataset/voxceleb12/trials/voxceleb12_sv
 elif [ "$dataset" == "gcommand" ]; then
     cp dataset/gcommand/kaldi_files/spk2utt $train_dir
@@ -116,10 +118,10 @@ echo "minDCF(p-target=0.001): $mindcf2"
 
 fi
 
-if [ $stage -le 5 ]; then
-# extract feature after LDA
+#if [ $stage -le 5 ]; then
+ #extract feature after LDA
 #copy-vector "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${train_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     #ark:${train_dir}/lda_feats.ark
-copy-vector "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    ark:${data_dir}/lda_feats.ark
-fi
+#copy-vector "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    #ark:${data_dir}/lda_feats.ark
+#fi
