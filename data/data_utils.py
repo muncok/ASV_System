@@ -100,7 +100,7 @@ def find_dataset(config, basedir='./', split=True):
         print("there is no {} directory".format(config['data_folder']))
         raise FileNotFoundError
 
-    if 'n_labels' not in config:
+    if config['n_labels'] == None:
         config['n_labels'] = n_labels
 
     # prefix the basedir
