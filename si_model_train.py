@@ -128,7 +128,7 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     writer.add_scalar('val/acc', val_acc, epoch_idx)
     print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
 
-    # plateau_scheduler.step(train_loss)
+    plateau_scheduler.step(train_loss)
 
     # evaluate best_metric
     if not config['no_eer']:

@@ -213,6 +213,12 @@ def train_parser():
     parser.add_argument('-no_eer',
                         action='store_true')
 
+    parser.add_argument('-n_labels',
+                        type=int,
+                        help='n_labels of input_model',
+                        default=None
+                        )
+
     return parser
 
 def score_parser():
@@ -302,6 +308,7 @@ def score_parser():
     parser.add_argument('-n_labels',
                         type=int,
                         help='n_labels of input_model',
+                        default=None
                         )
 
 

@@ -28,10 +28,14 @@ def split_df(df):
 
 def find_trial(config, basedir='./'):
     dataset_name = config ['dataset']
-    if "voxc" in dataset_name:
+    if "voxc1" in dataset_name or "voxco12" in dataset_name:
         trial_name = "voxc12_test_trial"
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
+    elif "voxc2" in dataset_name:
+        trial_name = "voxc2_test_trial"
+        trial = pd.read_pickle(os.path.join(basedir,
+            "dataset/voxceleb12/dataframes/voxc2_trials/voxc2_all_trials.pkl"))
     elif "gcommand" in dataset_name:
         trial_name = "gcommand_equal_num_30spk_trial"
         trial = pd.read_pickle(os.path.join(basedir,
@@ -50,22 +54,16 @@ def find_dataset(config, basedir='./', split=True):
         config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
         config['input_dim'] = 30
         config['input_format'] = 'mfcc'
+        config['num_workers'] = 8
         si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 7325
-        dset_class = featDataset
-    elif dataset_name == "voxc1_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 1211
         dset_class = featDataset
     elif dataset_name == "voxc12_fbank64_vad":
         config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
         config['input_dim'] = 64
         config['input_format'] = 'fbank'
+        config['num_workers'] = 8
         si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 7325
@@ -74,16 +72,53 @@ def find_dataset(config, basedir='./', split=True):
         config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
         config['input_dim'] = 64
         config['input_format'] = 'fbank'
+        config['num_workers'] = 4
         si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
         sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
         n_labels = 1211
+        dset_class = featDataset
+    elif dataset_name == "voxc1_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        config['num_workers'] = 4
+        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 1211
+        dset_class = featDataset
+    elif dataset_name == "voxc1_m_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        config['num_workers'] = 4
+        si_df = "dataset/voxceleb12/dataframes/voxc1_m_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 665
+        dset_class = featDataset
+    elif dataset_name == "voxc1_f_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        config['num_workers'] = 4
+        si_df = "dataset/voxceleb12/dataframes/voxc1_f_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
+        n_labels = 546
+        dset_class = featDataset
+    elif dataset_name == "voxc2_mfcc30":
+        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
+        config['input_dim'] = 30
+        config['input_format'] = 'mfcc'
+        config['num_workers'] = 8
+        si_df = "dataset/voxceleb12/dataframes/voxc2_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc2_sv_test_dataframe.pkl"
+        n_labels = 6114
         dset_class = featDataset
     elif dataset_name == "gcommand_fbank64_vad":
         config['data_folder'] = "dataset/gcommand/feats/fbank64_vad"
         config['input_dim'] = 64
         config['input_format'] = 'fbank'
         si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv1.pkl"
+        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
         n_labels = 1759
         dset_class = featDataset
     elif dataset_name == "gcommand_mfcc30":
@@ -91,7 +126,7 @@ def find_dataset(config, basedir='./', split=True):
         config['input_dim'] = 30
         config['input_format'] = 'mfcc'
         si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv1.pkl"
+        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
         n_labels = 1759
         dset_class = featDataset
 
