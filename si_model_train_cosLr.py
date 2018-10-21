@@ -18,7 +18,8 @@ from train.train_utils import (set_seed, find_optimizer,
 from train.train_utils import Logger
 from train.si_train import train, val
 from eval.sv_test import sv_test
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR
+# from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from torch.optim.lr_scheduler import MultiStepLR
 
 
@@ -39,11 +40,11 @@ _, datasets = find_dataset(config)
 loaders = init_loaders(config, datasets)
 
 #########################################
-# Model Initialization
+# Model Initializatio and schedulern
 #########################################
 model= find_model(config)
 criterion, optimizer = find_optimizer(config, model)
-plateau_scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5)
+scheduler = CosineAnnealingLR(optimizer, 50)
 
 if config['input_file']:
     # start new experiment continuing from "input_file"
@@ -81,7 +82,7 @@ print(' '.join(sys.argv))
 
 
 #########################################
-# dataloader and scheduler
+# dataloader
 #########################################
 if not config['no_eer']:
     train_loader, val_loader, test_loader, sv_loader = loaders
@@ -108,6 +109,9 @@ set_seed(config)
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     config['epoch_idx'] = epoch_idx
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
+    if curr_lr < 1.05e-4:
+        scheduler = CosineAnnealingLR(optimizer, 50)
+
     # idx = 0
     # while(epoch_idx >= config['lr_schedule'][idx]):
     # # use new lr from schedule epoch not a next epoch
@@ -124,13 +128,14 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     writer.add_scalar('train/loss', train_loss, epoch_idx)
     writer.add_scalar('train/acc', train_acc, epoch_idx)
 
+    scheduler.step()
+
     # validation code
     val_loss, val_acc = val(config, val_loader, model, criterion)
     writer.add_scalar('val/loss', val_loss, epoch_idx)
     writer.add_scalar('val/acc', val_acc, epoch_idx)
     print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
 
-    plateau_scheduler.step(train_loss)
 
     # evaluate best_metric
     if not config['no_eer']:

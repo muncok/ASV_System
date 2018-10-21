@@ -19,6 +19,7 @@ config = set_score_config(args)
 #########################################
 _, datasets = find_dataset(config)
 model = find_model(config)
+print(model)
 load_checkpoint(config, model)
 criterion = find_criterion(config, model)
 

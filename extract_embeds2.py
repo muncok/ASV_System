@@ -6,7 +6,7 @@ import numpy as np
 from data.dataloader import init_default_loader
 from utils.parser import score_parser, set_score_config
 from data.data_utils import find_dataset
-from eval.sv_test import embeds_utterance
+from eval.sv_test import embeds_utterance_frames
 from train.train_utils import load_checkpoint, get_dir_path
 from model.model_utils import find_model
 
@@ -37,16 +37,11 @@ si_dset, sv_dset = datasets
 model = find_model(config)
 load_checkpoint(config, model=model)
 
-if not config['lda_file']:
-    lda = None
-else:
-    lda = pickle.load(open(config['lda_file'], "rb"))
-
 #########################################
 # Compute Train Embeddings
 #########################################
 si_dataloader = init_default_loader(config, si_dset, shuffle=False)
-si_embeddings, _ = embeds_utterance(config, si_dataloader, model, lda)
+si_embeddings, _ = embeds_utterance_frames(config, config['input_frames'], si_dataloader, model)
 
 si_keys = si_df.index.tolist()
 pickle.dump(si_keys, open(os.path.join(output_dir, "si_keys.pkl"), "wb"))
@@ -56,8 +51,15 @@ np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
 # Compute Test Embeddings
 #########################################
 sv_dataloader = init_default_loader(config, sv_dset, shuffle=False)
-sv_embeddings, _ = embeds_utterance(config, sv_dataloader, model, lda)
+enroll_spFr, test_spFr = config['splice_frames']
+sv_enroll_embeddings, _ = embeds_utterance_frames(config, enroll_spFr, sv_dataloader, model)
+
+if enroll_spFr == test_spFr:
+    sv_test_embeddings = sv_enroll_embeddings
+else:
+    sv_test_embeddings, _ = embeds_utterance_frames(config, test_spFr, sv_dataloader, model)
 
 sv_keys = sv_df.index.tolist()
 pickle.dump(sv_keys, open(os.path.join(output_dir, "sv_keys.pkl"), "wb"))
-np.save(os.path.join(output_dir, "sv_embeds.npy"), sv_embeddings)
+np.save(os.path.join(output_dir, "sv_enroll_embeds.npy"), sv_enroll_embeddings)
+np.save(os.path.join(output_dir, "sv_test_embeds.npy"), sv_test_embeddings)

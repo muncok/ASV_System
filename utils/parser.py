@@ -183,6 +183,9 @@ def train_parser():
                         required=True,
                         help='number of input frames, frames')
 
+    parser.add_argument('-random_clip',
+                        action='store_true')
+
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,
                         nargs='+',
@@ -270,6 +273,9 @@ def score_parser():
                         type=int,
                         required=True,
                         help='number of input frames, frames')
+
+    parser.add_argument('-random_clip',
+                        action='store_true')
 
     parser.add_argument('-spFr', '--splice_frames',
                         type=int,

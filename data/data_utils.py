@@ -39,7 +39,7 @@ def find_trial(config, basedir='./'):
     elif "gcommand" in dataset_name:
         trial_name = "gcommand_equal_num_30spk_trial"
         trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_trial.pkl"))
+            "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_test_trial.pkl"))
     else:
         print("ERROR: No trial file")
         raise FileNotFoundError

@@ -207,8 +207,8 @@ class featDataset(data.Dataset):
 
         self.fail_count = 0
 
-        if set_type == "train":
-            self.random_clip = False
+        if set_type == "train" and config['random_clip']:
+            self.random_clip = True
         else:
             self.random_clip = False
 

@@ -16,7 +16,7 @@ from model.model_utils import find_model
 from train.train_utils import (set_seed, find_optimizer,
         load_checkpoint, save_checkpoint, new_exp_dir)
 from train.train_utils import Logger
-from train.si_train import train, val
+from train.si_train import sub_utter_val, batch_variable_length_train
 from eval.sv_test import sv_test
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from torch.optim.lr_scheduler import MultiStepLR
@@ -43,7 +43,7 @@ loaders = init_loaders(config, datasets)
 #########################################
 model= find_model(config)
 criterion, optimizer = find_optimizer(config, model)
-plateau_scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5)
+plateau_scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=10)
 
 if config['input_file']:
     # start new experiment continuing from "input_file"
@@ -119,13 +119,13 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     print("curr_lr: {}".format(curr_lr))
 
     # train code
-    train_loss, train_acc = train(config, train_loader, model, optimizer, criterion)
+    train_loss, train_acc = batch_variable_length_train(config, train_loader, model, optimizer, criterion)
     writer.add_scalar("train/lr", curr_lr, epoch_idx)
     writer.add_scalar('train/loss', train_loss, epoch_idx)
     writer.add_scalar('train/acc', train_acc, epoch_idx)
 
     # validation code
-    val_loss, val_acc = val(config, val_loader, model, criterion)
+    val_loss, val_acc = sub_utter_val(config, val_loader, model, criterion)
     writer.add_scalar('val/loss', val_loss, epoch_idx)
     writer.add_scalar('val/acc', val_acc, epoch_idx)
     print("epoch #{}, val accuracy: {}".format(epoch_idx, val_acc))
@@ -179,4 +179,4 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
 #########################################
 # Model Evaluation
 #########################################
-test_loss, test_acc = val(config, test_loader, model, criterion)
+test_loss, test_acc = sub_utter_val(config, test_loader, model, criterion)
