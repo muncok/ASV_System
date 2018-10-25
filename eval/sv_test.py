@@ -24,10 +24,10 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
                 x = x.cuda()
             model_outputs = []
             if config['score_mode'] == "precise":
-                for i in range(len(batch)):
-                    model_output = model.embed(x[i]).cpu().detach().data
-                    print(seq_lens[i])
-                    model_outputs.append(model_output[:seq_lens[i]])
+                for i in range(len(x)):
+                    out_ = model.embed(x[i,:,:seq_lens[i]]).cpu().detach().data
+                    model_outputs.append(out_)
+                model_output = torch.cat(model_outputs, dim=0)
             else:
                 time_dim = x.size(2)
                 split_points = range(0, time_dim-(splice_frames)+1,
