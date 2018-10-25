@@ -3,7 +3,7 @@ from train.train_utils import find_criterion, load_checkpoint
 from data.data_utils import find_dataset, find_trial
 from utils.parser import score_parser, set_score_config
 from data.dataloader import init_default_loader
-from eval.sv_test import sv_test1
+from eval.sv_test import sv_test
 from model.model_utils import find_model
 
 
@@ -27,6 +27,6 @@ criterion = find_criterion(config, model)
 sv_set = datasets[-1]
 sv_loader = init_default_loader(config, sv_set, shuffle=False)
 trial = find_trial(config)
-eer, label, score = sv_test1(config, sv_loader, model, trial)
-print("sv eer: {:.4f} (model:{}, dataset:{})".format(eer, config['arch'], config['dataset']))
+eer, thres = sv_test(config, sv_loader, model, trial)
+print("sv eer: {:.4f}, thresh: {:.4f} (model:{}, dataset:{})".format(eer, thres, config['arch'], config['dataset']))
 

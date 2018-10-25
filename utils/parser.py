@@ -93,8 +93,7 @@ def set_score_config(args):
     config['input_samples'] = framesToSample(args.input_frames)
     if args.score_mode == "precise":
         config['input_clip'] = False
-        config['batch_size'] = 1
-        config['num_workers'] = 0
+        config['random_clip'] = False
     else:
         config['input_clip'] = True
         config['batch_size'] = args.batch_size

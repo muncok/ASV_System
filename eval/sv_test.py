@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 from sklearn.metrics import roc_curve
-
+from tqdm import tqdm
 def embeds_utterance(config, val_dataloader, model, lda=None):
     val_iter = iter(val_dataloader)
     embeddings = []
@@ -18,14 +18,17 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
     stride_frames = config['stride_frames']
     # print("spFr:{}, stFr:{}".format(
     with torch.no_grad():
-        for batch in val_iter:
-            x, y = batch
+        for batch in tqdm(val_iter):
+            seq_lens, x, y = batch
             if not config['no_cuda']:
                 x = x.cuda()
+            model_outputs = []
             if config['score_mode'] == "precise":
-                model_output = model.embed(x).cpu().data
+                for i in range(len(batch)):
+                    model_output = model.embed(x[i]).cpu().detach().data
+                    print(seq_lens[i])
+                    model_outputs.append(model_output[:seq_lens[i]])
             else:
-                model_outputs = []
                 time_dim = x.size(2)
                 split_points = range(0, time_dim-(splice_frames)+1,
                         stride_frames)
@@ -109,16 +112,15 @@ def sv_test(config, sv_loader, model, trial):
             model_t = model
 
         embeddings, _ = embeds_utterance(config, sv_loader, model_t, None)
-        sim_matrix = F.cosine_similarity(
-                embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
-        cord = [trial.enrolment_id.tolist(), trial.test_id.tolist()]
-        score_vector = sim_matrix[cord].numpy()
+        score_vector = F.cosine_similarity(
+                embeddings[trial.enrolment_id], embeddings[trial.test_id], dim=1)
         label_vector = np.array(trial.label)
         fpr, tpr, thres = roc_curve(
                 label_vector, score_vector, pos_label=1)
         eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+        thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
 
-        return eer, label_vector, score_vector
+        return eer, thres
 
 def sv_test1(config, sv_loader, model, trial):
         """ differnce length btw enroll and test """

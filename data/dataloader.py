@@ -13,7 +13,7 @@ def _collate_fn(batch):
     :return:
     """
     def func(p):
-        return p[0].size(0)
+        return p[0].size(1)
 
     longest_sample = max(batch, key=func)[0]
     freq_size = longest_sample.size(2)
@@ -21,21 +21,23 @@ def _collate_fn(batch):
     max_seqlength = longest_sample.size(1)
     inputs = torch.zeros(minibatch_size, 1, max_seqlength, freq_size)
     targets = []
+    seq_lengths = []
     for x in range(minibatch_size):
         sample = batch[x]
         tensor = sample[0]
         target = sample[1]
         seq_length = tensor.size(1)
+        seq_lengths.append(seq_length)
         inputs[x].narrow(1, 0, seq_length).copy_(tensor)
         targets.append(target)
     targets = torch.LongTensor(targets)
-    return inputs, targets
+    return seq_lengths, inputs, targets
 
 def _mtl_collate_fn(batch):
     """
     collate_fn for multi labels
     """
-    
+
     inputs, y1, y2 = list(zip(*batch))
 
     return inputs, y1, y2

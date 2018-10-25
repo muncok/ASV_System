@@ -44,11 +44,13 @@ loaders = init_loaders(config, datasets)
 #########################################
 model= find_model(config)
 criterion, optimizer = find_optimizer(config, model)
-scheduler = CosineAnnealingLR(optimizer, 50)
 
 if config['input_file']:
     # start new experiment continuing from "input_file"
     load_checkpoint(config, model, criterion, optimizer)
+
+s_epoch = config['s_epoch']
+scheduler = CosineAnnealingLR(optimizer, 50, last_epoch=s_epoch-1)
 #########################################
 # Model Save Path
 #########################################

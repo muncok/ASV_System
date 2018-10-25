@@ -28,7 +28,7 @@ def split_df(df):
 
 def find_trial(config, basedir='./'):
     dataset_name = config ['dataset']
-    if "voxc1" in dataset_name or "voxco12" in dataset_name:
+    if "voxc1" in dataset_name or "voxc12" in dataset_name:
         trial_name = "voxc12_test_trial"
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
@@ -108,6 +108,15 @@ def find_dataset(config, basedir='./', split=True):
         config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
         config['input_dim'] = 30
         config['input_format'] = 'mfcc'
+        config['num_workers'] = 8
+        si_df = "dataset/voxceleb12/dataframes/voxc2_si_train_dataframe.pkl"
+        sv_df = "dataset/voxceleb12/dataframes/voxc2_sv_test_dataframe.pkl"
+        n_labels = 6114
+        dset_class = featDataset
+    elif dataset_name == "voxc2_fbank64_vad":
+        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
+        config['input_dim'] = 64
+        config['input_format'] = 'fbank'
         config['num_workers'] = 8
         si_df = "dataset/voxceleb12/dataframes/voxc2_si_train_dataframe.pkl"
         sv_df = "dataset/voxceleb12/dataframes/voxc2_sv_test_dataframe.pkl"

@@ -213,6 +213,7 @@ class featDataset(data.Dataset):
             self.random_clip = False
 
     def preprocess(self, example):
+        # print(example)
         # file_data = self._file_cache.get(example)
         try:
             # data = np.load(example) if file_data is None else file_data
