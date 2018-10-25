@@ -34,7 +34,7 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
                         stride_frames)
                 for point in split_points:
                     x_in = x.narrow(2, point, splice_frames)
-                    model_outputs.append(model.embed(x_in).cpu().data)
+                    model_outputs.append(model.embed(x_in).detach().cpu().data)
                 model_output = torch.stack(model_outputs, dim=0)
                 model_output = model_output.mean(0)
 
