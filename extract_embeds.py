@@ -45,12 +45,12 @@ else:
 #########################################
 # Compute Train Embeddings
 #########################################
-# si_dataloader = init_default_loader(config, si_dset, shuffle=False)
-# si_embeddings, _ = embeds_utterance(config, si_dataloader, model, lda)
+si_dataloader = init_default_loader(config, si_dset, shuffle=False, collate_fn=_collate_fn)
+si_embeddings, _ = embeds_utterance(config, si_dataloader, model, lda)
 
-# si_keys = si_df.index.tolist()
-# pickle.dump(si_keys, open(os.path.join(output_dir, "si_keys.pkl"), "wb"))
-# np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
+si_keys = si_df.index.tolist()
+pickle.dump(si_keys, open(os.path.join(output_dir, "si_keys.pkl"), "wb"))
+np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
 
 #########################################
 # Compute Test Embeddings

@@ -128,7 +128,6 @@ class tdnn_xvector(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-from model.tdnnModel import st_pool_layer
 
 class tdnn_xvector_center(nn.Module):
     """xvector architecture
@@ -196,7 +195,7 @@ class tdnn_xvector_center(nn.Module):
         x = self.tdnn8_last(x)
 
         return feat, x
-    
+
     def forward(self, x):
         x = self.embed(x)
         x = self.tdnn6_bn(x)
@@ -207,8 +206,8 @@ class tdnn_xvector_center(nn.Module):
         x = self.tdnn8_last(x)
 
         return x
-    
-            
+
+
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -239,7 +238,7 @@ class permute_dim(nn.Module):
         # x = x.permute(0,2,1)
         return x.permute(0,2,1)
 
-                
+
 
 class tdnn_xvector_dense(tdnn_xvector):
     """xvector architecture"""
@@ -374,15 +373,6 @@ class tdnn_xvector_2d(nn.Module):
                 m.bias.data.zero_()
 
 
-class permute_dim(nn.Module):
-    def __init__(self):
-        super(permute_dim, self).__init__()
-
-    def forward(self, x):
-
-        # x = x.permute(0,2,1)
-        return x.permute(0,2,1)
-
 
 class tdnn_xvector_cross(nn.Module):
     """xvector architecture
@@ -476,6 +466,91 @@ class tdnn_xvector_cross(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
+
+class tdnn_xvector_untied(nn.Module):
+    """xvector architecture
+        untying classifier for flexible embedding positon
+    """
+    def __init__(self, config, base_width=512, n_labels=31):
+        super(tdnn_xvector_untied, self).__init__()
+        inDim = config['input_dim']
+        self.tdnn = nn.Sequential(
+            nn.Conv1d(inDim, base_width, stride=1, dilation=1, kernel_size=5),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=3, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=4, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, 1500, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(1500),
+            nn.ReLU(True),
+            st_pool_layer(),
+            nn.Linear(3000, base_width),
+        )
+
+        loss_type = config["loss"]
+        if loss_type == "angular":
+            last_fc = AngleLinear(base_width, n_labels)
+        elif loss_type == "softmax":
+            last_fc = nn.Linear(base_width, n_labels)
+        else:
+            print("not implemented loss")
+            raise NotImplementedError
+
+        self.tdnn6_bn = nn.BatchNorm1d(base_width)
+        self.tdnn6_relu = nn.ReLU(True)
+        self.tdnn7_affine = nn.Linear(base_width, base_width)
+        self.tdnn7_bn = nn.BatchNorm1d(base_width)
+        self.tdnn7_relu = nn.ReLU(True)
+        self.tdnn8_last = last_fc
+
+
+        self._initialize_weights()
+
+    def embed(self, x):
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        x = self.tdnn(x)
+        x = self.tdnn6_bn(x)
+        x = self.tdnn6_relu(x)
+        x = self.tdnn7_affine(x)
+
+        return x
+
+    def forward(self, x):
+
+        x = self.embed(x)
+        x = self.tdnn7_bn(x)
+        x = self.tdnn7_relu(x)
+        x = self.tdnn8_last(x)
+
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.Conv1d):
+                n = m.kernel_size[0] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm1d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
 
 if __name__ == '__main__':
     config = {'loss':'softmax', 'input_dim':30,

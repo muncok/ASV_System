@@ -20,6 +20,8 @@ def find_model(config):
         model = tdnnModel.tdnn_xvector(config, 256, n_labels)
     elif arch == "tdnn_xvector_dense":
         model = tdnnModel.tdnn_xvector_dense(config, 512, n_labels)
+    elif arch == "tdnn_xvector_untied":
+        model = tdnnModel.tdnn_xvector_untied(config, 512, n_labels)
     elif arch == "wide_tdnn_resnet":
         # embeding dimension 512
         model = wide_resnet.Wide_Tdnn_ResNet(config['input_dim'], 10, 3, 0.3, n_labels)

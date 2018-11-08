@@ -10,6 +10,8 @@ from eval.sv_test import embeds_utterance_frames
 from train.train_utils import load_checkpoint, get_dir_path
 from model.model_utils import find_model
 
+# It designed for different spFR of enrollment and test embeddings
+
 #########################################
 # Parser
 #########################################
