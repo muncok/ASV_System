@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from .dataset import featDataset
+from .dataset import featDataset, SpeechDataset
 
 def split_df(df):
     if 'set' in df.columns:
@@ -138,6 +138,14 @@ def find_dataset(config, basedir='./', split=True):
         sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
         n_labels = 1759
         dset_class = featDataset
+    elif dataset_name == "gcommand_fbank40_wav":
+        config['data_folder'] = "dataset/gcommand/gcommand_wav"
+        config['input_dim'] = 40
+        config['input_format'] = 'fbank'
+        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
+        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
+        n_labels = 1759
+        dset_class = SpeechDataset
 
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):
