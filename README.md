@@ -25,46 +25,102 @@
 * Directory Structure
 
     ----------
-		├── README.md
-		├── __init__.py
-		├── data									# handling the datasets  
-		│   ├── __init__.py
-		│   ├── data_utils.py
-		│   ├── dataloader.py
-		│   ├── dataset.py
-		│   ├── manage_audio.py
-		│   ├── prototypical_batch_sampler.py
-		│   └── verification_batch_sampler.py
-		├── eval									# speaker verification scoring (Equal Error Rate)  
-		│   ├── score_utils.py
-		│   └── sv_test.py
-		├── model
-		│   ├── ResNet34.py
-		│   ├── __init__.py
-		│   ├── auxModels.py
-		│   ├── gcnnModel.py
-		│   ├── lstmModel.py
-		│   ├── model.py
-		│   ├── model_utils.py
-		│   ├── resNet34Models.py
-		│   ├── speechModel.py
-		│   └── tdnnModel.py
-		├── si_model_eval.py                        # script for si(speaker identification) model evaludation
-		├── si_model_train.py						# script for si(speaker identification) model training  
-		├── sv_model_test.py                        # script for sv(speaker verification) test on si_model
-		├── sv_system_tree.txt
-		├── train									# speaker identification model training (d-vector)   
-		│   ├── __init__.py
-		│   ├── angularLoss.py
-		│   ├── mixup_train.py
-		│   ├── prototypical_loss.py
-		│   ├── prototypical_train.py
-		│   ├── si_train.py
-		│   ├── train_utils.py
-		│   └── verification_loss.py
-		└── utils									# including an util for parser  
-			├── __init__.py
-			└── parser.py    
+        .
+        ├── README.md
+        ├── __init__.py
+        ├── core
+        ├── data
+        │   ├── __init__.py
+        │   ├── __pycache__
+        │   │   ├── __init__.cpython-36.pyc
+        │   │   ├── data_utils.cpython-36.pyc
+        │   │   ├── dataloader.cpython-36.pyc
+        │   │   ├── dataset.cpython-36.pyc
+        │   │   ├── manage_audio.cpython-36.pyc
+        │   │   ├── prototypical_batch_sampler.cpython-36.pyc
+        │   │   └── verification_batch_sampler.cpython-36.pyc
+        │   ├── data_utils.py
+        │   ├── dataloader.py
+        │   ├── dataset.py
+        │   ├── manage_audio.py
+        │   ├── prototypical_batch_sampler.py
+        │   └── verification_batch_sampler.py
+        ├── dataset
+        │   ├── gcommand -> /dataset/SV_sets/gcommand/
+        │   └── voxceleb12 -> /dataset/SV_sets/voxceleb12/
+        ├── embeddings -> /dataset/SV_sets/embeddings/
+        ├── eval
+        │   ├── __pycache__
+        │   │   ├── score_utils.cpython-36.pyc
+        │   │   └── sv_test.cpython-36.pyc
+        │   ├── score_utils.py
+        │   └── sv_test.py
+        ├── extract_embeds.py
+        ├── extract_embeds_diff_lengths.py
+        ├── extract_embeds_sub_uttrs.py
+        ├── kaldi_utils
+        │   ├── compute_min_dcf.py
+        │   ├── feat2ark.py
+        │   ├── make_spk2utt.py
+        │   ├── prepare_for_eer.py
+        │   └── run.pl
+        ├── model
+        │   ├── ResNet34.py
+        │   ├── __init__.py
+        │   ├── __pycache__
+        │   │   ├── ResNet34.cpython-36.pyc
+        │   │   ├── __init__.cpython-36.pyc
+        │   │   ├── auxModels.cpython-36.pyc
+        │   │   ├── model.cpython-36.pyc
+        │   │   ├── model_utils.cpython-36.pyc
+        │   │   ├── resNet34Models.cpython-36.pyc
+        │   │   ├── speechModel.cpython-36.pyc
+        │   │   ├── tdnnModel.cpython-36.pyc
+        │   │   └── wide_resnet.cpython-36.pyc
+        │   ├── auxModels.py
+        │   ├── center_loss.py
+        │   ├── gcnnModel.py
+        │   ├── lstmModel.py
+        │   ├── model.py
+        │   ├── model_utils.py
+        │   ├── resNet34Models.py
+        │   ├── speechModel.py
+        │   ├── tdnnModel.py
+        │   └── wide_resnet.py
+        ├── models
+        │   └── voxc2_fbank64_vad
+        ├── path.sh
+        ├── run_cos.sh
+        ├── run_enroll_test_plda.sh
+        ├── run_plda.sh
+        ├── saved_models -> /dataset/SV_sets/models/
+        ├── si_model_eval.py
+        ├── si_model_summary.py
+        ├── si_model_train.py
+        ├── si_model_train_cosLr.py
+        ├── si_model_train_length_schedule.py
+        ├── sv_model_test.py
+        ├── sv_score_reddots.py
+        ├── train
+        │   ├── __init__.py
+        │   ├── __pycache__
+        │   │   ├── __init__.cpython-36.pyc
+        │   │   ├── angularLoss.cpython-36.pyc
+        │   │   ├── si_train.cpython-36.pyc
+        │   │   └── train_utils.cpython-36.pyc
+        │   ├── angularLoss.py
+        │   ├── mixup_train.py
+        │   ├── prototypical_loss.py
+        │   ├── prototypical_train.py
+        │   ├── si_train.py
+        │   ├── train_utils.py
+        │   └── verification_loss.py
+        └── utils
+            ├── __init__.py
+            ├── __pycache__
+            │   ├── __init__.cpython-36.pyc
+            │   └── parser.cpython-36.pyc
+            └── parser.py
 
     
 * Demos
