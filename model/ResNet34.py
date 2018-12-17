@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.resnet import BasicBlock
 
-from .model import AngleLinear
-
 class ResNet34(nn.Module):
     def __init__(self, config, inplanes=16, n_labels=1000):
         super().__init__()
@@ -21,14 +19,7 @@ class ResNet34(nn.Module):
             self._make_layer(BasicBlock, 8*inplanes, layers[3], stride=2)
         )
 
-        loss_type = config["loss"]
-        if loss_type == "angular":
-            self.classifier = AngleLinear(8*inplanes, n_labels)
-        elif loss_type == "softmax":
-            self.classifier = nn.Linear(8*inplanes, n_labels)
-        else:
-            print("not implemented loss")
-            raise NotImplementedError
+        self.classifier = nn.Linear(8*inplanes, n_labels)
 
         self._init_weight()
 
@@ -89,54 +80,3 @@ class ResNet34(nn.Module):
         x = self.classifier(x)
 
         return x
-
-class ResNet34_v1(ResNet34):
-    """
-        additional fc layer before output layer
-    """
-    def __init__(self, config, inplanes=16, n_labels=1000, fc_dims=None):
-        if 'inplanes' in config:
-            inplanes = config['inplanes']
-
-        super().__init__(config, inplanes, n_labels)
-
-        extractor_output_dim = 8*inplanes
-
-        if fc_dims is None:
-            fc_dims = extractor_output_dim
-
-        print(extractor_output_dim , fc_dims)
-
-        classifier = [nn.Linear(extractor_output_dim,
-            fc_dims),
-            nn.ReLU(inplace=True)]
-
-        loss_type = config["loss"]
-        if loss_type == "angular":
-            classifier.append(AngleLinear(fc_dims, n_labels))
-        elif loss_type == "softmax":
-            classifier.append(nn.Linear(fc_dims, n_labels))
-        else:
-            print("not implemented loss")
-            raise NotImplementedError
-
-        self.classifier = nn.Sequential(*classifier)
-
-class ScaleResNet34(ResNet34):
-    def __init__(self, config, inplanes, n_labels=1000, alpha=12):
-        super().__init__(config, inplanes, n_labels)
-        self.alpha = alpha
-
-    def embed(self, x):
-        self.extractor(x)
-        x = F.normalize(x)
-
-        return x
-
-    def forward(self, x):
-        x = self.embed(x)
-        x = self.alpha * x
-        x = self.classifier(x)
-
-        return x
-

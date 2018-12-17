@@ -141,13 +141,6 @@ def train_parser():
                         help='type of model',
                         )
 
-    parser.add_argument('-loss',
-                        type=str,
-                        help='type of loss',
-                        choices=['softmax', 'angular'],
-                        default='softmax'
-                        )
-
     parser.add_argument('-input_file',
                         type=str,
                         help='model path to be loaded',
@@ -243,12 +236,6 @@ def score_parser():
                         required=True,
                         help='type of model')
 
-    parser.add_argument('-loss',
-                        type=str,
-                        help='type of loss',
-                        choices=['softmax', 'angular'],
-                        default='softmax')
-
     parser.add_argument('-input_file',
                         type=str,
                         required=True,
@@ -313,7 +300,6 @@ def score_parser():
                         help='n_labels of input_model',
                         default=None
                         )
-
 
     parser.add_argument('-no_eer',
                         action='store_true')

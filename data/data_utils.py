@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from .dataset import featDataset, SpeechDataset
+from .dataset import SpeechDataset
 
 def split_df(df):
     if 'set' in df.columns:
@@ -27,19 +27,11 @@ def split_df(df):
     return [train_df, val_df, test_df]
 
 def find_trial(config, basedir='./'):
-    dataset_name = config ['dataset']
-    if "voxc1" in dataset_name or "voxc12" in dataset_name:
-        trial_name = "voxc12_test_trial"
-        trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/voxceleb12/dataframes/voxc12_test_trial.pkl"))
-    elif "voxc2" in dataset_name:
-        trial_name = "voxc2_test_trial"
-        trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/voxceleb12/dataframes/voxc2_trials/voxc2_all_trials.pkl"))
-    elif "gcommand" in dataset_name:
+    dataset = config ['dataset']
+    if "gcommand" in dataset:
         trial_name = "gcommand_equal_num_30spk_trial"
         trial = pd.read_pickle(os.path.join(basedir,
-            "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_test_trial.pkl"))
+            "dataset/gcommand/equal_num_30spk_test_trial.pkl"))
     else:
         print("ERROR: No trial file")
         raise FileNotFoundError
@@ -48,123 +40,39 @@ def find_trial(config, basedir='./'):
 
     return trial
 
-def find_dataset(config, basedir='./', split=True):
-    dataset_name = config ['dataset']
-    if dataset_name == "voxc12_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        config['num_workers'] = 8
-        si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 7325
-        dset_class = featDataset
-    elif dataset_name == "voxc12_fbank64_vad":
-        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
-        config['input_dim'] = 64
-        config['input_format'] = 'fbank'
-        config['num_workers'] = 8
-        si_df = "dataset/voxceleb12/dataframes/voxc12_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 7325
-        dset_class = featDataset
-    elif dataset_name == "voxc1_fbank64_vad":
-        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
-        config['input_dim'] = 64
-        config['input_format'] = 'fbank'
-        config['num_workers'] = 4
-        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 1211
-        dset_class = featDataset
-    elif dataset_name == "voxc1_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        config['num_workers'] = 4
-        si_df = "dataset/voxceleb12/dataframes/voxc1_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 1211
-        dset_class = featDataset
-    elif dataset_name == "voxc1_m_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        config['num_workers'] = 4
-        si_df = "dataset/voxceleb12/dataframes/voxc1_m_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 665
-        dset_class = featDataset
-    elif dataset_name == "voxc1_f_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        config['num_workers'] = 4
-        si_df = "dataset/voxceleb12/dataframes/voxc1_f_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc12_sv_test_dataframe.pkl"
-        n_labels = 546
-        dset_class = featDataset
-    elif dataset_name == "voxc2_mfcc30":
-        config['data_folder'] = "dataset/voxceleb12/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        config['num_workers'] = 8
-        si_df = "dataset/voxceleb12/dataframes/voxc2_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc2_sv_test_dataframe.pkl"
-        n_labels = 6114
-        dset_class = featDataset
-    elif dataset_name == "voxc2_fbank64_vad":
-        config['data_folder'] = "dataset/voxceleb12/feats/fbank64_vad"
-        config['input_dim'] = 64
-        config['input_format'] = 'fbank'
-        config['num_workers'] = 8
-        si_df = "dataset/voxceleb12/dataframes/voxc2_si_train_dataframe.pkl"
-        sv_df = "dataset/voxceleb12/dataframes/voxc2_sv_test_dataframe.pkl"
-        n_labels = 6114
-        dset_class = featDataset
-    elif dataset_name == "gcommand_fbank64_vad":
-        config['data_folder'] = "dataset/gcommand/feats/fbank64_vad"
-        config['input_dim'] = 64
-        config['input_format'] = 'fbank'
-        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
-        n_labels = 1759
-        dset_class = featDataset
-    elif dataset_name == "gcommand_mfcc30":
-        config['data_folder'] = "dataset/gcommand/feats/mfcc30"
-        config['input_dim'] = 30
-        config['input_format'] = 'mfcc'
-        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
-        n_labels = 1759
-        dset_class = featDataset
-    elif dataset_name == "gcommand_fbank40_wav":
-        config['data_folder'] = "dataset/gcommand/gcommand_wav"
+def find_dataset(config, basedir='./'):
+    dataset = config ['dataset']
+    config['data_folder'] = "asdf"
+    if dataset == "gcommand_fbank40":
+        config['data_folder'] = "dataset/gcommand/wav"
         config['input_dim'] = 40
         config['input_format'] = 'fbank'
-        si_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_si.pkl"
-        sv_df = "dataset/gcommand/dataframes/equal_num_30spk/equal_num_30spk_sv.pkl"
+        si_df = "dataset/gcommand/equal_num_30spk_si.pkl"
+        sv_df = "dataset/gcommand/equal_num_30spk_sv.pkl"
         n_labels = 1759
-        dset_class = SpeechDataset
+    elif dataset == "gcommand_mfcc40":
+        config['data_folder'] = "dataset/gcommand/wav"
+        config['input_dim'] = 40
+        config['input_format'] = 'mfcc'
+        si_df = "dataset/gcommand/equal_num_30spk_si.pkl"
+        sv_df = "dataset/gcommand/equal_num_30spk_sv.pkl"
+        n_labels = 1759
 
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):
-        print("there is no {} directory".format(config['data_folder']))
+        print("Wrong directory {} ".format(config['data_folder']))
         raise FileNotFoundError
 
     if config['n_labels'] == None:
         config['n_labels'] = n_labels
 
-    # prefix the basedir
     si_df = pd.read_pickle(os.path.join(basedir, si_df))
     sv_df = pd.read_pickle(os.path.join(basedir, sv_df))
 
-    if split:
-        si_dfs = split_df(si_df)
-    else:
-        # si dataset is not splitted
-        si_dfs = [si_df]
+    # splitting dataframes
+    si_dfs = split_df(si_df)
 
+    # for computing eer, we need sv_df
     if not config["no_eer"]:
         dfs = si_dfs + [sv_df]
     else:
@@ -173,9 +81,8 @@ def find_dataset(config, basedir='./', split=True):
     datasets = []
     for i, df in enumerate(dfs):
         if i == 0:
-            datasets.append(dset_class.read_df(config, df, "train"))
+            datasets.append(SpeechDataset.read_df(config, df, "train"))
         else:
-            datasets.append(dset_class.read_df(config, df, "test"))
+            datasets.append(SpeechDataset.read_df(config, df, "test"))
 
     return dfs, datasets
-
