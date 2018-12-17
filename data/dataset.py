@@ -31,8 +31,10 @@ class SpeechDataset(data.Dataset):
         self.data_folder = config["data_folder"]
 
         if set_type == "train":
-            self._load_bg_noise(os.path.join(config['data_folder'],"_background_noise_"))
-            self.apply_bg_noise = True
+            bg_folder = os.path.join(config['data_folder'],"_background_noise_")
+            if os.path.isdir(bg_folder):
+                self._load_bg_noise(bg_folder)
+                self.apply_bg_noise = True
             self.random_clip = True
         else:
             self.apply_bg_noise = None

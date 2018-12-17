@@ -43,7 +43,6 @@ def default_audio_config():
     config["n_dct_filters"] = 40
     config["n_mels"] = 40
     config["timeshift_ms"] = 100
-    config["bkg_noise_folder"] = "/home/muncok/DL/dataset/SV_sets/speech_commands/_background_noise_"
     config["window_size"]= 0.025
     config["window_stride"]= 0.010
     return config
