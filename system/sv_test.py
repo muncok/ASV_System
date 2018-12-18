@@ -27,26 +27,37 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
     embeddings = []
     labels = []
     model.eval()
+
     if isinstance(config['splice_frames'], list):
         splice_frames = config['splice_frames'][-1]
     else:
         splice_frames = config['splice_frames']
-
     stride_frames = config['stride_frames']
-    # print("spFr:{}, stFr:{}".format(
+
     with torch.no_grad():
         for batch in tqdm(val_iter):
-            x, y = batch
+            if len(batch) == 2:
+                x, y = batch
+            else:
+                seq_len, x, y = batch
+
             if not config['no_cuda']:
                 x = x.cuda()
+
             model_outputs = []
-            if config['score_mode'] == "precise":
+            if len(batch) == 3:
+                # each input has different length
+                # keep their own length
                 for i in range(len(x)):
-                    out_ = model.embed(x).cpu().detach().data
+                    x_in = x[i:i+1,:,:seq_len[i]]
+                    out_ = model.embed(x_in).cpu().detach().data
                     model_outputs.append(out_)
                 model_output = torch.cat(model_outputs, dim=0)
             else:
+                # evary inputs have same length
+                # they are chosen by fixed length
                 time_dim = x.size(2)
+                # input are splitted by amount of splice_frames
                 split_points = range(0, time_dim-(splice_frames)+1, stride_frames)
                 for point in split_points:
                     x_in = x.narrow(2, point, splice_frames)

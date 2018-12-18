@@ -90,10 +90,7 @@ def set_score_config(args):
     config.update(config_from_agrs)
 
     config['input_samples'] = framesToSample(args.input_frames)
-    if args.score_mode == "precise":
-        config['input_clip'] = False
-    else:
-        config['input_clip'] = True
+    config['input_clip'] = False
     config['no_cuda'] = not args.cuda
 
     return config
