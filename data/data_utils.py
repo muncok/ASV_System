@@ -32,15 +32,18 @@ def find_trial(config, basedir='./'):
         trial_name = "gcommand_equal_num_30spk_trial"
         trial = pd.read_pickle(os.path.join(basedir,
             "dataset/gcommand/equal_num_30spk_test_trial.pkl"))
+    elif "voxc1" in dataset:
+        trial_name = "voxc1_sv_test"
+        trial = pd.read_pickle(os.path.join(basedir,
+            "dataset/voxceleb1/voxc1_sv_test_trial.pkl"))
     else:
         print("ERROR: No trial file")
         raise FileNotFoundError
-
     print("=> loaded trial: {}".format(trial_name))
 
     return trial
 
-def find_dataset(config, basedir='./'):
+def find_dataset(config, basedir='./', split=True):
     dataset = config ['dataset']
     config['data_folder'] = "asdf"
     if dataset == "gcommand_fbank40":
@@ -57,6 +60,20 @@ def find_dataset(config, basedir='./'):
         si_df = "dataset/gcommand/equal_num_30spk_si.pkl"
         sv_df = "dataset/gcommand/equal_num_30spk_sv.pkl"
         n_labels = 1759
+    elif dataset == "voxc1_fbank40":
+        config['data_folder'] = "dataset/voxceleb1/wav"
+        config['input_dim'] = 40
+        config['input_format'] = 'fbank'
+        si_df = "dataset/voxceleb1/voxc1_si.pkl"
+        sv_df = "dataset/voxceleb1/voxc1_sv.pkl"
+        n_labels = 1211
+    elif dataset == "voxc1_mfcc40":
+        config['data_folder'] = "dataset/voxceleb1/wav"
+        config['input_dim'] = 40
+        config['input_format'] = 'mfcc'
+        si_df = "dataset/voxceleb1/voxc1_si.pkl"
+        sv_df = "dataset/voxceleb1/voxc1_sv.pkl"
+        n_labels = 1211
 
     config['data_folder'] = os.path.join(basedir, config['data_folder'])
     if not 'dataset' in config or not os.path.isdir(config['data_folder']):
@@ -70,7 +87,10 @@ def find_dataset(config, basedir='./'):
     sv_df = pd.read_pickle(os.path.join(basedir, sv_df))
 
     # splitting dataframes
-    si_dfs = split_df(si_df)
+    if split:
+        si_dfs = split_df(si_df)
+    else:
+        si_dfs = [si_df]
 
     # for computing eer, we need sv_df
     if not config["no_eer"]:
