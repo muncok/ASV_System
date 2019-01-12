@@ -40,8 +40,6 @@ class ConfigBuilder(object):
 def default_audio_config():
     config = {}
     config["noise_prob"] = 0.0
-    config["n_dct_filters"] = 40
-    config["n_mels"] = 40
     config["timeshift_ms"] = 100
     config["window_size"]= 0.025
     config["window_stride"]= 0.010
@@ -128,26 +126,23 @@ def train_parser():
     parser.add_argument('-dataset',
                         type=str,
                         required=True,
-                        help='dataset',
+                        help='{name}_{format}_{dim}_{wav|feat}',
                         default='')
 
     parser.add_argument('-arch',
                         type=str,
                         required=True,
-                        help='type of model',
-                        )
+                        help='type of model',)
 
     parser.add_argument('-input_file',
                         type=str,
                         help='model path to be loaded',
-                        default=None,
-                        )
+                        default=None,)
 
     parser.add_argument('-output_dir',
                         type=str,
                         help='model folder to be saved',
-                        default=None
-                        )
+                        default=None)
 
     parser.add_argument('-s_epoch',
                         type=int,
@@ -186,15 +181,13 @@ def train_parser():
     parser.add_argument('-seed',
                         type=int,
                         help='training seed',
-                        default=1337
-                        )
+                        default=1337)
 
     parser.add_argument('-gpu_no',
                         type=int,
                         nargs='+',
                         help='gpu device ids',
-                        default=[0]
-                        )
+                        default=[0])
 
     parser.add_argument('-cuda',
                         action='store_true')
@@ -205,12 +198,11 @@ def train_parser():
     parser.add_argument('-n_labels',
                         type=int,
                         help='n_labels of input_model',
-                        default=None
-                        )
+                        default=None)
 
     return parser
 
-def score_parser():
+def sre_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-batch', '--batch_size',
                         type=int,
@@ -225,7 +217,7 @@ def score_parser():
     parser.add_argument('-dataset',
                         type=str,
                         required=True,
-                        help='dataset')
+                        help='{name}_{format}_{dim}_{wav|feat}')
 
     parser.add_argument('-arch',
                         type=str,
@@ -247,7 +239,6 @@ def score_parser():
                         help='input feature, mfcc, fbank',
                         choices=['fbank', 'mfcc'],
                         default='fbank')
-
 
     parser.add_argument('-inFr', '--input_frames',
                         type=int,
@@ -276,26 +267,22 @@ def score_parser():
                         type=str,
                         help='precision of scoring',
                         choices=['precise', 'approx'],
-                        default='approx'
-                        )
+                        default='approx')
 
     parser.add_argument('-output_dir',
                         type=str,
-                        help='path to be saved',
-                        )
+                        help='path to be saved',)
 
     parser.add_argument('-gpu_no',
                         type=int,
                         nargs='+',
                         help='gpu device ids',
-                        default=[0]
-                        )
+                        default=[0])
 
     parser.add_argument('-n_labels',
                         type=int,
                         help='n_labels of input_model',
-                        default=None
-                        )
+                        default=None)
 
     parser.add_argument('-no_eer',
                         action='store_true')

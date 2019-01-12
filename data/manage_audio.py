@@ -10,7 +10,9 @@ windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman
 def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
     ## DCT Part
     if in_feature == "mfcc":
-        data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
+        data = librosa.feature.melspectrogram(
+                data, sr=16000, n_mels=n_mels, hop_length=160,
+                n_fft=480, fmin=20, fmax=4000)
         data[data > 0] = np.log(data[data > 0])
         data = [np.matmul(dct_filters, x) for x in np.split(data, data.shape[1], axis=1)]
         data = np.array(data, order="F").squeeze(2).astype(np.float32)
@@ -20,7 +22,9 @@ def preprocess_audio(data, n_mels, dct_filters, in_feature="mfcc"):
         # data = np.stack([data, data_delta, data_delta2], axis=0)
         data = torch.from_numpy(data)
     elif in_feature == "fbank":
-        data = librosa.feature.melspectrogram(data, sr=16000, n_mels=n_mels, hop_length=160, n_fft=480, fmin=20, fmax=4000)
+        data = librosa.feature.melspectrogram(
+                data, sr=16000, n_mels=n_mels, hop_length=160,
+                n_fft=480, fmin=20, fmax=4000)
         data[data > 0] = np.log(data[data > 0])
         data = data.astype(np.float32).transpose()
         data = torch.from_numpy(data)

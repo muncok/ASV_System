@@ -1,4 +1,5 @@
 import os
+import warnings
 import random
 import librosa
 import numpy as np
@@ -25,9 +26,10 @@ class SpeechDataset(data.Dataset):
         self.input_format = config["input_format"]
         self.input_clip = config["input_clip"]
         # input feature config
-        self.n_dct = config["n_dct_filters"]
-        self.n_mels = config["n_mels"]
-        self.filters = librosa.filters.dct(config["n_dct_filters"], config["n_mels"])
+        self.n_dct = int(config["input_dim"])
+        self.n_mels = int(config["input_dim"])
+        self.filters = librosa.filters.dct(self.n_dct,
+                self.n_mels)
         self.data_folder = config["data_folder"]
 
         if set_type == "train":
@@ -94,15 +96,15 @@ class SpeechDataset(data.Dataset):
 
     @classmethod
     def read_df(cls, config, df, set_type):
-        if 'file' in df.columns:
-            files = df.file.tolist()
-        else:
-            files = df.wav.tolist()
+        files = df.file.tolist()
+        files = map(lambda x: x+".wav", files)
 
         if "label" in df.columns:
             labels = df.label.tolist()
         else:
+            warnings.warn("No label data available")
             labels = [-1] * len(df)
+
         samples = OrderedDict(zip(files, labels))
         dataset = cls(samples, set_type, config)
         return dataset

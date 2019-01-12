@@ -1,17 +1,17 @@
 import torch
 
-from . import TdnnModel
-from . import ResNet34
+from . import tdnn
+from . import resnet34
 
 def find_model(config):
     arch = config["arch"]
     n_labels = config['n_labels']
     if arch == "tdnn_xvector":
-        model = TdnnModel.tdnn_xvector(config, 512, n_labels)
+        model = tdnn.tdnn_xvector(config, 512, n_labels)
     elif arch == "ResNet34":
-        model = ResNet34.ResNet34(config, 16, n_labels)
+        model = resnet34.ResNet34(config, 16, n_labels)
     else:
-        print (" Not Implemented Model")
+        print("Not Implemented Model")
         raise NotImplementedError
 
     model = place_model(config, model)

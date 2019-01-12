@@ -30,11 +30,11 @@ class st_pool_layer(nn.Module):
 
 class tdnn_xvector(nn.Module):
     """xvector architecture"""
-    def __init__(self, config, base_width=512,  n_labels=31):
+    def __init__(self, config, base_width, n_labels):
         super(tdnn_xvector, self).__init__()
-        inDim = config['input_dim']
+        in_dim = config['input_dim']
         self.tdnn = nn.Sequential(
-            nn.Conv1d(inDim, base_width, stride=1, dilation=1, kernel_size=5),
+            nn.Conv1d(in_dim, base_width, stride=1, dilation=1, kernel_size=5),
             nn.BatchNorm1d(base_width),
             nn.ReLU(True),
             nn.Conv1d(base_width, base_width, stride=1, dilation=3, kernel_size=3),

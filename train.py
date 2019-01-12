@@ -21,7 +21,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from torch.optim.lr_scheduler import MultiStepLR
 
 
-
 #########################################
 # Parser
 #########################################
@@ -50,7 +49,6 @@ if config['input_file']:
 #########################################
 # Model Save Path
 #########################################
-
 if config['output_dir']:
     pass
 else:
@@ -60,7 +58,7 @@ else:
 if not os.path.isdir(config['output_dir']):
     os.makedirs(config['output_dir'])
 
-print("Model will be saved to : {}".format(config['output_dir']))
+print("=> Model will be saved to: {}".format(config['output_dir']))
 
 #########################################
 # Logger
@@ -73,7 +71,6 @@ if not os.path.isdir(log_dir):
 writer = SummaryWriter(log_dir)
 sys.stdout = Logger(os.path.join(config['output_dir'],
     'logs/{}'.format('train_log.txt')))
-
 print(' '.join(sys.argv))
 # sys.stdout = Logger(os.path.join(config['output_dir'],
     # 'logs/log_{}'.format(str(uuid.uuid4())[:5]) + '.txt'))
