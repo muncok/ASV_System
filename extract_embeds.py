@@ -2,27 +2,66 @@
 import os
 import pickle
 import numpy as np
+import argparse
 
 from data.dataloader import init_default_loader
-from data.dataloader import _collate_fn
-from utils.parser import score_parser, set_score_config
+from data.dataloader import _var_len_collate_fn
 from data.data_utils import find_dataset
-from system.sv_test import embeds_utterance
-from system.si_train import load_checkpoint, get_dir_path
+from system.sv_test import extract_embed_var_len
+from system.si_train import load_checkpoint
 from model.model_utils import find_model
 #########################################
 # Parser
 #########################################
-parser = score_parser()
+parser = argparse.ArgumentParser()
+parser.add_argument('-batch', '--batch_size',
+                    type=int,
+                    help='batch size',
+                    default=64)
+
+parser.add_argument('-n_workers', '--num_workers',
+                    type=int,
+                    help='number of workers of dataloader',
+                    default=0)
+
+parser.add_argument('-dataset',
+                    type=str,
+                    required=True,
+                    help='{name}_{format}_{dim}_{wav|feat}')
+
+parser.add_argument('-arch',
+                    type=str,
+                    required=True,
+                    help='type of model')
+
+parser.add_argument('-input_file',
+                    type=str,
+                    required=True,
+                    help='model path to be loaded')
+
+parser.add_argument('-cuda',
+                    action = 'store_true',
+                    default= False)
+
+parser.add_argument('-output_dir',
+                    type=str,
+                    required=True,
+                    help='path for embeds to be saved',)
+
+parser.add_argument('-n_labels',
+                    type=int,
+                    help='n_labels of input_model',
+                    default=None)
+
 args = parser.parse_args()
-config = set_score_config(args)
+config = vars(args)
+config['input_clip'] = False
+config['gpu_no'] = [0]
+config['no_cuda'] = not args.cuda
+config['no_eer'] = False # TODO: for sv_set, we should set no_eer as False
+config['random_clip'] = False
 
-if not config['output_dir']:
-    output_dir = get_dir_path(config['input_file'])
-    output_dir = os.path.join(output_dir, 'embeds')
-else:
-    output_dir = config["output_dir"]
-
+output_dir = args.output_dir
 if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
 
@@ -37,18 +76,13 @@ si_dset, sv_dset = datasets
 model = find_model(config)
 load_checkpoint(config, model=model)
 
-if not config['lda_file']:
-    lda = None
-else:
-    lda = pickle.load(open(config['lda_file'], "rb"))
-
 #########################################
 # Compute Train Embeddings
 #########################################
-si_dataloader = init_default_loader(config, si_dset, shuffle=False, collate_fn=_collate_fn)
-si_embeddings, _ = embeds_utterance(config, si_dataloader, model, lda)
-
-si_keys = si_df.index.tolist()
+si_dataloader = init_default_loader(config, si_dset, shuffle=False,
+        collate_fn=_var_len_collate_fn)
+si_embeddings, _ = extract_embed_var_len(config, si_dataloader, model)
+si_keys = si_df.id.tolist()
 pickle.dump(si_keys, open(os.path.join(output_dir, "si_keys.pkl"), "wb"))
 np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
 
@@ -56,9 +90,9 @@ np.save(os.path.join(output_dir, "si_embeds.npy"), si_embeddings)
 # Compute Test Embeddings
 #########################################
 
-sv_dataloader = init_default_loader(config, sv_dset, shuffle=False, collate_fn=_collate_fn)
-sv_embeddings, _ = embeds_utterance(config, sv_dataloader, model, lda)
-
-sv_keys = sv_df.index.tolist()
+sv_dataloader = init_default_loader(config, sv_dset, shuffle=False,
+        collate_fn=_var_len_collate_fn)
+sv_embeddings, _ = extract_embed_var_len(config, sv_dataloader, model)
+sv_keys = sv_df.id.tolist()
 pickle.dump(sv_keys, open(os.path.join(output_dir, "sv_keys.pkl"), "wb"))
 np.save(os.path.join(output_dir, "sv_embeds.npy"), sv_embeddings)

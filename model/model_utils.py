@@ -8,6 +8,8 @@ def find_model(config):
     n_labels = config['n_labels']
     if arch == "tdnn_xvector":
         model = tdnn.tdnn_xvector(config, 512, n_labels)
+    elif arch == "tdnn_xvector_untied":
+        model = tdnn.tdnn_xvector_untied(config, 512, n_labels)
     elif arch == "ResNet34":
         model = resnet34.ResNet34(config, 16, n_labels)
     else:

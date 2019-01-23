@@ -2,7 +2,7 @@ import torch
 import torch.utils.data as data
 # from .dataset import SpeechDataset
 
-def _collate_fn(batch):
+def _var_len_collate_fn(batch):
     """
     collate_fn with variable length sequencial data.
     it zero-padding short data

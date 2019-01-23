@@ -27,12 +27,14 @@ criterion = find_criterion(config, model)
 # val acc: model accuracy on si(speaker identification) dataset
 # sv eer: equal error rate on sv(speaker verification) dataset
 val_set = datasets[1]
-val_loader = init_default_loader(config, val_set, shuffle=False)
-val_loss, val_acc = val(config, val_loader, model, criterion)
-print("val acc: {}".format(val_acc))
+if val_set:
+    val_loader = init_default_loader(config, val_set, shuffle=False)
+    val_loss, val_acc = val(config, val_loader, model, criterion)
+    print("val acc: {}".format(val_acc))
 
-sv_set = datasets[-1]
-sv_loader = init_default_loader(config, sv_set, shuffle=False)
-trial = find_trial(config)
-eer, _, _ = sv_test(config, sv_loader, model, trial)
-print("sv eer: {:.4f} (model:{}, dataset:{})".format(eer, config['arch'], config['dataset']))
+sv_set = datasets[2]
+if sv_set:
+    sv_loader = init_default_loader(config, sv_set, shuffle=False)
+    trial = find_trial(config)
+    eer, _, _ = sv_test(config, sv_loader, model, trial)
+    print("sv eer: {:.4f} (model:{}, dataset:{})".format(eer, config['arch'], config['dataset']))

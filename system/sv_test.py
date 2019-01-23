@@ -1,28 +1,44 @@
+import pandas as pd
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 from sklearn.metrics import roc_curve
 from tqdm import tqdm
+from .compute_min_dcf import ComputeErrorRates, ComputeMinDcf
 
-def lda_on_tensor(tensor, lda):
-    return torch.from_numpy(lda.transform(tensor.numpy()).astype(np.float32))
+def extract_embed_var_len(config, val_dataloader, model):
+    # each input has different length
+    # keep their own length
+    val_iter = iter(val_dataloader)
+    embeddings = []
+    labels = []
+    model.eval()
 
+    with torch.no_grad():
+        for batch in tqdm(val_iter):
+            seq_len, x, y = batch
 
-def compute_eer(pos_scores, neg_scores, verbose=False):
-    score_vector = np.concatenate([pos_scores, neg_scores])
-    label_vector = np.concatenate([np.ones(len(pos_scores)), np.zeros(len(neg_scores))])
-    fpr, tpr, thres = roc_curve(label_vector, score_vector, pos_label=1)
-    eer = np.min([fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))],
-                 1-tpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]])
-    thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+            if not config['no_cuda']:
+                x = x.cuda()
 
-    if verbose:
-        print("eer:{:.3f}% at threshold {:.4f}".format(eer*100, thres))
+            model_outputs = []
+            for i in range(len(x)):
+                x_in = x[i:i+1,:,:seq_len[i]]
+                out_ = model.embed(x_in).cpu().detach().data
+                model_outputs.append(out_)
+            model_output = torch.cat(model_outputs, dim=0)
+            embeddings.append(model_output)
+            labels.append(y.numpy())
 
-    return eer, thres
+    embeddings = torch.cat(embeddings)
+    labels = np.hstack(labels)
 
-def embeds_utterance(config, val_dataloader, model, lda=None):
+    return embeddings, labels
+
+def extract_embed_fix_len(config, val_dataloader, model):
+    # evary inputs have same length
+    # they are chosen by fixed length
     val_iter = iter(val_dataloader)
     embeddings = []
     labels = []
@@ -36,57 +52,64 @@ def embeds_utterance(config, val_dataloader, model, lda=None):
 
     with torch.no_grad():
         for batch in tqdm(val_iter):
-            if len(batch) == 2:
-                x, y = batch
-            else:
-                seq_len, x, y = batch
+            x, y = batch
 
             if not config['no_cuda']:
                 x = x.cuda()
 
             model_outputs = []
-            if len(batch) == 3:
-                # each input has different length
-                # keep their own length
-                for i in range(len(x)):
-                    x_in = x[i:i+1,:,:seq_len[i]]
-                    out_ = model.embed(x_in).cpu().detach().data
-                    model_outputs.append(out_)
-                model_output = torch.cat(model_outputs, dim=0)
-            else:
-                # evary inputs have same length
-                # they are chosen by fixed length
-                time_dim = x.size(2)
-                # input are splitted by amount of splice_frames
-                split_points = range(0, time_dim-(splice_frames)+1, stride_frames)
-                for point in split_points:
-                    x_in = x.narrow(2, point, splice_frames)
-                    model_outputs.append(model.embed(x_in).detach().cpu().data)
-                model_output = torch.stack(model_outputs, dim=0)
-                model_output = model_output.mean(0)
-
-            if lda is not None:
-                model_output = torch.from_numpy(
-                        lda.transform(model_output.numpy()).astype(np.float32))
+            time_dim = x.size(2)
+            # input are splitted by amount of splice_frames
+            split_points = range(0, time_dim-(splice_frames)+1, stride_frames)
+            for point in split_points:
+                x_in = x.narrow(2, point, splice_frames)
+                model_outputs.append(model.embed(x_in).detach().cpu().data)
+            model_output = torch.stack(model_outputs, dim=0)
+            # splitted snipets are averaged
+            model_output = model_output.mean(0)
             embeddings.append(model_output)
             labels.append(y.numpy())
-        embeddings = torch.cat(embeddings)
-        labels = np.hstack(labels)
+
+    embeddings = torch.cat(embeddings)
+    labels = np.hstack(labels)
+
     return embeddings, labels
 
-def sv_test(config, sv_loader, model, trial):
-        if isinstance(model, torch.nn.DataParallel):
-            model_t = model.module
-        else:
-            model_t = model
+def get_embeds(config, sv_loader, model):
+    if isinstance(model, torch.nn.DataParallel):
+        model_t = model.module
+    else:
+        model_t = model
 
-        embeddings, _ = embeds_utterance(config, sv_loader, model_t, None)
-        score_vector = F.cosine_similarity(
-                embeddings[trial.enrolment_id], embeddings[trial.test_id], dim=1)
-        label_vector = np.array(trial.label)
-        fpr, tpr, thres = roc_curve(
-                label_vector, score_vector, pos_label=1)
-        eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
-        thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+    if config['input_clip']:
+        embeddings, _ = extract_embed_fix_len(config, sv_loader, model_t)
+    else:
+        embeddings, _ = extract_embed_var_len(config, sv_loader, model_t)
 
-        return eer, label_vector, score_vector
+    return embeddings
+
+def compute_minDCF(scores, labels, c_miss=1.0, c_fa=1.0, p_target=0.01):
+    fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
+    mindcf, threshold = ComputeMinDcf(fnrs, fprs, thresholds, p_target,
+         c_miss, c_fa)
+    print("minDCF is {0:.4f} at threshold {1:.4f} (p-target={2}, c-miss={3},"
+        " c-fa={4})".format(mindcf, threshold, p_target,c_miss, c_fa))
+
+def sv_test(embeddings, trial):
+    score_vector = F.cosine_similarity(
+            embeddings[trial.enroll_idx], embeddings[trial.test_idx],
+            dim=1).numpy().tolist()
+    label_vector = np.array(trial.label)
+    fpr, tpr, thres = roc_curve(
+            label_vector, score_vector, pos_label=1)
+    eer = fpr[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+    thres = thres[np.nanargmin(np.abs(fpr - (1 - tpr)))]
+
+    return eer, thres, score_vector
+
+def get_trial_result(trial, scores):
+    # result = pd.DataFrame({'enr':trial.enroll_id, 'test':trial.test_id,
+        # 'score':scores, 'label':trial.label})
+    result = pd.DataFrame({'score':scores})
+
+    return result

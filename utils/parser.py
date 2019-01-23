@@ -41,6 +41,7 @@ def default_audio_config():
     config = {}
     config["noise_prob"] = 0.0
     config["timeshift_ms"] = 100
+    config["sample_rate"] = 16000
     config["window_size"]= 0.025
     config["window_stride"]= 0.010
     return config

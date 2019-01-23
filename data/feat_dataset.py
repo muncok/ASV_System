@@ -18,8 +18,9 @@ class FeatDataset(data.Dataset):
         self.labels = list(data.values())
         self.data_folder = config["data_folder"]
         # input audio config
-        self.input_frames = config["input_frames"]
         self.input_clip = config["input_clip"]
+        if self.input_clip:
+            self.input_frames = config["input_frames"]
         self.input_dim = config["input_dim"]
         if set_type == "train" and config['random_clip']:
             self.random_clip = True
@@ -30,18 +31,11 @@ class FeatDataset(data.Dataset):
         try:
             data = np.load(example)
         except FileNotFoundError:
-            if os.path.isdir(get_dir_path(example)):
-                # need to make a empty file for necessary missing files
-                # only if directory is exist correctly
-                data = np.zeros((self.input_frames, self.input_dim))
-                np.save(example, data)
-                print("{} is generated (zero array for silence audio)".format(example))
-            else:
-                print("{} is not found".format(example))
+                warnings.warn("{} is not found".format(example))
                 raise FileNotFoundError
         # clipping
-        in_len = self.input_frames
         if self.input_clip:
+            in_len = self.input_frames
             if len(data) > in_len:
                 if self.random_clip:
                     start_sample = np.random.randint(0, len(data) - in_len)
@@ -57,15 +51,19 @@ class FeatDataset(data.Dataset):
                 residual = gap % len(data)
                 data = np.concatenate([np.tile(data, (repeat+1, 1)),
                     data[:residual]], axis=0)
-        #TODO why do they have diffrent input dimension?
-        data = data[:,:self.input_dim] # first dimension could be energy term
+
+        # first dimension represents energy
+        # TODO: should include energy dimension?
+        data = data[:,:self.input_dim]
         # expand a singleton dimension standing for a channel dimension
         data = torch.from_numpy(data).unsqueeze(0).float()
         return data
 
     @classmethod
     def read_df(cls, config, df, set_type):
-        files = df.feat.tolist()
+        files = df.file.tolist()
+        files = map(lambda x: x.rstrip(".npy") +".npy", files)
+
         if "label" in df.columns:
             labels = df.label.tolist()
         else:

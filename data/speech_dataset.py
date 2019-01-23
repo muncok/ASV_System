@@ -12,9 +12,10 @@ def get_dir_path(file_path):
     return "/".join(file_path.split("/")[:-1])
 
 class SpeechDataset(data.Dataset):
-    def __init__(self, data, set_type, config):
+    def __init__(self, config, data, set_type):
         super().__init__()
         self.set_type = set_type
+        self.config = config
         # data
         self.audio_files = list(data.keys())
         self.audio_labels = list(data.values())
@@ -91,13 +92,13 @@ class SpeechDataset(data.Dataset):
 
         # audio to input feature
         # mfcc hyper-parameters are hard coded.
-        input_feature = preprocess_audio(data, self.n_mels, self.filters, self.input_format)
+        input_feature = preprocess_audio(self.config, data, self.n_mels, self.filters, self.input_format)
         return input_feature.unsqueeze(0)
 
     @classmethod
     def read_df(cls, config, df, set_type):
         files = df.file.tolist()
-        files = map(lambda x: x+".wav", files)
+        files = map(lambda x: x.rstrip(".wav")+".wav", files)
 
         if "label" in df.columns:
             labels = df.label.tolist()
@@ -106,7 +107,7 @@ class SpeechDataset(data.Dataset):
             labels = [-1] * len(df)
 
         samples = OrderedDict(zip(files, labels))
-        dataset = cls(samples, set_type, config)
+        dataset = cls(config, samples, set_type)
         return dataset
 
     def _load_bg_noise(self, bg_folder):
