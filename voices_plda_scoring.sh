@@ -13,7 +13,7 @@ export LC_ALL=C
    exit 1;
  fi
 
-model_dir=$1/plda_train
+model_dir=$1
 test_dir=$2
 scores_dir=$test_dir/scores
 

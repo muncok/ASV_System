@@ -32,8 +32,12 @@ elif [ "$dataset" == "voxc2" ]; then
     cp datasets/voxceleb2/kaldi_files/utt2spk $data_dir
     trials=datasets/voxceleb12/trials/voxceleb12_sv
 elif [ "$dataset" == "voxc12" ]; then
-    cp datasets/voxceleb12/kaldi_files/spk2utt $data_dir
-    cp datasets/voxceleb12/kaldi_files/utt2spk $data_dir
+    cp datasets/voxceleb12/kaldi_files/voxc12orig/spk2utt $data_dir
+    cp datasets/voxceleb12/kaldi_files/voxc12orig/utt2spk $data_dir
+    trials=datasets/voxceleb12/trials/voxceleb12_sv
+elif [ "$dataset" == "voxc12aug" ]; then
+    cp datasets/voxceleb12/kaldi_files/voxc12aug/spk2utt $data_dir
+    cp datasets/voxceleb12/kaldi_files/voxc12aug/utt2spk $data_dir
     trials=datasets/voxceleb12/trials/voxceleb12_sv
 elif [ "$dataset" == "gcommand" ]; then
     cp datasets/gcommand/kaldi_files/spk2utt $data_dir

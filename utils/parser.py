@@ -203,7 +203,7 @@ def train_parser():
 
     return parser
 
-def sre_parser():
+def score_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-batch', '--batch_size',
                         type=int,

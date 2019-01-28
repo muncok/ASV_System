@@ -7,15 +7,17 @@ from .feat_dataset import FeatDataset
 
 def split_df(df):
     if 'set' in df.columns:
-        train_df = df[df.set == 1]
-        test_df = df[df.set == 2]
+        train_df = df[df.set == 'train']
+        val_df = df[df.set == 'val']
+        assert len(train_df) > 0, "empty train_df"
+        assert len(val_df) > 0, "empty val_df"
     else:
         warnings.warn("No official splits")
         warnings.warn("Randomly splited to train:test = 8:2")
-        test_df = df.sample(frac=0.2)
-        train_df = df.drop(index=test_df.index)
+        val_df = df.sample(frac=0.2)
+        train_df = df.drop(index=val_df.index)
 
-    return [train_df, test_df]
+    return [train_df, val_df]
 
 def find_trial(config, basedir='./'):
     dataset = config['dataset']
@@ -57,14 +59,14 @@ def get_dataset_info(config, dataset):
             sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
     elif mode == "feat":
         dataset_cls = FeatDataset
-        if dataset == "voxc1_mfcc_30_feat":
-            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/mfcc30"
+        if dataset == "voxc1_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
             config['input_format'] = in_format
             config['input_dim'] = int(in_dim)
             config['num_workers'] = 8
-            n_labels = 7325
-            si_df = "/dataset/SV_sets/voxceleb12/dataframes/voxc12_si.csv"
-            sv_df = "/dataset/SV_sets/voxceleb12/dataframes/voxc12_sv.csv"
+            n_labels = 1211
+            si_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_si.csv"
+            sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
         elif dataset == "voxc2_fbank_64_feat":
             config['data_folder'] = "/dataset/SV_sets/voxceleb2/feats/fbank64_vad"
             config['input_format'] = in_format

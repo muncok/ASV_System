@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import sys
+import pandas as pd
 # import uuid
 
 import torch
@@ -10,13 +11,12 @@ from utils.parser import train_parser, set_train_config
 from utils.utils import Logger
 
 from data.dataloader import init_loaders
-from data.data_utils import find_dataset, find_trial
+from data.feat_dataset import FeatDataset
 from model.model_utils import find_model
 
 from system.si_train import set_seed, find_optimizer
 from system.si_train import load_checkpoint, save_checkpoint, new_exp_dir
 from system.si_train import train, val
-from system.sv_test import sv_test
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 # from torch.optim.lr_scheduler import MultiStepLR
 
@@ -32,8 +32,18 @@ config = set_train_config(args)
 #########################################
 # Dataset loaders
 #########################################
-_, datasets = find_dataset(config)
-loaders = init_loaders(config, datasets)
+name, in_format, in_dim, mode = dataset.split("_")
+config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+config['input_format'] = in_format
+config['input_dim'] = int(in_dim)
+config['num_workers'] = 8
+config['n_labels'] = 7365
+df = pd.read_csv("/dataset/SV_sets/voxceleb12/dataframes/voxc12aug_si.csv")
+train_df = df[df.set == 'train']
+val_df = df[df.set == 'val']
+train_dataset = FeatDataset.read_df(config, train_df, 'train')
+val_dataset = FeatDataset.read_df(config, val_df, 'val')
+loaders = init_loaders(config, [train_dataset, val_dataset])
 
 #########################################
 # Model Initialization
@@ -84,22 +94,11 @@ if not config['no_eer']:
 else:
     train_loader, val_loader = loaders
 
-
-#########################################
-# trial
-#########################################
-trial = find_trial(config)
-if not config['no_eer']:
-    best_metric = config['best_metric'] if 'best_metric' in config \
-            else 1.0
-else:
-    best_metric = config['best_metric'] if 'best_metric' in config \
-            else 0.0
-
 #########################################
 # Model Training
 #########################################
 set_seed(config)
+best_metric = 0.0
 for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     config['epoch_idx'] = epoch_idx
     curr_lr = optimizer.state_dict()['param_groups'][0]['lr']
@@ -120,26 +119,12 @@ for epoch_idx in range(config["s_epoch"], config["n_epochs"]):
     writer.add_scalar('val/acc', val_acc, epoch_idx)
     print("val acc: {}".format(val_acc))
 
-    # evaluate best_metric
-    if not config['no_eer']:
-        # eer validation code
-        eer, label, score = sv_test(config, sv_loader, model, trial)
-        current_metric = eer
-        writer.add_scalar('sv_eer', eer, epoch_idx)
-        writer.add_pr_curve('DET', label, score, epoch_idx)
-        print("sv eer: {}".format(eer))
-        if eer < best_metric:
-            best_metric = eer
-            is_best = True
-        else:
-            is_best = False
+    current_metric = val_acc
+    if val_acc > best_metric:
+        best_metric = val_acc
+        is_best = True
     else:
-        current_metric = val_acc
-        if val_acc > best_metric:
-            best_metric = val_acc
-            is_best = True
-        else:
-            is_best = False
+        is_best = False
 
     # for name, param in model.named_parameters():
         # writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch_idx)

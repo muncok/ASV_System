@@ -72,6 +72,31 @@ class tdnn_xvector(nn.Module):
         state_dict.pop("classifier.4.bias")
         self.load_state_dict(state_dict)
 
+    def feature_list(self, x):
+        """
+        extract embeddings for every relu activation
+        """
+        out_list = []
+        out = self.tdnn[:3](x)
+        out_list.append(out)
+        out = self.tdnn[3:6](out)
+        out_list.append(out)
+        out = self.tdnn[6:9](out)
+        out_list.append(out)
+        out = self.tdnn[9:12](out)
+        out_list.append(out)
+        out = self.tdnn[12:15](out)
+        out_list.append(out)
+        out = self.tdnn[15:](out) # skip saving
+        out = self.classifier[:1](out)
+        out_list.append(out)
+        out = self.classifier[1:4](out)
+        out_list.append(out)
+        out = self.classifier[4:](out)
+        out_list.append(out)
+
+        return out_list
+
     def embed(self, x):
         x = x.squeeze(1)
         # (batch, time, freq) -> (batch, freq, time)
@@ -105,35 +130,13 @@ class tdnn_xvector(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-class tdnn_xvector_untied(nn.Module):
+class tdnn_xvector_untied(tdnn_xvector):
     """xvector architecture
         untying classifier for flexible embedding positon
     """
     def __init__(self, config, base_width=512, n_labels=31):
-        super(tdnn_xvector_untied, self).__init__()
-        inDim = config['input_dim']
-        self.tdnn = nn.Sequential(
-            nn.Conv1d(inDim, base_width, stride=1, dilation=1, kernel_size=5),
-            nn.BatchNorm1d(base_width),
-            nn.ReLU(True),
-            nn.Conv1d(base_width, base_width, stride=1, dilation=3, kernel_size=3),
-            nn.BatchNorm1d(base_width),
-            nn.ReLU(True),
-            nn.Conv1d(base_width, base_width, stride=1, dilation=4, kernel_size=3),
-            nn.BatchNorm1d(base_width),
-            nn.ReLU(True),
-            nn.Conv1d(base_width, base_width, stride=1, dilation=1, kernel_size=1),
-            nn.BatchNorm1d(base_width),
-            nn.ReLU(True),
-            nn.Conv1d(base_width, 1500, stride=1, dilation=1, kernel_size=1),
-            nn.BatchNorm1d(1500),
-            nn.ReLU(True),
-            st_pool_layer(),
-            nn.Linear(3000, base_width),
-        )
-
+        super(tdnn_xvector_untied, self).__init__(config, base_width,  n_labels)
         last_fc = nn.Linear(base_width, n_labels)
-
         self.tdnn6_bn = nn.BatchNorm1d(base_width)
         self.tdnn6_relu = nn.ReLU(True)
         self.tdnn7_affine = nn.Linear(base_width, base_width)
@@ -164,24 +167,43 @@ class tdnn_xvector_untied(nn.Module):
 
         return x
 
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.Conv1d):
-                n = m.kernel_size[0] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm1d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
+class tdnn_xvector_nofc(tdnn_xvector):
+    """xvector architecture
+        untying classifier for flexible embedding positon
+    """
+    def __init__(self, config, base_width=512, n_labels=31):
+        super(tdnn_xvector_nofc, self).__init__(config, base_width,  n_labels)
+        last_fc = nn.Linear(base_width, n_labels)
+        self.tdnn6_bn = nn.BatchNorm1d(base_width)
+        self.tdnn6_relu = nn.ReLU(True)
+        self.tdnn7_affine = nn.Linear(base_width, base_width)
+        self.tdnn7_bn = nn.BatchNorm1d(base_width)
+        self.tdnn7_relu = nn.ReLU(True)
+        self.tdnn8_last = last_fc
+
+
+        self._initialize_weights()
+
+    def embed(self, x):
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        x = self.tdnn(x)
+
+        return x
+
+    def forward(self, x):
+
+        x = self.embed(x)
+        x = torch.nn.functional.normalize(x, p=2, dim=1)
+        x = self.tdnn6_bn(x)
+        x = self.tdnn6_relu(x)
+        x = self.tdnn7_affine(x)
+        # x = self.tdnn7_bn(x)
+        # x = self.tdnn7_relu(x)
+        # x = self.tdnn8_last(x)
+
+        return x
 
 if __name__ == '__main__':
     config = {'loss':'softmax', 'input_dim':30,
