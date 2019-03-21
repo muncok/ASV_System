@@ -72,10 +72,29 @@ class tdnn_xvector(nn.Module):
         state_dict.pop("classifier.4.bias")
         self.load_state_dict(state_dict)
 
+    def statistic(self, x):
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        out = self.tdnn[:-2](x)
+
+        return out
+
+    def fr_level_feat(self, x):
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        out = self.tdnn[:-3](x)
+
+        return out
+
     def feature_list(self, x):
         """
         extract embeddings for every relu activation
         """
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
         out_list = []
         out = self.tdnn[:3](x)
         out_list.append(out)
@@ -87,13 +106,22 @@ class tdnn_xvector(nn.Module):
         out_list.append(out)
         out = self.tdnn[12:15](out)
         out_list.append(out)
-        out = self.tdnn[15:](out) # skip saving
+        out = self.tdnn[15:](out) # xvector
+        out_list.append(out)
         out = self.classifier[:1](out)
         out_list.append(out)
         out = self.classifier[1:4](out)
         out_list.append(out)
-        out = self.classifier[4:](out)
-        out_list.append(out)
+
+        max_dim = max(map(lambda x: x.shape[1], out_list))
+        for i, o in enumerate(out_list):
+            o = o.squeeze()
+            if o.dim() == 2:
+                o = o.mean(1)
+            if o.shape[-1] < max_dim:
+                pad1d = max_dim - o.shape[-1]
+                o = torch.nn.functional.pad(o, (0, pad1d), "constant", 0)
+            out_list[i] = o
 
         return out_list
 
@@ -134,20 +162,56 @@ class tdnn_xvector_untied(tdnn_xvector):
     """xvector architecture
         untying classifier for flexible embedding positon
     """
+
     def __init__(self, config, base_width=512, n_labels=31):
         super(tdnn_xvector_untied, self).__init__(config, base_width,  n_labels)
-        last_fc = nn.Linear(base_width, n_labels)
+        inDim = config['input_dim']
+        self.tdnn = nn.Sequential(
+            nn.Conv1d(inDim, base_width, stride=1, dilation=1, kernel_size=5),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=3, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=4, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, 1500, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(1500),
+            nn.ReLU(True),
+            st_pool_layer(),
+            nn.Linear(3000, base_width),
+        )
+
         self.tdnn6_bn = nn.BatchNorm1d(base_width)
         self.tdnn6_relu = nn.ReLU(True)
         self.tdnn7_affine = nn.Linear(base_width, base_width)
         self.tdnn7_bn = nn.BatchNorm1d(base_width)
         self.tdnn7_relu = nn.ReLU(True)
-        self.tdnn8_last = last_fc
+        self.tdnn8_last = nn.Linear(base_width, n_labels)
 
+        # for back-compatibility
+        self.classifier = None
 
         self._initialize_weights()
 
     def embed(self, x):
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        x = self.tdnn(x)
+        # x = self.tdnn6_bn(x)
+        # x = self.tdnn6_relu(x)
+        # x = self.tdnn7_affine(x)
+        # x = self.tdnn7_bn(x)
+        # x = self.tdnn7_relu(x)
+
+        return x
+
+    def last_embed(self, x):
         x = x.squeeze(1)
         # (batch, time, freq) -> (batch, freq, time)
         x = x.permute(0,2,1)
@@ -159,13 +223,59 @@ class tdnn_xvector_untied(tdnn_xvector):
         return x
 
     def forward(self, x):
-
-        x = self.embed(x)
+        x = x.squeeze(1)
+        # (batch, time, freq) -> (batch, freq, time)
+        x = x.permute(0,2,1)
+        x = self.tdnn(x)
+        x = self.tdnn6_bn(x)
+        x = self.tdnn6_relu(x)
+        x = self.tdnn7_affine(x)
         x = self.tdnn7_bn(x)
         x = self.tdnn7_relu(x)
         x = self.tdnn8_last(x)
 
         return x
+
+class tdnn_xvector_thin(tdnn_xvector_untied):
+    """xvector architecture
+        untying classifier for flexible embedding positon
+        layer widths becomes narrwer
+    """
+
+    def __init__(self, config, base_width=200, n_labels=31):
+        super(tdnn_xvector_thin, self).__init__(config, base_width,  n_labels)
+        inDim = config['input_dim']
+        self.tdnn = nn.Sequential(
+            nn.Conv1d(inDim, base_width, stride=1, dilation=1, kernel_size=5),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=3, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=4, kernel_size=3),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, base_width, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(base_width),
+            nn.ReLU(True),
+            nn.Conv1d(base_width, 512, stride=1, dilation=1, kernel_size=1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(True),
+            st_pool_layer(),
+            nn.Linear(1024, base_width),
+        )
+
+        self.tdnn6_bn = nn.BatchNorm1d(base_width)
+        self.tdnn6_relu = nn.ReLU(True)
+        self.tdnn7_affine = nn.Linear(base_width, base_width)
+        self.tdnn7_bn = nn.BatchNorm1d(base_width)
+        self.tdnn7_relu = nn.ReLU(True)
+        self.tdnn8_last = nn.Linear(base_width, n_labels)
+
+        # for back-compatibility
+        self.classifier = None
+
+        self._initialize_weights()
 
 class tdnn_xvector_nofc(tdnn_xvector):
     """xvector architecture

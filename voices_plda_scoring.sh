@@ -17,26 +17,27 @@ model_dir=$1
 test_dir=$2
 scores_dir=$test_dir/scores
 
-trials=datasets/voices/trials/voices_sv
+#trials=datasets/voices/dev_set/kaldi_files/voices_dev_sv
+trials=datasets/voices/eval_set/kaldi_files/voices_eval_sv
 
-# transform sv_embeds.npy to sv_embeds.ark
-kaldi_utils/feat2ark.py -key_in $test_dir/sv_keys.pkl -embed_in $test_dir/sv_embeds.npy -output $test_dir
-
-# cosine scoring
-kaldi_utils/run.pl $scores_dir/log/cosine_scoring.log \
-  cat $trials \| awk '{print $1" "$2}' \| \
-  ivector-compute-dot-products - \
-    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
-   $scores_dir/cosine_scores || exit 1;
-
-# lda scoring
-kaldi_utils/run.pl $scores_dir/log/lda_scoring.log \
-  cat $trials \| awk '{print $1" "$2}' \| \
-  ivector-compute-dot-products - \
-    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $model_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $model_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-   $scores_dir/lda_scores || exit 1;
+## transform sv_embeds.npy to sv_embeds.ark
+#kaldi_utils/feat2ark.py -key_in $test_dir/sv_keys.pkl -embed_in $test_dir/sv_embeds.npy -output $test_dir
+#
+## cosine scoring
+#kaldi_utils/run.pl $scores_dir/log/cosine_scoring.log \
+#  cat $trials \| awk '{print $1" "$2}' \| \
+#  ivector-compute-dot-products - \
+#    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
+#    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
+#   $scores_dir/cosine_scores || exit 1;
+#
+## lda scoring
+#kaldi_utils/run.pl $scores_dir/log/lda_scoring.log \
+#  cat $trials \| awk '{print $1" "$2}' \| \
+#  ivector-compute-dot-products - \
+#    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $model_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+#    "ark:ivector-subtract-global-mean ${model_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $model_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+#   $scores_dir/lda_scores || exit 1;
 
 # plda scoring
 mkdir -p $scores_dir/log

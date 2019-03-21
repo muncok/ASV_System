@@ -10,7 +10,7 @@ export LC_ALL=C
  if [ $# != 3 ]; then
    echo "Usage: $0 <dataset> <data_dir> <stage>"
    echo "e.g.: $0 voxc1 voxc1_fbank64_embeds"
-   echo "  supported datasets: {voxc1, voxc12, gcommand}"
+   echo "  supported datasets: {voxc1, voxc2, gcommand}"
    exit 1;
  fi
 
@@ -43,6 +43,10 @@ elif [ "$dataset" == "gcommand" ]; then
     cp datasets/gcommand/kaldi_files/spk2utt $data_dir
     cp datasets/gcommand/kaldi_files/utt2spk $data_dir
     trials=datasets/gcommand/kaldi_files/gcommand_30spks_sv
+elif [ "$dataset" == "voices" ]; then
+    cp datasets/voices/kaldi_files/spk2utt $data_dir
+    cp datasets/voices/kaldi_files/utt2spk $data_dir
+    trials=datasets/coices/kaldi_files/voices_dev_sv
 else
     echo not supported dataset
     exit 1;
@@ -69,6 +73,8 @@ if [ $stage -le 2 ]; then
     "ark:ivector-subtract-global-mean scp:$train_dir/feats.scp ark:- |" \
     ark:$data_dir/utt2spk $train_dir/transform.mat || exit 1;
 fi
+    #"ark:ivector-subtract-global-mean scp:$train_dir/feats.scp ark:- |" \
+    #"scp:$train_dir/feats.scp" \
 
 
 if [ $stage -le 3 ]; then
@@ -87,6 +93,8 @@ if [ $stage -le 4 ]; then
         "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
         "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
        $scores_dir/cosine_scores || exit 1;
+        #"ark:ivector-normalize-length ark:${test_dir}/feats.ark ark:- |" \
+        #"ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | ivector-normalize-length ark:- ark:- |" \
 
     # lda scoring
     kaldi_utils/run.pl $scores_dir/log/lda_scoring.log \
@@ -95,6 +103,8 @@ if [ $stage -le 4 ]; then
         "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
         "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
        $scores_dir/lda_scores || exit 1;
+        #"ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+        #"ark:transform-vec $train_dir/transform.mat ark:${test_dir}/feats.ark  ark:- | ivector-normalize-length ark:- ark:- |" \
 
     # plda scoring
     mkdir -p $scores_dir/log
@@ -118,7 +128,7 @@ if [ $stage -le 4 ]; then
     echo "minDCF(p-target=0.01): $mindcf1"
     echo "minDCF(p-target=0.001): $mindcf2"
 
-    # comput eer and minDCFs
+    #comput eer and minDCFs
     eer=`compute-eer <(kaldi_utils/prepare_for_eer.py $trials $scores_dir/lda_scores) 2> /dev/null`
     mindcf1=`kaldi_utils/compute_min_dcf.py --p-target 0.01 $scores_dir/lda_scores $trials 2> /dev/null`
     mindcf2=`kaldi_utils/compute_min_dcf.py --p-target 0.001 $scores_dir/lda_scores $trials 2> /dev/null`
@@ -139,8 +149,8 @@ if [ $stage -le 4 ]; then
     echo ""
 fi
 
-if [ $stage -le 5 ]; then
-    #extract feature after LDA
-    copy-vector "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-        ark:${data_dir}/lda_feats.ark
-fi
+#if [ $stage -le 5 ]; then
+    ##extract feature after LDA
+    #copy-vector "ark:ivector-subtract-global-mean ${train_dir}/mean.vec ark:${test_dir}/feats.ark ark:- | transform-vec $train_dir/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+        #ark:${data_dir}/lda_feats.ark
+#fi

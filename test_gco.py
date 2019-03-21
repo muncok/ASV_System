@@ -6,13 +6,11 @@ import pandas as pd
 import pickle
 
 from model.model_utils import find_model
-from system.si_train import load_checkpoint
-from system.sv_test import get_embeds
-from data.dataloader import init_default_loader
+from system.si_train import find_criterion, load_checkpoint
+from system.sv_test import get_embeds, sv_test
+from system.sv_test import compute_minDCF
+from data.dataloader import init_default_loader, _var_len_collate_fn
 from data.feat_dataset import FeatDataset
-
-# from system.sv_test import sv_test
-# from system.sv_test import compute_minDCF
 
 #########################################
 # Parser
@@ -28,9 +26,10 @@ parser.add_argument('-n_workers', '--num_workers',
                     help='number of workers of dataloader',
                     default=0)
 
-parser.add_argument('-dataset',
-                    type=str,
-                    help='{name}_{format}_{dim}_{wav|feat}')
+# parser.add_argument('-dataset',
+                    # type=str,
+                    # required=True,
+                    # help='{name}_{format}_{dim}_{wav|feat}')
 
 parser.add_argument('-arch',
                     type=str,
@@ -48,7 +47,6 @@ parser.add_argument('-cuda',
 
 parser.add_argument('-output_dir',
                     type=str,
-                    required=True,
                     help='directory for embeds to be saved',)
 
 parser.add_argument('-n_labels',
@@ -58,48 +56,50 @@ parser.add_argument('-n_labels',
 
 args = parser.parse_args()
 config = vars(args)
-config['input_clip'] = False
+config['input_clip'] = True
+config['input_frames'] = 100
+config['splice_frames'] = 100
+config['stride_frames'] = 100
 config['gpu_no'] = [0]
 config['no_cuda'] = not args.cuda
 
 #########################################
 # Dataset Load
 #########################################
-dataset = "voices_fbank_64_feat"
-name, in_format, in_dim, mode = dataset.split("_")
-# trial_name = "voices_dev"
-# trial = pd.read_csv(("datasets/voices/voices_sv_trial.csv"))
-config['data_folder'] = "datasets/voices/eval_set/feats/fbank64_vad_npy"
-config['input_format'] = in_format
-config['input_dim'] = int(in_dim)
-config['n_labels'] = 7325
-# sv_df = pd.read_csv("datasets/voices/voices_dev.csv")
-sv_df = pd.read_csv("datasets/voices/eval_set/voices_eval.csv")
-sv_set = FeatDataset.read_df(config, sv_df, "test")
+# dataset = config['dataset']
+# name, in_format, in_dim, mode = dataset.split("_")
+config['data_folder'] = "datasets/gcommand/feats/fbank64_vad"
+config['input_format'] = 'fbank'
+config['input_dim'] = 64
+config['n_labels'] = 1759
+df = pd.read_csv("datasets/gcommand/dataframes/equal_num_30spk/gcommand_sv.csv")
+dataset = FeatDataset.read_df(config, df, "test")
 sv_loader = init_default_loader(
-        config, sv_set, shuffle=False,
-        var_len=True)
+        config, dataset, shuffle=False)
 
 #########################################
 # Model Initialization
 #########################################
 model = find_model(config)
 load_checkpoint(config, model)
+criterion = find_criterion(config, model)
 
 #########################################
 # Scoring
 #########################################
+# sv eer: equal error rate on sv(speaker verification) dataset
+trial = pd.read_csv("datasets/gcommand/dataframes/equal_num_30spk/gcommand_sv_trial.csv")
 sv_embeddings = get_embeds(config, sv_loader, model)
-# eer, thres, scores = sv_test(sv_embeddings, trial)
-# print("sv eer: {:.4f} (model:{}, dataset:{})".format(
-    # eer, config['arch'], config['dataset']))
-# compute_minDCF(scores, trial.label.tolist())
+eer, thres, scores = sv_test(sv_embeddings, trial)
+print("sv eer: {:.4f} (model:{}, dataset:gco)".format(
+    eer, config['arch']))
+compute_minDCF(scores, trial.label.tolist())
 
-if config['output_dir']:
-    output_dir = config['output_dir']
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-    sv_keys = sv_df.id.tolist()
-    pickle.dump(sv_keys, open(output_dir+"/sv_keys.pkl", "wb"))
-    np.save(output_dir+"/sv_embeds.npy", sv_embeddings.cpu().numpy())
-    print("embeds are saved at {}".format(output_dir))
+# if config['output_dir']:
+    # output_dir = config['output_dir']
+    # if not os.path.isdir(output_dir):
+        # os.makedirs(output_dir)
+    # sv_keys = df.id.tolist()
+    # pickle.dump(sv_keys, open(output_dir+"/voxc12_keys.pkl", "wb"))
+    # np.save(output_dir+"/voxc12_embeds.npy", sv_embeddings.cpu().numpy())
+    # print("embeds are saved at {}".format(output_dir))

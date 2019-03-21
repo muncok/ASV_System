@@ -21,14 +21,14 @@ def split_df(df):
 
 def find_trial(config, basedir='./'):
     dataset = config['dataset']
-    if "gcommand" in dataset:
+    if "gco" in dataset:
         trial_name = "gcommand_equal_num_30spk_trial"
-        trial = pd.read_csv(os.path.join(basedir,
-            "/dataset/SV_sets/gcommand/equal_num_30spk/gcommand_sv_trial.csv"))
+        trial = pd.read_csv("/dataset/SV_sets/gcommand/dataframes"+
+                "/equal_num_30spk/gcommand_sv_trial.csv")
     elif "voxc1" in dataset:
         trial_name = "voxc1_sv_test"
-        trial = pd.read_csv(os.path.join(basedir,
-            "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv_trial.csv"))
+        trial = pd.read_csv("/dataset/SV_sets/voxceleb1/"+
+                "dataframes/voxc1_sv_trial.csv")
     else:
         warnings.warn("ERROR: No trial file")
         raise FileNotFoundError
@@ -67,6 +67,14 @@ def get_dataset_info(config, dataset):
             n_labels = 1211
             si_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_si.csv"
             sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
+        elif dataset == "voxc1adapt_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            config['num_workers'] = 8
+            n_labels = 945
+            si_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_dev.csv"
+            sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_eval.csv"
         elif dataset == "voxc2_fbank_64_feat":
             config['data_folder'] = "/dataset/SV_sets/voxceleb2/feats/fbank64_vad"
             config['input_format'] = in_format
@@ -83,6 +91,60 @@ def get_dataset_info(config, dataset):
             n_labels = 7325
             si_df = "/dataset/SV_sets/voxceleb12/dataframes/voxc12_si.csv"
             sv_df = "/dataset/SV_sets/voxceleb12/dataframes/voxc12_sv.csv"
+        elif dataset == "gco_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/gcommand/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            n_labels = 1759
+            si_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/gcommand_si.csv"
+            sv_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/gcommand_sv.csv"
+        elif dataset == "gcoNoisy_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/gcommand/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            n_labels = 1759
+            si_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/noisy_train/gco_noisy_si.csv"
+            sv_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/gcommand_sv.csv"
+        elif dataset == "gcoIn_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/gcommand/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            n_labels = 1759
+            si_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/noisy_train/gco_noisy_si.csv"
+            sv_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/gcommand_sv.csv"
+        elif dataset == "gcoRL_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/gcommand/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            n_labels = 1759
+            si_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/noisy_train/gco_randomLabel_si.csv"
+            sv_df = "/dataset/SV_sets/gcommand/dataframes/equal_num_30spk/gcommand_sv.csv"
+        elif dataset == "voxc1RL_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            config['num_workers'] = 8
+            n_labels = 1211
+            si_df = "/dataset/SV_sets/voxceleb1/dataframes/noisy_train/voxc1_randomLabel_si.csv"
+            sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
+        elif dataset == "voxc1In_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            config['num_workers'] = 8
+            n_labels = 1211
+            si_df = "/dataset/SV_sets/voxceleb1/dataframes/noisy_train/voxc1_si_in.csv"
+            sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
+        elif dataset == "voxc1Inject_fbank_64_feat":
+            config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+            config['input_format'] = in_format
+            config['input_dim'] = int(in_dim)
+            config['num_workers'] = 8
+            n_labels = 1211
+            si_df = "/dataset/SV_sets/voxceleb1/dataframes/noisy_train/voxc1_injected_si.csv"
+            sv_df = "/dataset/SV_sets/voxceleb1/dataframes/voxc1_sv.csv"
+        else:
+            warnings.warn("Not existing dataset")
 
     if config['n_labels'] is None:
         config['n_labels'] = n_labels

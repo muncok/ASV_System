@@ -7,10 +7,10 @@ from sklearn.metrics import roc_curve
 from tqdm import tqdm
 from .compute_min_dcf import ComputeErrorRates, ComputeMinDcf
 
-def extract_embed_var_len(config, val_dataloader, model):
+def extract_embed_var_len(config, data_loader, model):
     # each input has different length
     # keep their own length
-    val_iter = iter(val_dataloader)
+    val_iter = iter(data_loader)
     embeddings = []
     labels = []
     model.eval()
@@ -36,10 +36,34 @@ def extract_embed_var_len(config, val_dataloader, model):
 
     return embeddings, labels
 
-def extract_embed_fix_len(config, val_dataloader, model):
+def extract_features_var_len(config, data_loader, model):
+    # each input has different length
+    # keep their own length
+    val_iter = iter(data_loader)
+    embeddings = []
+    model.eval()
+
+    with torch.no_grad():
+        for batch in tqdm(val_iter):
+            seq_len, x, _ = batch
+
+            if not config['no_cuda']:
+                x = x.cuda()
+
+            batch_size = len(x)
+            for i in range(batch_size):
+                x_in = x[i:i+1,:,:seq_len[i]]
+                out_feat_tensors = model.feature_list(x_in)
+                # out_feat_npys = [out.cpu().detach().numpy() for out in out_feat_tensors]
+                out_feat_tensors = torch.stack(out_feat_tensors, dim=0).cpu()
+                embeddings.append(out_feat_tensors)
+
+    return embeddings
+
+def extract_embed_fix_len(config, data_loader, model):
     # evary inputs have same length
     # they are chosen by fixed length
-    val_iter = iter(val_dataloader)
+    val_iter = iter(data_loader)
     embeddings = []
     labels = []
     model.eval()
@@ -74,6 +98,35 @@ def extract_embed_fix_len(config, val_dataloader, model):
     labels = np.hstack(labels)
 
     return embeddings, labels
+
+def extract_multi_embed_fix_len(config, data_loader, model):
+    # evary inputs have same length
+    # they are chosen by fixed length
+    val_iter = iter(data_loader)
+    embeddings = []
+    model.eval()
+
+    splice_frames = config['splice_frames']
+    stride_frames = config['stride_frames']
+
+    with torch.no_grad():
+        for batch in tqdm(val_iter):
+            x, y = batch
+            if not config['no_cuda']:
+                x = x.cuda()
+            model_outputs = []
+            time_dim = x.size(2)
+            # input are splitted by amount of splice_frames
+            split_points = range(0, time_dim-(splice_frames)+1, stride_frames)
+            for point in split_points:
+                x_in = x.narrow(2, point, splice_frames)
+                model_outputs.append(model.embed(x_in).detach().cpu())
+            model_output = torch.stack(model_outputs, dim=1)
+            embeddings.append(model_output)
+
+    embeddings = torch.cat(embeddings)
+
+    return embeddings
 
 def get_embeds(config, sv_loader, model):
     if isinstance(model, torch.nn.DataParallel):

@@ -2,6 +2,7 @@ import torch
 
 from . import tdnn
 from . import resnet34
+from . import conv1d
 
 def find_model(config):
     arch = config["arch"]
@@ -10,8 +11,12 @@ def find_model(config):
         model = tdnn.tdnn_xvector(config, 512, n_labels)
     elif arch == "tdnn_xvector_untied":
         model = tdnn.tdnn_xvector_untied(config, 512, n_labels)
+    elif arch == "tdnn_xvector_thin":
+        model = tdnn.tdnn_xvector_thin(config, 200, n_labels)
     elif arch == "ResNet34":
         model = resnet34.ResNet34(config, 16, n_labels)
+    elif arch == "conv1d_fullbank":
+        model = conv1d.conv1d_fullbank(config, n_labels)
     else:
         print("Not Implemented Model")
         raise NotImplementedError
