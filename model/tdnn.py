@@ -203,11 +203,11 @@ class tdnn_xvector_untied(tdnn_xvector):
         # (batch, time, freq) -> (batch, freq, time)
         x = x.permute(0,2,1)
         x = self.tdnn(x)
-        # x = self.tdnn6_bn(x)
-        # x = self.tdnn6_relu(x)
-        # x = self.tdnn7_affine(x)
-        # x = self.tdnn7_bn(x)
-        # x = self.tdnn7_relu(x)
+        x = self.tdnn6_bn(x)
+        x = self.tdnn6_relu(x)
+        x = self.tdnn7_affine(x)
+        x = self.tdnn7_bn(x)
+        x = self.tdnn7_relu(x)
 
         return x
 

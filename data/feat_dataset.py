@@ -62,7 +62,7 @@ class FeatDataset(data.Dataset):
     @classmethod
     def read_df(cls, config, df, set_type):
         files = df.file.tolist()
-        files = map(lambda x: x.rstrip(".npy") +".npy", files)
+        files = map(lambda x: x+".npy", files)
 
         if "label" in df.columns:
             labels = df.label.tolist()

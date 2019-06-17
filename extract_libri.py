@@ -7,7 +7,6 @@ import argparse
 # import ipdb
 
 from data.dataloader import init_default_loader
-from data.dataloader import _var_len_collate_fn
 from data.feat_dataset import FeatDataset
 from model.model_utils import find_model
 from system.si_train import load_checkpoint
@@ -45,7 +44,7 @@ parser.add_argument('-cuda',
                     action = 'store_true',
                     default= False)
 
-parser.add_argument('-output_file',
+parser.add_argument('-output_dir',
                     type=str,
                     required=True,
                     help='path for embeds to be saved',)
@@ -63,18 +62,15 @@ config['no_cuda'] = not args.cuda
 config['no_eer'] = False # TODO: for sv_set, we should set no_eer as False
 config['random_clip'] = False
 
-output_dir = "/".join(args.output_file.split("/")[:-1])
-if not os.path.isdir(output_dir):
-    os.makedirs(output_dir)
 
 #########################################
 # Dataset & Model Initialization
 #########################################
 # split=False ==> si_set, sv_set
-df = pd.read_csv(config['df'])
-config['data_folder'] = "/dataset/SV_sets/voxceleb12/feats/fbank64_vad"
+df = pd.read_pickle(config['df'])
+config['data_folder'] = "/dataset/SV_sets/librispeech/fbank64"
 config['input_dim'] = 64
-config['n_labels'] = 1211
+config['n_labels'] = args.n_labels
 dataset = FeatDataset.read_df(config, df, 'test')
 model = find_model(config)
 load_checkpoint(config, model=model)
@@ -83,6 +79,14 @@ load_checkpoint(config, model=model)
 # Extract Embeddings
 #########################################
 val_dataloader = init_default_loader(config, dataset, shuffle=False,
-        collate_fn=_var_len_collate_fn)
-val_embeddings = extract_embed_var_len(config, val_dataloader, model)
-pickle.dump(val_embeddings, open(args.output_file, "wb"))
+        var_len=True)
+val_embeddings, _ = extract_embed_var_len(config, val_dataloader, model)
+
+if config['output_dir']:
+    output_dir = config['output_dir']
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+    sv_keys = df.index.tolist()
+    pickle.dump(sv_keys, open(output_dir+"/sv_keys.pkl", "wb"))
+    np.save(output_dir+"/sv_embeds.npy", val_embeddings.cpu().numpy())
+    print("embeds are saved at {}".format(output_dir))
